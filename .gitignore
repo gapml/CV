@@ -1,0 +1,8 @@
+__pycache__
+.pytest_cache
+build/
+dist/
+gapml.egg-info
+tests/__pycache__
+train/.ipynb_checkpoints/
+site/
