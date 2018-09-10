@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  
+  <link rel="shortcut icon" href="../img/favicon.ico">
+  <title>Quick Start Guide - GapML CV</title>
+  <link href='https://fonts.googleapis.com/css?family=Lato:400,700|Roboto+Slab:400,700|Inconsolata:400,700' rel='stylesheet' type='text/css'>
+
+  <link rel="stylesheet" href="../css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../css/theme_extra.css" type="text/css" />
+  <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/github.min.css">
+  
+  <script>
+    // Current page data
+    var mkdocs_page_name = "Quick Start Guide";
+    var mkdocs_page_input_path = "quick-start-guide.md";
+    var mkdocs_page_url = null;
+  </script>
+  
+  <script src="../js/jquery-2.1.1.min.js" defer></script>
+  <script src="../js/modernizr-2.8.3.min.js" defer></script>
+  <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
+  <script>hljs.initHighlightingOnLoad();</script> 
+  
+  <script>
+      (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+      (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+      m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+      })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+      ga('create', 'UA-124527631-1', 'https://andrewferlitsch.github.io/Gap/');
+      ga('send', 'pageview');
+  </script>
+  
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+      <div class="wy-side-nav-search">
+        <a href=".." class="icon icon-home"> GapML CV</a>
+        <div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+	<ul class="current">
+	  
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="..">Home</a>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="../about/">About</a>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="../org-os/">Organization</a>
+	    </li>
+          
+            <li class="toctree-l1 current">
+		
+    <a class="current" href="./">Quick Start Guide</a>
+    <ul class="subnav">
+            
+    <li class="toctree-l2"><a href="#natural-language-processing-for-pdftiffimage-documents-computer-vision-for-image-data">Natural Language Processing for PDF/TIFF/Image Documents - Computer Vision for Image Data</a></li>
+    
+        <ul>
+        
+            <li><a class="toctree-l3" href="#1-introduction">1 Introduction</a></li>
+        
+            <li><a class="toctree-l3" href="#2-vision-module">2 VISION Module</a></li>
+        
+        </ul>
+    
+
+    </ul>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <span class="caption-text">Tutorials</span>
+    <ul class="subnav">
+                <li class="">
+                    
+    <a class="" href="../tutorials/computer_vision/">Computer Vision</a>
+                </li>
+    </ul>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <span class="caption-text">Specifications</span>
+    <ul class="subnav">
+                <li class="">
+                    
+    <a class="" href="../specs/vision_spec/">Vision</a>
+                </li>
+    </ul>
+	    </li>
+          
+        </ul>
+      </div>
+      &nbsp;
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="..">GapML CV</a>
+      </nav>
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="..">Docs</a> &raquo;</li>
+    
+      
+    
+    <li>Quick Start Guide</li>
+    <li class="wy-breadcrumbs-aside">
+      
+        <a href="https://github.com/gapml/CV/edit/master/docs/quick-start-guide.md"
+          class="icon icon-github"> Edit on GitHub</a>
+      
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main">
+            <div class="section">
+              
+                <h1 id="natural-language-processing-for-pdftiffimage-documents-computer-vision-for-image-data">Natural Language Processing for PDF/TIFF/Image Documents - Computer Vision for Image Data</h1>
+<p>Users Guide<br />
+High Precision Natural Language Processing for PDF/TIFF/Image Documents and Computer Vision for Images<br />
+Users Guide, Gap v0.9.2</p>
+<h2 id="1-introduction">1 Introduction</h2>
+<p>The target audience for this users guide are your software developers whom will be integrating the core inner block into your product and/or service. It is not meant to be a complete reference guide or comprehensive tutorial, but a brief get started guide.</p>
+<p>To utilize this module, the <strong>Gap</strong> framework will automatically install:</p>
+<h2 id="2-vision-module">2 VISION Module</h2>
+<h3 id="21-image-processing">2.1 Image Processing</h3>
+<p>CV preprocessing of images requires the <b style='class:saddlebrown'>VISION</b> module.</p>
+<p>To preprocess an image for computer vision machine learning, you create an <code>Image</code> (class) object, passing as parameters the path to the image, the corresponding label and a path for storing the preprocessed image data, the original image, optionally a thumbnail, and metadata. The label must be specified as an integer value. Below is a code example.</p>
+<pre><code class="python">from gapml.vision import Image
+image = Image(&quot;yourimage.jpg&quot;, 101, &quot;storage_path&quot;)
+</code></pre>
+
+<p>The above will generate the following output files:</p>
+<pre><code>storage_path/yourimage.h5 # preprocessed image and raw data and optional thumbnail
+</code></pre>
+<p>Alternately, the image path may be an URL; in which case, an HTTP request is made to obtain the image data from the remote location. </p>
+<pre><code class="python">image = Image(&quot;http://yourimage.jpg&quot;, 101, &quot;storage_path&quot;)
+</code></pre>
+
+<p>The <code>Image</code> class supports processing of JPEG, PNG, TIF,  BMP and GIF images. Images maybe of any pixel size, and number of channels (i.e. Grayscale, RGB and RGBA).</p>
+<p>Alternately, the input may be raw pixel data as a numpy array.</p>
+<pre><code>raw = [...], [...], […] ]
+image = Image(raw, 101, "storage_path")
+</code></pre>
+<h3 id="22-image-processing-settings-config">2.2 Image Processing Settings (Config)</h3>
+<p>CV Preprocessing of the image may be configured for several settings when instantiating an <code>Image</code> object with the optional <code>config</code> parameter, which consists of a list of one or more predefined options.</p>
+<pre><code class="python">image = Image(&quot;yourimage.jpg&quot;, 101, &quot;storage_path&quot;, config=[options])
+</code></pre>
+
+<p>options:
+    gray     | grayscale        # convert to grayscale (single channel)
+    normal   | normalize        # normalize the pixel data for values between 0 .. 1
+    flat     | flatten          # flatten the pixel data into a 1D vector
+    resize=(height,width)       # resize the image
+    thumb=(height,width)        # generate a thumbnail
+    nostore                     # do not store the preprocessed image, raw and thumbnail data</p>
+<p>Example</p>
+<pre><code class="python">image = Image(&quot;image.jpg&quot;, 101, &quot;path&quot;, config=['flatten', 'thumb=(16,16)'])
+# will preprocess the image.jpg into machine learning ready data as a 1D vector, and
+# store the raw (unprocessed) decompressed data, preprocessed data and 16 x 16 
+</code></pre>
+
+<h3 id="23-get-properties-of-preprocessed-image-data">2.3 Get Properties of Preprocessed Image Data</h3>
+<p>After an image has been preprocessed, several properties of the preprocessed image data can be obtained from the <code>Image</code> class properties:</p>
+<pre><code class="python">name    - The root name of the image.
+type    - The image format (e.g., png).
+shape   - The shape of the preprocessed image data (e.g., (100, 100,3) ).
+data    - The preprocessed image data as a numpy array.
+raw - The unprocessed decompressed image data as a numpy array.
+size    - The byte size of the original image.
+thumb – The thumbnail image data as a numpy array.
+</code></pre>
+
+<pre><code class="python">image = Image(&quot;yourimage.jpg&quot;, &quot;storage_path&quot;, 101)
+print(image.shape)
+</code></pre>
+
+<p>Will output something like:</p>
+<pre><code>(100,100,3)
+</code></pre>
+<h3 id="24-asynchronous-processing">2.4 Asynchronous Processing</h3>
+<p>To enhance concurrent execution between a main thread and worker activities, the <code>Image</code> class supports asynchronous processing of the image. Asynchronous processing will occur if the optional parameter <code>ehandler</code> is set when instantiating the <code>Image</code> object. Upon completion of the processing, the <code>ehandler</code> is called, where the <code>Image</code> object is passed as a parameter.</p>
+<pre><code class="python">def done(i):
+    &quot;&quot;&quot; Event Handler for when processing of image is completed &quot;&quot;&quot;
+    print(&quot;DONE&quot;, i.image)
+# Process the image asynchronously
+image = Image(&quot;yourimage.png&quot;, &quot;storage_path&quot;, 101, ehandler=done)
+</code></pre>
+
+<h3 id="25-image-reloading">2.5 Image Reloading</h3>
+<p>Once an <code>Image</code> object has been stored, it can later be retrieved from storage, reconstructing the <code>Image</code> object. An <code>Image</code> object is first instantiated, and then the <code>load()</code> method is called specifying the image name and corresponding storage path. The image name and storage path are used to identify and locate the corresponding stored image data.</p>
+<pre><code class="python"># Instantiate an Image object
+image = Image()
+# Reload the image's data from storage
+image.load( &quot;myimage.png&quot;, &quot;mystorage&quot; )
+</code></pre>
+
+<h3 id="26-image-collection-processing">2.6 Image Collection Processing</h3>
+<p>To preprocess a collection of images for computer vision machine learning, you create an <code>Images</code> (class) object, passing as parameters a list of the paths to the images, a list of the corresponding label and a path for storing the collection of preprocessed image data, the original images and optionally thumbnails. Each label must be specified as an integer value. Below is a code example.</p>
+<pre><code class="python">from gapml.images import Images
+images = Images([&quot;image1.jpg&quot;, &quot;image2.jpg&quot;], labels=[101, 102], name=' c1')
+</code></pre>
+
+<p>The above will generate the following output files: </p>
+<pre><code>train/c1.h5 # preprocessed image data
+</code></pre>
+<p>The <code>Images</code> object will implicitly add the 'nostore' setting to the configuration parameter of each <code>Image</code> object created. This will direct each of the <code>Image</code> objects to not store the corresponding image data in an HD5 file. </p>
+<p>Instead, upon completion of the preprocessing of the collection of image data, the entire collection of preprocessed data is stored in a single HD5 file.</p>
+<p>Alternately, the list of image paths parameter may be a list of directories containing images. </p>
+<pre><code class="python">images = Images([&quot;subfolder1&quot;, &quot;subfolder2&quot;], labels=[101, 102], name=' c1')
+</code></pre>
+
+<p>Alternately, the list of labels parameter may be a single value; in which case the label value applies to all the images. </p>
+<pre><code class="python">images = Images([&quot;image1.jpg&quot;, &quot;image2.jpg&quot;], labels=101, name=' c1') 
+</code></pre>
+
+<h3 id="27-image-collection-processing-settings-config">2.7 Image Collection Processing Settings (Config)</h3>
+<p>Configuration settings supported by the <code>Image</code> class may be specified as the optional <code>config</code> parameter to the <code>Images</code> object, which are then passed down to each <code>Image</code> object generated for the collection. </p>
+<pre><code class="python"># Preprocess each image by normalizing the pixel data and then flatten into a 1D vector
+images = Images([&quot;image1.jpg&quot;, &quot;image2.jpg&quot;], &quot;train&quot;, labels=[101, 102], config=['normal', 'flatten'])
+</code></pre>
+
+<h3 id="28-get-properties-of-a-collection">2.8 Get Properties of a Collection</h3>
+<p>After a collection of images has been preprocessed, several properties of the preprocessed image data can be obtained from the <code>Images</code> class properties:</p>
+<pre><code class="python">name – The name of the collection file.
+time – The time to preprocess the image.
+data – List of Image objects in the collection.
+len() – The len() operator will return the number of images in the collection.
+[] – The index operator will access the image objects in sequential order.
+</code></pre>
+
+<pre><code class="python"># Access each Image object in the collection
+for ix in range(len(images)):
+    image = images[ix]
+</code></pre>
+
+<h3 id="29-splitting-a-collection-into-training-and-test-data">2.9 Splitting a Collection into Training and Test Data</h3>
+<p>Batch, mini-batch and stochastic feed modes are supported. The percentage of data that is test (vs. training) is set by the <code>split</code> property, where the default is 0.2. Optionally, a mini-batch size is set by the <code>minibatch</code> property. Prior to the split, the data is randomized.</p>
+<p>The <code>split</code> property when called as a getter will return the training data, training labels, test data, and test labels, where the data and labels are returned as numpy lists, and the labels have been one-hot encoded.</p>
+<pre><code class="python"># Set 30% of the images in the collection to be test data
+images.split = 0.3
+
+# Get the entire training and test data and corresponding labels as lists.
+X_train, X_test, Y_train, Y_test = images.split
+</code></pre>
+
+<p>Alternately, the <code>next()</code> operator will iterate through the image data, and corresponding label, in the training set. </p>
+<pre><code class="python"># Set 30% of the images in the collection to be test data
+images.split = 0.3
+
+# Iterate through the training data
+while ( data, label = next(images) ) is not None:
+    pass
+</code></pre>
+
+<p>Training data can also be fetched in minibatches. The mini batch size is set using the <code>minibatch</code> property. The <code>minibatch</code> property when called as a getter will return a generator. The generator will iterate through each image, and corresponding label, of the generated mini-batch. Successive calls to the <code>minibatch</code> property will iterate through the training data.</p>
+<pre><code class="python"># Set 30% of the images in the collection to be test data
+images.split = 0.3
+
+# Train the model in mini-batches of 30 images
+images.minibatch = 30
+
+# loop for each mini-batch in training data
+for _ in range(nbatches)
+
+# create the generator
+g = images.minibatch
+
+# iterate through the mini-batch
+for data, label in g:
+    pass
+</code></pre>
+
+<p>The <code>split</code> property when used as a setter may optionally take a seed for initializing the randomized shuffling of the training set.</p>
+<pre><code class="python"># Set the seed for the random shuffle to 42
+images.split = 0.3, 42
+</code></pre>
+
+<h3 id="210-image-augmentation">2.10 Image Augmentation</h3>
+<p>Image augmentation is supported. By default, images are not augmented. If the property <code>augment</code> is set to <code>True</code>, then for each image generated for feeding (see <code>next()</code> and minibatch) an additional image will be generated. The additional image will be a randomized rotation between -90 and 90 degrees of the corresponding image. For example, if a training set has a 1000 images, then 2000 images will be feed when the property augment is set to True, where 1000 of the images are the original images, and another 1000 are the generated augmented images.</p>
+<pre><code class="python">images.split = 0.3, 42
+
+# Enable image augmentation
+images.augment = True
+
+# Iterate through the training data, where every other image will be an augmented image
+while ( data, label = next(images) ) is not None:
+   pass
+</code></pre>
+
+<h3 id="211-asynchronous-collection-processing">2.11 Asynchronous Collection Processing</h3>
+<p>To enhance concurrent execution between a main thread and worker activities, the <code>Images</code> class supports asynchronous processing of the collection of images. Asynchronous processing will occur if the optional parameter <code>ehandler</code> is set when instantiating the Images object. Upon completion of the processing, the ehandler is called, where the <code>Images</code> object is passed as a parameter.</p>
+<pre><code class="python">def done(i):
+    &quot;&quot;&quot; Event Handler for when processing of collection of images is completed &quot;&quot;&quot;
+    print(&quot;DONE&quot;, i.images)
+
+# Process the collection of images asynchronously
+images = Images([&quot;img1.png&quot;, &quot;img2.png&quot;], &quot;train&quot;, labels=[0,1], ehandler=done)
+</code></pre>
+
+<h3 id="212-collection-reloading">2.12 Collection Reloading</h3>
+<p>Once an <code>Images</code> object has been stored, it can later be retrieved from storage, reconstructing the <code>Images</code> object, and corresponding list of <code>Image</code> objects. An <code>Image</code>s object is first instantiated, and then the <code>load()</code> method is called specifying the collection name and corresponding storage path. The collection name and storage path are used to identify and locate the corresponding stored image data.</p>
+<pre><code class="python"># Instantiate an Images object
+images = Images()
+
+# Reload the collection of image data from storage
+images.load( &quot;mycollection&quot;, &quot;mystorage&quot; )
+</code></pre>
+
+<p>Proprietary Information<br />
+Copyright ©2018, Epipog, All Rights Reserved</p>
+              
+            </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="../tutorials/computer_vision/" class="btn btn-neutral float-right" title="Computer Vision">Next <span class="icon icon-circle-arrow-right"></span></a>
+      
+      
+        <a href="../org-os/" class="btn btn-neutral" title="Organization"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+    
+  </div>
+
+  Built with <a href="http://www.mkdocs.org">MkDocs</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+      
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" style="cursor: pointer">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+      
+          <a href="https://github.com/gapml/CV/" class="fa fa-github" style="float: left; color: #fcfcfc"> GitHub</a>
+      
+      
+        <span><a href="../org-os/" style="color: #fcfcfc;">&laquo; Previous</a></span>
+      
+      
+        <span style="margin-left: 15px"><a href="../tutorials/computer_vision/" style="color: #fcfcfc">Next &raquo;</a></span>
+      
+    </span>
+</div>
+    <script>var base_url = '..';</script>
+    <script src="../js/theme.js" defer></script>
+      <script src="../search/main.js" defer></script>
+
+</body>
+</html>
