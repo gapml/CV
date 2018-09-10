@@ -7,26 +7,6 @@
 
 The Gap NLP/CV data engineering framework provides an easy to get started into the world of machine learning for your unstructured data in PDF documents, scanned documents, TIFF facsimiles and camera captured documents, and your image data in image files and image repositories.
 
-*NLP , v0.9.3 (Pre-launch: alpha)*
-
-  - Automatic OCR of scanned PDF and camera captured images.
-  - Automatic Text Extraction from documents.
-  - Automatic Syntax Analysis.
-  - Optional Romanization of Latin-1 diacritic characters.
-  - Optional Spell Correction.
-  - Programmatic control for data extraction or redaction (de-identification).
-
-    - Names, Addresses, Proper Places
-    - Social Security Numbers, Data of Birth, Gender, Age
-    - Telephone Numbers
-    - Numerical Information (e.g., medical, financial, …) and units of measurement.
-    - Unit conversion from US Standard to Metric, and vice-versa
-    - Unicode character recognition
-
-  - Machine Training of Document and Page Classification.
-  - Asynchronous processing of documents.
-  - Automatic generation of NLP machine learning ready data.
-
 *CV , v0.9.4 (Pre-launch: beta)*
 
   - Automatic storage and retrieval with high performance HDF5 files.
@@ -133,10 +113,6 @@ Online documentation for [pytest](https://docs.pytest.org)
 
 The following are the pre-built automated unit tests, which are located under the subdirectory tests:
 
-    document_test.py    # Tests the Document Class in the Splitter Module
-    page_test.py        # Tests the Page Class in the Splitter Module
-    words_test.py       # Tests the Words and Addresses Class in the Syntax Module
-    segment_test.py     # Tests the Segment Class in the Segment Module
     image_test.py       # Tests the Image and Images Class in the Vision Module
 
 The automated tests are executed as follows:
