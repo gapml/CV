@@ -26,7 +26,7 @@ tests_require=[
 
 package_data={'gapml':['tools/*', 'train/*']}
 
-project_urls={"Documentation": "https://andrewferlitsch.github.io/Gap/",
+project_urls={"Documentation": "https://gapml.github.io/CV/",
               "Source Code": "https://github.com/gapml/CV"}
 
 #https://pypi.org/pypi?%3Aaction=list_classifiers
@@ -54,7 +54,7 @@ setup(
     author='Andrew Ferlitsch',
     author_email='aferlitsch@gmail.com',
     license='Apache 2.0',
-    url='https://github.com/andrewferlitsch/Gap',
+    url='https://github.com/gapml/CV',
     project_urls=project_urls,
     long_description=long_description,
     packages=find_packages(exclude=["*.tests", "*.tests.*", "tests.*", "tests"]),
