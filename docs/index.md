@@ -1,11 +1,10 @@
-# Gap : NLP/CV Data Engineering Framework
+# Gap : CV Data Engineering Framework
 
-## Natural Language Processing for PDF, TIFF, and Camera Captured Documents, and
 ## Computer Vision Processing for Images
 
 ### Framework
 
-The Gap NLP/CV data engineering framework provides an easy to get started into the world of machine learning for your unstructured data in PDF documents, scanned documents, TIFF facsimiles and camera captured documents, and your image data in image files and image repositories.
+The Gap CV data engineering framework provides an easy to get started into the world of machine learning for your image data in image files and image repositories.
 
 *CV , v0.9.4 (Pre-launch: beta)*
 
@@ -41,15 +40,10 @@ The source code is made available under the Apache 2.0 license: [Apache 2.0](htt
 
 The Gap framework extensively uses a number of open source applications/modules. The following applications and modules will be downloaded onto your computer/laptop when the package **OR** setup file is installed.
 
-  1. Artifex's Ghostscript - extracting text from text PDF
-  2. ImageMagic's Magick - extracting image from scanned PDF
-  3. Google's Tesseract - OCR of scanned/image captured text
-  4. NLTK (Natural Language Toolkit) - stemming/lemmatizer/parts of speech annotation
-  5. unidecode - romanization of latin character codes
-  6. numpy - high performance in-memory arrays (tensors)
-  7. HDF5 - high performance of on-disk data (tensors) access
-  8. openCV - image manipulation and processing for computer vision
-  9. imutils - image manipulation for computer vision
+  1. numpy - high performance in-memory arrays (tensors)
+  2. HDF5 - high performance of on-disk data (tensors) access
+  3. openCV - image manipulation and processing for computer vision
+  4. imutils - image manipulation for computer vision
   
 ## Pip Installation: 
 
@@ -58,7 +52,7 @@ The Gap framework is supported on Windows, MacOS, and Linux. It has been package
   1. install [miniconda](https://conda.io/miniconda.html)
 
   2. (optional)  
-      + Create an environment with: `conda create -n gap python==3.7 jupyter`  
+      + Create an environment with: `conda create -n gap python==3.6 jupyter`  
       + Activate: `source activate gap`
       + Deactivate: `source deactivate`
 

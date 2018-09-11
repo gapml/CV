@@ -58,7 +58,7 @@ The Gap framework is supported on Windows, MacOS, and Linux. It has been package
   1. install [miniconda](https://conda.io/miniconda.html)
 
   2. (optional)  
-      + Create an environment with: `conda create -n gap python==3.7 jupyter`  
+      + Create an environment with: `conda create -n gap python==3.6 jupyter`  
       + Activate: `source activate gap`
       + Deactivate: `source deactivate`
 
