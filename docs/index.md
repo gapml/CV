@@ -57,7 +57,7 @@ The Gap framework is supported on Windows, MacOS, and Linux. It has been package
       + Deactivate: `source deactivate`
 
   3. install GapML:  
-      + `pip install gapml`
+      + `pip install gapcv`
 
 ## Setup.py Installation:
 
