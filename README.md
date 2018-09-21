@@ -117,6 +117,10 @@ The following are the pre-built automated unit tests, which are located under th
 
 The automated tests are executed as follows:
 
+  1. From directory root enter `cd tests`
+
+  2. To run tests with coverage: 
+
     pytest -v image_test.py
 
 #### Code Coverage
@@ -124,6 +128,10 @@ The automated tests are executed as follows:
 Information on the percent of code that is covered (and what source lines not covered) by the automated tests is obtained using pytest-cov. This version of pytest is installed using pip:
 
     pip install pytest-cov
+
+  1. From directory root enter `cd tests`
+
+  2. To run tests with coverage:
 
 Testing with code coverage is executed as follows:
 
