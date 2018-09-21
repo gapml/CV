@@ -6,6 +6,7 @@ Copyright 2018(c), Andrew Ferlitsch
 version = '0.9.4'
 
 import os
+import io
 import threading
 import time
 import copy
@@ -39,6 +40,7 @@ class Image(object):
         self._image     = image      # image path
         self._name      = None       # name of image (no path or suffix)
         self._size      = 0          # byte size of the image on disk
+        self._ressize   = 0          # byte size of the image on memory after resize
         self._type      = None       # image type of the image
         self._dir       = None       # image storage
         self._shape     = None       # shape of the image
@@ -143,6 +145,11 @@ class Image(object):
                         self._float = np.float64
                     else:
                         raise AttributeError("Float values must be float16, float32 or float64")
+                elif setting.startswith('uint8'):
+                    if setting == 'uint8':
+                        self._float = np.uint8
+                    else:
+                        raise AttributeError("Integer values must be uint8")
                 elif setting.startswith('nlabels='):
                     pass # ignore
                 else:
@@ -207,7 +214,22 @@ class Image(object):
             # Size sanity check
             if self._size == 0:
                 raise IOError("The image is an empty file")
-            
+
+    def _sizeof(self):
+        """ Returns the byte size of the processed image """
+        size = 1
+        for dim in self.shape:
+            size *= dim
+        if self._float == np.uint8:
+            size * 1
+        elif self._float == np.float16:
+            size * 2
+        elif self._float == np.float32:
+            size * 4
+        elif self._float == np.float64:
+            size * 8
+        self._ressize = size / 8
+
     def _collate(self, dir='./'):
         """ Process the image """   
         
@@ -274,9 +296,11 @@ class Image(object):
             try:
                 self._thumb = cv2.resize(image, self._thumbnail,interpolation=cv2.INTER_AREA)
             except Exception as e: print(e)
-            
+        
         if self._resize:
             image = cv2.resize(image, self._resize)
+            #get new image size
+            self._ressize = self._sizeof(image)
         
         # Get the shape of the array
         self._shape = image.shape
@@ -295,15 +319,19 @@ class Image(object):
                 image = (image / 255.0).astype(np.float16)
             elif self._float == np.float64:
                 image = (image / 255.0).astype(np.float64)
-            else:
+            elif self._float == np.float32:
                 image = (image / 255.0).astype(np.float32)
+            elif self._float == np.uint8:
+                pass    # do not normalize
         elif data_type == np.uint16:
             if self._float == np.float16:
                 image = (image / 65535.0 ).astype(np.float16)
             elif self._float == np.float64:
                 image = (image / 65535.0 ).astype(np.float64)
-            else:
+            elif self._float == np.float32:
                 image = (image / 65535.0 ).astype(np.float32)
+            elif self._float == np.uint8:
+                pass    # do not normalize
         # assume pixel data is normalized
         elif data_type == np.float16 or data_type is np.float32 or data_type is np.float64:
             if self._float == np.float16:
@@ -345,6 +373,7 @@ class Image(object):
             imgset.attrs['name']  = self._name
             imgset.attrs['type']  = self._type
             imgset.attrs['size']  = self._size
+            imgset.attrs['ressize']  = self._ressize
             imgset.attrs['type']  = self._type
             if not self._noraw:
                 hf.create_dataset("raw", data=[self._raw])
@@ -409,6 +438,7 @@ class Image(object):
             except: pass
             self._type  = imgset.attrs["type"]  
             self._size  = imgset.attrs["size"]
+            self._ressize  = imgset.attrs["ressize"]
             self._rawshape = imgset.attrs["rawshape"]
         self._shape = self._imgdata.shape
 
@@ -479,6 +509,11 @@ class Image(object):
         return self._size    
         
     @property
+    def ressize(self):
+        """ Return the byte size of the image after resize """
+        return self._ressize
+
+    @property
     def time(self):
         """ Return the elapse time to do collation """
         return self._time
@@ -535,6 +570,7 @@ class Images(object):
         self._time     = 0          # processing time
         self._fail     = 0          # how many images that failed to process
         self._nlabels  = None       # number of labels in the collection
+        self._errors   = None       # list of errors reporting
         
         if images is None:
             return
@@ -656,7 +692,6 @@ class Images(object):
         else:
             self._ehandler(self)
             
-            
     def _process(self):
         """ Process a collection of images """
        
@@ -664,23 +699,30 @@ class Images(object):
  
         # Process each image
         self._data = []
+        self._errors = []
         for ix in range(len(self._images)):
             # directory of files
             if isinstance(self._images[ix], str) and os.path.isdir(self._images[ix]):
                 for image in [ self._images[ix] + '/' + file for file in os.listdir(self._images[ix])]:
                     try:
                         self._data.append( Image(image, dir=self._dir, label=self._labels[ix], config=self._config) )
-                    except: 
+                    except Exception as e: 
                         self._data.append(None)
                         self._fail += 1
+                        error = (image, e)
+                        if e not in self._errors:
+                            self._errors.append( error )
             # single file
             else:
                 try:
                     self._data.append( Image(self._images[ix], dir=self._dir, label=self._labels[ix], config=self._config) )
-                except:
+                except Exception as e:
                     self._data.append(None)
                     self._fail += 1
-                
+                    error = (self._images[ix] , e)
+                    if e not in self._errors:
+                        self._errors.append( error )
+        
         # Store machine learning ready data
         if self._nostore is False:
             self.store()
@@ -690,15 +732,16 @@ class Images(object):
     def store(self):
         """ """
         # Store the images as a collection in an HD5 filesystem
-        imgdata  = []
-        clsdata  = []
-        rawdata  = []
-        sizdata  = []
-        thmdata  = []
-        rawshape = []
-        names    = []
-        types    = []
-        paths    = []
+        imgdata   = []
+        clsdata   = []
+        rawdata   = []
+        sizdata   = []
+        thmdata   = []
+        rawshape  = []
+        ressizedt = []
+        names     = []
+        types     = []
+        paths     = []
         for img in self._data:
             # unprocessed image
             if not img:
@@ -710,6 +753,7 @@ class Images(object):
                     rawdata.append( img.raw )
                 rawshape.append( img.rawshape )
                 sizdata.append( img.size )
+                ressizedt.append( img.ressize )
                 if img.thumb is not None:
                     thmdata.append( img.thumb )
                 names.append( bytes(img.name, 'utf-8') )
@@ -728,16 +772,17 @@ class Images(object):
             try:
                 hf.create_dataset("images", data=imgdata)
             except:
-                for _ in range(len(imgdata)):
-                    hf.create_dataset("imgdata" + str(_), data=imgdata[_])
+                for i, img in enumerate(imgdata):
+                    hf.create_dataset("imgdata" + str(i), data=img)
             hf.create_dataset("labels", data=clsdata)
             # use separate datasets to handle raw images of different size/shape
-            for _ in range(len(rawdata)):
-                hf.create_dataset("raw" + str(_), data=rawdata[_])
+            for i, img in enumerate(rawdata):
+                hf.create_dataset("raw" + str(i), data=img)
             hf.create_dataset("rawshape", data=rawshape)
             if len(thmdata) > 0:
                 hf.create_dataset("thumb", data=thmdata)
             hf.create_dataset("size",  data=sizdata)
+            hf.create_dataset("ressize", data=ressizedt)
             hf.create_dataset("names", data=names)
             hf.create_dataset("types", data=types)
             hf.create_dataset("paths", data=paths)
@@ -793,6 +838,11 @@ class Images(object):
     def fail(self):
         """ Number of images that failed processing """
         return self._fail
+
+    @property
+    def errors(self):
+        """ list errors reporting """
+        return self._errors
         
     def load(self, name, dir=None):
         """ Load a Collection of Images """
@@ -822,8 +872,9 @@ class Images(object):
                     image._raw = hf["raw" + str(i)][:]
                 except: pass
                 image._rawshape = hf["rawshape"][i]
-                image._size = hf["size"][i]
-                image._label = hf["labels"][i]
+                image._size     = hf["size"][i]
+                image._ressize  = hf['ressize'][i]
+                image._label    = hf["labels"][i]
                 try:
                     image._thumb = hf["thumb"][i]
                 except: pass
@@ -921,11 +972,21 @@ class Images(object):
         for _ in range(self._next, min(self._next + self._minisz, self._trainsz)): 
             ix = self._train[_]
             self._next += 1 
-            yield self._data[ix]._imgdata , self._data[ix]._label
+            # pre-normalized: normalize as being feed
+            if self.pixeltype == np.uint8:
+                yield (self._data[ix]._imgdata / 255.0).astype(np.float32), self._data[ix]._label
+            # already normalized
+            else:
+                yield self._data[ix]._imgdata, self._data[ix]._label
             if self._augment:
                 for _ in range(self._rotate[2]):
                     degree = random.randint(self._rotate[0], self._rotate[1])
-                    yield self._data[ix].rotate(degree), self._data[ix]._label
+                    # pre-normalized: normalize as being feed
+                    if self.pixeltype == np.uint8:
+                        yield (self._data[ix].rotate(degree) / 255.0).astype(np.float32), self._data[ix]._label
+                    # already normalized
+                    else:
+                        yield self._data[ix].rotate(degree), self._data[ix]._label
         
     @minibatch.setter
     def minibatch(self, batch_size):
@@ -1027,6 +1088,17 @@ class Images(object):
         for image in self._data:
             image._imgdata = cv2.resize(image._imgdata, resize, interpolation=cv2.INTER_AREA)
             image._shape   = image._imgdata.shape
+            
+    @property
+    def pixeltype(self):
+        """ Return the datatype of pixel data """
+        dim = len(self._data[0]._imgdata.shape)
+        if dim == 1:
+            return type(self._data[0]._imgdata[0])
+        elif dim == 2:
+            return type(self._data[0]._imgdata[0][0])
+        else:
+            return type(self._data[0]._imgdata[0][0][0])
          
       
     def __next__(self):
@@ -1048,12 +1120,23 @@ class Images(object):
             if self._rotate[3] > 0:
                 self._rotate[3] -= 1
                 degree = random.randint(self._rotate[0], self._rotate[1])
-                return self._data[ix].rotate(degree) , self._data[ix]._label
+                # pre-normalize: normalize as being feed
+                if self.pixeltype == np.uint8:
+                    return (self._data[ix].rotate(degree) / 255.0).astype(np.float32), self._data[ix]._label
+                # already normalized
+                else:
+                    return self._data[ix].rotate(degree), self._data[ix]._label
             else:
                 self._rotate[3] = self._rotate[2]
             
         self._next += 1
-        return self._data[ix]._imgdata , self._data[ix]._label
+        
+        # pre-normalize: normalize as being feed
+        if self.pixeltype == np.uint8:
+            return (self._data[ix]._imgdata / 255.0).astype(np.float32), self._data[ix]._label
+        # already normalized
+        else:
+            return self._data[ix]._imgdata, self._data[ix]._label
                 
 
     def __len__(self):
