@@ -9,16 +9,18 @@ from setuptools import setup, find_packages
 with open('README.md', 'r', encoding="utf-8") as f:
     long_description = f.read()
 
-install_requires=[
-    'numpy==1.14.5',
-    'h5py==2.8.0',
-    'unidecode==1.0.22',
-    'pandas==0.23.4',
-    'requests==2.19.1',
-    'opencv-python==3.4.3.18',
-    'pillow==5.2.0',
-    'matplotlib==2.2.3'
-    ]
+install_requires = [
+    'beautifulsoup4',
+    'numpy',
+    'h5py',
+    'imutils',
+    'Unidecode',
+    'nltk',
+    'pandas',
+    'requests',
+    'opencv-python',
+    'Pillow',
+    'matplotlib']
 
 tests_require=[
     'pytest',
@@ -32,7 +34,7 @@ project_urls={"Documentation": "https://gapml.github.io/CV/",
 #https://pypi.org/pypi?%3Aaction=list_classifiers
 classifiers=[
     'Development Status :: 3 - Alpha',
-    'Topic :: Image Processing',
+    'Topic :: Scientific/Engineering :: Image Recognition',
     'License :: OSI Approved :: Apache Software License',
     'Operating System :: Microsoft :: Windows',
     'Operating System :: MacOS',

@@ -5,6 +5,5 @@ dist/
 gapml.egg-info
 tests/__pycache__
 train/.ipynb_checkpoints/
-train/flower_photos/
 gapcv.egg-info
 site/
