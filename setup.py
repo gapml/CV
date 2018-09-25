@@ -9,16 +9,18 @@ from setuptools import setup, find_packages
 with open('README.md', 'r', encoding="utf-8") as f:
     long_description = f.read()
 
-install_requires=[
-    'numpy==1.14.5',
+install_requires = [
+    'beautifulsoup4==4.6.3',
+    'numpy==1.15.1',
     'h5py==2.8.0',
-    'unidecode==1.0.22',
+    'imutils==0.5.1',
+    'Unidecode==1.0.22',
+    'nltk==3.3',
     'pandas==0.23.4',
     'requests==2.19.1',
     'opencv-python==3.4.3.18',
-    'pillow==5.2.0',
-    'matplotlib==2.2.3'
-    ]
+    'Pillow==5.2.0',
+    'matplotlib==2.2.3']
 
 tests_require=[
     'pytest',
