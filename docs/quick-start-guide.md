@@ -2,7 +2,7 @@
 
 Users Guide  
 High Precision Natural Language Processing for PDF/TIFF/Image Documents and Computer Vision for Images  
-Users Guide, Gap v0.9.2
+Users Guide, Gap v0.9.4
 
 ## 1 Introduction
 
@@ -18,7 +18,7 @@ CV preprocessing of images requires the <b style='class:saddlebrown'>VISION</b> 
 To preprocess an image for computer vision machine learning, you create an `Image` (class) object, passing as parameters the path to the image, the corresponding label and a path for storing the preprocessed image data, the original image, optionally a thumbnail, and metadata. The label must be specified as an integer value. Below is a code example.
 
 ```python
-from gapml.vision import Image
+from gapcv.vision import Image
 image = Image("yourimage.jpg", 101, "storage_path")
 ```
 
@@ -113,7 +113,7 @@ image.load( "myimage.png", "mystorage" )
 To preprocess a collection of images for computer vision machine learning, you create an `Images` (class) object, passing as parameters a list of the paths to the images, a list of the corresponding label and a path for storing the collection of preprocessed image data, the original images and optionally thumbnails. Each label must be specified as an integer value. Below is a code example.
 
 ```python
-from gapml.images import Images
+from gapcv.images import Images
 images = Images(["image1.jpg", "image2.jpg"], labels=[101, 102], name=' c1')
 ```
 
