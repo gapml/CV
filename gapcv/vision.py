@@ -31,6 +31,9 @@ import cv2
 # Import pillow for Python image manipulation for GIF
 from PIL import Image as PILImage
 
+# import multiprocessing
+import multiprocessing as mp
+
 class Image(object):
     """ Base (super) Class for Classifying an Image """
 
@@ -61,6 +64,17 @@ class Image(object):
         self._float     = np.float32 # data type after normalization
 
         if self._debug: print(config)
+
+        self._info = {'uint8'  : {'dtype': np.uint8,
+                                  'msg1' : 'Integer',
+                                  'msg2' : 'uint8'},
+                      'float'  : {'msg1' : 'Float',
+                                  'msg2' : 'float16, float32 or float64'},
+                      'float16': {'dtype': np.float16},
+                      'float32': {'dtype': np.float32},
+                      'float64': {'dtype': np.float64},
+                      np.uint8 : 255.0,
+                      np.uint16: 65535.0}
 
         # value must be a string
         if image is not None and not isinstance(image, str) and not isinstance(image, np.ndarray):
@@ -98,6 +112,7 @@ class Image(object):
             raise TypeError("List expected for config settings")
 
         if config is not None:
+
             for setting in config:
                 if isinstance(setting, str) == False:
                     raise TypeError("String expected for each config setting")
@@ -109,48 +124,32 @@ class Image(object):
                     self._hd5 = False
                 elif setting in ['raw']:
                     self._noraw = False
-                elif setting.startswith('resize='):
+                elif setting.startswith('resize=') or setting.startswith('thumb='):
                     toks = setting.split('=')
+                    if toks[0] == 'thumb':
+                        toks[0] = 'thumbnail'
                     if len(toks) != 2:
-                        raise AttributeError("Tuple(height, width) expected for resize")
+                        raise AttributeError("Tuple(height, width) expected for {}".format(toks[0]))
                     vals = toks[1].split(',')
                     if len(vals) != 2:
-                        raise AttributeError("Tuple(height, width) expected for resize")
+                        raise AttributeError("Tuple(height, width) expected for {}".format(toks[0]))
                     if vals[0][0] == '(':
                         vals[0] = vals[0][1:]
                     if vals[1][-1] == ')':
                         vals[1] = vals[1][:-1]
                     if not vals[0].isdigit() or not vals[1].isdigit():
-                        raise AttributeError("Resize values must be an integer")
-                    self._resize = ( int(vals[1]), int(vals[0]) )
-                elif setting.startswith('thumb='):
-                    toks = setting.split('=')
-                    if len(toks) != 2:
-                        raise AttributeError("Tuple(height, width) expected for thumbnail")
-                    vals = toks[1].split(',')
-                    if len(vals) != 2:
-                        raise AttributeError("Tuple(height, width) expected for thumbnail")
-                    if vals[0][0] == '(':
-                        vals[0] = vals[0][1:]
-                    if vals[1][-1] == ')':
-                        vals[1] = vals[1][:-1]
-                    if not vals[0].isdigit() or not vals[1].isdigit():
-                        raise AttributeError("Thumbnail values must be an integer")
-                    self._thumbnail = ( int(vals[1]), int(vals[0]) )
-                elif setting.startswith('float'):
-                    if setting == 'float16':
-                        self._float = np.float16
-                    elif setting == 'float32':
-                        self._float = np.float32
-                    elif setting == 'float64':
-                        self._float = np.float64
+                        raise AttributeError("{} values must be an integer".format(toks[0]))
+                    if setting.startswith('resize='):
+                        self._resize = (int(vals[1]), int(vals[0]))
+                    elif setting.startswith('thumb='):
+                        self._thumbnail = (int(vals[1]), int(vals[0]))
+
+                elif setting.startswith('uint8') or setting.startswith('float'):
+                    if setting in ['uint8', 'float16', 'float32', 'float64']:
+                        self._float = self._info[setting]['dtype']
                     else:
-                        raise AttributeError("Float values must be float16, float32 or float64")
-                elif setting.startswith('uint8'):
-                    if setting == 'uint8':
-                        self._float = np.uint8
-                    else:
-                        raise AttributeError("Integer values must be uint8")
+                        s = setting[:5]
+                        raise AttributeError("{} values must be {}".format(self._info[s]['msg1'], self._info[s]['msg2']))
                 elif setting.startswith('nlabels='):
                     pass # ignore
                 else:
@@ -236,10 +235,6 @@ class Image(object):
 
         start = time.time()
 
-        # If directory does not exist, create it
-        if dir != "./" and os.path.isdir(dir) == False:
-            os.mkdir(dir)
-
         # Image data was directly inputted
         if isinstance(self._image, np.ndarray):
             if self._grayscale:
@@ -295,7 +290,7 @@ class Image(object):
         # Create the thumbnail
         if self._thumbnail:
             try:
-                self._thumb = cv2.resize(image, self._thumbnail,interpolation=cv2.INTER_AREA)
+                self._thumb = cv2.resize(image, self._thumbnail, interpolation=cv2.INTER_AREA)
             except Exception as e: print(e)
 
         if self._resize:
@@ -315,32 +310,14 @@ class Image(object):
             data_type = type(image[0][0][0])
 
         # Normalize the image (convert pixel values from int range 0 .. 255 to float range 0 .. 1)
-        if data_type == np.uint8:
-            if self._float == np.float16:
-                image = (image / 255.0).astype(np.float16)
-            elif self._float == np.float64:
-                image = (image / 255.0).astype(np.float64)
-            elif self._float == np.float32:
-                image = (image / 255.0).astype(np.float32)
-            elif self._float == np.uint8:
-                pass    # do not normalize
-        elif data_type == np.uint16:
-            if self._float == np.float16:
-                image = (image / 65535.0 ).astype(np.float16)
-            elif self._float == np.float64:
-                image = (image / 65535.0 ).astype(np.float64)
-            elif self._float == np.float32:
-                image = (image / 65535.0 ).astype(np.float32)
-            elif self._float == np.uint8:
-                pass    # do not normalize
-        # assume pixel data is normalized
-        elif data_type == np.float16 or data_type is np.float32 or data_type is np.float64:
-            if self._float == np.float16:
-                image = image.astype(np.float16)
-            elif self._float == np.float64:
-                image = image.astype(np.float64)
-            else:
-                image = image.astype(np.float32)
+        if self._float in [np.float16, np.float32, np.float64]:
+            if data_type in [np.uint8, np.uint16]:
+                image = (image / self._info[data_type]).astype(self._float)
+            # assume pixel data is normalized
+            if data_type in [np.float16, np.float32, np.float64]:
+                image = image.astype(self._float)
+        elif self._float == np.uint8:
+            pass    # do not normalize
 
         # Flatten the image into a 1D vector
         if self._flatten:
@@ -394,7 +371,7 @@ class Image(object):
         rotated = imutils.rotate_bound(self._imgdata, degree)
 
         # resize back to expected dimensions
-        if degree not in [ 0, 90, 180, 270, -90, -180, -270 ]:
+        if degree not in [0, 90, 180, 270, -90, -180, -270]:
             # resize takes only height x width
             shape = (self._imgdata.shape[0], self._imgdata.shape[1])
             rotated = cv2.resize(rotated, shape, interpolation=cv2.INTER_AREA)
@@ -429,16 +406,16 @@ class Image(object):
         # Read the image from disk as HD5 file
         with h5py.File(self._dir + "/" + self._name + '.h5', 'r') as hf:
             imgset = hf['images']
-            self._imgdata =  hf['images'][0]
-            self._label   =  hf['labels'][0]
+            self._imgdata = hf['images'][0]
+            self._label   = hf['labels'][0]
             try:
-                self._raw     =  hf['raw'][0]
+                self._raw = hf['raw'][0]
             except: pass
             try:
-                self._thumb =  hf['thumb'][0]
+                self._thumb = hf['thumb'][0]
             except: pass
-            self._type  = imgset.attrs["type"]
-            self._size  = imgset.attrs["size"]
+            self._type     = imgset.attrs["type"]
+            self._size     = imgset.attrs["size"]
             self._ressize  = imgset.attrs["ressize"]
             self._rawshape = imgset.attrs["rawshape"]
         self._shape = self._imgdata.shape
@@ -545,7 +522,7 @@ class Image(object):
 
 class Images(object):
     """ Base (super) for classifying a group of images """
-    def __init__(self, images=None, labels=None, dir='./', name=None, ehandler=None, config=None):
+    def __init__(self, images=None, labels=None, dir='./', name=None, ehandler=None, config=None, num_proc=1):
         self._images   = images     # collection of images to process
         self._dir      = dir        # storage directory for processed images
         self._labels   = labels     # labels corresponding to collection of images
@@ -565,6 +542,7 @@ class Images(object):
         self._augment  = False      # image augmentation
         self._toggle   = True       # toggle for image augmentation
         self._nostore  = False      # do not store into HDF5 flag
+        self._nomem    = False      # do not keep collection in memory
         self._rotate   = [-90, 90, 1, 1] # rotation parameters for image augmentation
         self._resize   = None       # config setting for resize
         self._noraw    = True       # config setting for not storing raw data
@@ -572,59 +550,132 @@ class Images(object):
         self._fail     = 0          # how many images that failed to process
         self._nlabels  = None       # number of labels in the collection
         self._errors   = None       # list of errors reporting
+        self._classes  = None       # mapping of classes to labels
+        self._num_proc = num_proc   # number of processes
 
         if images is None:
             return
 
-        if isinstance(images, list):
-            for ele in images:
-                if isinstance(ele, str) or isinstance(ele, np.ndarray):
-                    pass
+        info_image = {'str':[images],
+                      'list':images,
+                      'int':[images],
+                      'ndarray':images}
+
+        info_label = {'str':[labels],
+                      'int':[labels],
+                      'list':labels,
+                      'NoneType':[0],
+                      'ndarray':labels}
+
+        classes = {}
+
+        images = info_image[type(images).__name__]
+        labels = info_label[type(labels).__name__]
+
+        is_dir = True
+        is_file = False
+        while is_dir:
+            images2 = []
+            # input path directory
+            if len(images) > 0 and not isinstance(images[0], np.ndarray) and os.path.isdir(str(images[0])):
+                if os.path.isdir(images[0]):
+                    for i, image in enumerate(images):
+                        if os.path.isdir(image) and is_file is False:
+                            for file in os.listdir(image):
+                                if not os.path.isfile(image + '/' + file):
+                                    images2 += [image + '/' + file]
+                                    images = images2
+                                elif len(images) == i+1:
+                                    is_file = True
+                        elif os.path.isdir(image):
+                            for img in os.listdir(image):
+                                if len(labels) == 1 and labels[0] != 0:
+                                    label = labels[0]
+                                elif len(labels) > 1 and labels[0] != 0:
+                                    if len(images) != len(labels):
+                                        raise IndexError("Number of images and labels do not match")
+                                    label = labels[i]
+                                else:
+                                    label = i
+                                if not isinstance(label, int):
+                                    raise TypeError("Integer expected for image labels")
+                                images2 += [(image + '/' + img, label)]
+                                classes[image.split('/')[-1]] = label
+                            is_dir = False
+                            if len(images) == i+1:
+                                images = images2
+            else:
+                # input is a list of files
+                # TypeErrors
+                if isinstance(images, list) and len(images) > 0:
+                    for img in images:
+                        if isinstance(img, str) or isinstance(img, int):
+                            if not os.path.isdir(str(img)) and not os.path.isfile(str(img)):
+                                raise TypeError("{} is not a directory or an image path".format(img))
+                elif isinstance(images, np.ndarray):
+                    if len(images.shape) < 2:
+                        raise TypeError("2D or greater numpy array expected for images")
                 else:
                     raise TypeError("String or Raw Pixel data expected for image paths")
-        elif isinstance(images, str):
-            if not os.path.isdir(images):
-                raise TypeError("List or Directory expected for image paths")
-            # parameter is a directory, convert to list of images in the directory
-            self._images = [images + '/' + image for image in os.listdir(images)]
-        elif isinstance(images, np.ndarray):
-            if len(images.shape) < 2:
-                raise TypeError("2D or greater numpy array expected for images")
-        else:
-            raise TypeError("List or Directory expected for image paths")
 
-        # if labels is a single value, then all the images share the same label
-        if isinstance(labels, int):
-            self._labels = [ labels for _ in range(len(self._images)) ]
-        elif isinstance(labels, list):
-            for ele in labels:
-                if not isinstance(ele, int):
-                    raise TypeError("Integer expected for image labels")
+                if isinstance(labels, np.ndarray):
+                    if len(labels.shape) == 1:
+                        if type(labels[0]) not in [np.uint8, np.uint16, np.uint32, np.int8, np.int16, np.int32]:
+                            raise TypeError("Integer values expected for labels")
+                    elif len(labels.shape) == 2:
+                        if type(labels[0][0]) not in [np.float16, np.float32, np.float64]:
+                            raise TypeError("Floating point values expected for one-hot encoded labels")
+                    else:
+                        raise TypeError("1D or 2D numpy array expected for labels")
+                # input single image
+                if len(labels) == 1:
+                    if isinstance(labels[0], np.ndarray):
+                        pass
+                    elif not isinstance(labels[0], int):
+                        raise TypeError("Integer expected for image labels")
+                    for i, img in enumerate(images):
+                        images2 += [(img, labels[0])]
+                        try:
+                            if len(img.split('/')) > 1:
+                                if labels[0] != 0:
+                                    i = labels[0]
+                                classes[img.split('/')[-2]] = i
+                            else:
+                                classes['label'] = labels[0]
+                        except:
+                            classes['label'] = labels[0]
+                else:
+                    # input list of labels folders paths and a custom labels list in directory
+                    if len(images) != len(labels):
+                        raise IndexError("Number of images and labels do not match")
+                    for i in range(len(images)):
+                        if (isinstance(labels, np.ndarray) and
+                                len(labels.shape) == 1 and
+                                type(labels[i]) in [np.uint8, np.uint16, np.uint32, np.int8, np.int16, np.int32]):
+                            label = int(labels[i])
+                        else:
+                            label = labels[i]
+                        images2 += [(images[i], label)]
+                    for i, label in enumerate(labels):
+                        classes[i] = {}
+                        try:
+                            if len(img.split('/')) > 1:
+                                classes[i][img.split('/')[-2]] = label
+                            else:
+                                classes[i]['label'] = label
+                        except:
+                            classes[i]['label'] = label
+                images = images2
+                is_dir = False
 
-            if len(images) != len(labels):
-                raise IndexError("Number of images and labels do not match")
-        elif isinstance(labels, np.ndarray):
-            if len(labels.shape) == 1:
-                if type(labels[0]) not in [ np.uint8, np.uint16, np.uint32, np.int8, np.int16, np.int32 ]:
-                    raise TypeError("Integer values expected for labels")
-                self._labels = [ int(label) for label in labels ]
-            elif len(labels.shape) == 2:
-                if type(labels[0][0]) not in [ np.float16, np.float32, np.float64]:
-                    raise TypeError("Floating point values expected for one-hot encoded labels")
-                self._labels = [ label for label in labels ]
-            else:
-                raise TypeError("1D or 2D numpy array expected for labels")
-
-            if len(images) != len(labels):
-                raise IndexError("Number of images and labels do not match")
-        else:
-            raise TypeError("List expected for image labels")
+        self._images = images
+        self._classes = classes
 
         if dir is not None:
             if isinstance(dir, str) == False:
                 raise TypeError("String expected for image storage path")
             if dir.endswith("/") == False:
-                dir += "/"  
+                dir += "/"
         self._dir = dir
 
         if name is not None:
@@ -637,16 +688,18 @@ class Images(object):
                     raise TypeError("Function expected for ehandler")
             elif not callable(ehandler):
                 raise TypeError("Function expected for ehandler")
-  
+
         if config is not None and isinstance(config, list) == False:
             raise TypeError("List expected for config settings")
-        
+
         if self._config is None:
             self._config = []
         else:
             for setting in config:
                 if setting == 'nostore':
                     self._nostore = True
+                if setting == 'nomem':
+                    self._nomem = True
                 elif setting == 'raw':
                     self._noraw = False
                 elif setting.startswith("resize="):
@@ -656,7 +709,7 @@ class Images(object):
                         toks[0] = toks[0][1:]
                         toks[1] = toks[1][:-1]
                     try:
-                        self._resize = ( int(toks[0]), int(toks[1]), 3)
+                        self._resize = (int(toks[0]), int(toks[1]), 3)
                     except:
                         raise AttributeError("Tuple(int,int) expected for resize")
                 elif setting.startswith("nlabels="):
@@ -664,14 +717,20 @@ class Images(object):
                     try:
                         self._nlabels = int(param)
                     except:
-                        raise AttributeError("Integer expected for nlabels")                
-                    
+                        raise AttributeError("Integer expected for nlabels")
+
         # Tell downstream Image objects not to separately store the data
         if self._nostore == False:
             self._config.append("nostore")
         if self._noraw == False:
             self._config.append('raw')
-        
+
+        if num_proc is not None:
+            if num_proc == 'all' or num_proc >= mp.cpu_count():
+                self._num_proc = mp.cpu_count()
+            elif isinstance(num_proc, int) == False:
+                raise AttributeError("Integer expected for number of processes")
+
         # Process collection synchronously
         if ehandler is None:
             self._process()
@@ -681,8 +740,8 @@ class Images(object):
                 t = threading.Thread(target=self._async, args=())
             else:
                 t = threading.Thread(target=self._async, args=(ehandler[1:], ))
-            t.start()   
- 
+            t.start()
+
     def _async(self):
         """ Asynchronous processing of the collection """
         self._process()
@@ -691,42 +750,39 @@ class Images(object):
             self._ehandler[0](self, self._ehandler[1:])
         else:
             self._ehandler(self)
-            
+
     def _process(self):
         """ Process a collection of images """
-       
+
         start = time.time()
- 
+
+        pool = None
+        if self._num_proc > 1:
+            pool = mp.Pool(self._num_proc)
+
         # Process each image
         self._data = []
         self._errors = []
-        for ix in range(len(self._images)):
-            # directory of files
-            if isinstance(self._images[ix], str) and os.path.isdir(self._images[ix]):
-                for image in [ self._images[ix] + '/' + file for file in os.listdir(self._images[ix])]:
-                    try:
-                        self._data.append( Image(image, dir=self._dir, label=self._labels[ix], config=self._config) )
-                    except Exception as e:
-                        self._data.append(None)
-                        self._fail += 1
-                        error = (image, e)
-                        if e not in self._errors:
-                            self._errors.append( error )
-            # single file
-            else:
-                try:
-                    self._data.append( Image(self._images[ix], dir=self._dir, label=self._labels[ix], config=self._config) )
-                except Exception as e:
-                    self._data.append(None)
-                    self._fail += 1
-                    error = (self._images[ix] , e)
-                    if e not in self._errors:
-                        self._errors.append( error )
-        
+        for image in self._images:
+            try:
+                if pool:
+                    pool.apply_async(Image, (image[0], image[1], self._dir, None, self._config), callback=self._data.append)
+                else:
+                    self._data.append(Image(image[0], image[1], self._dir, None, self._config))
+            except Exception as e:
+                self._fail += 1
+                error = (image, e)
+                if e not in self._errors:
+                    self._errors.append(error)
+
+        if pool:
+            pool.close()
+            pool.join()
+
         # Store machine learning ready data
         if self._nostore is False:
             self.store()
-            
+
         self._time = time.time() - start
 
     def store(self):
@@ -747,18 +803,18 @@ class Images(object):
             if not img:
                 pass
             else:
-                imgdata.append( img.data )
-                clsdata.append( img.label )
+                imgdata.append(img.data)
+                clsdata.append(img.label)
                 if img.raw is not None:
-                    rawdata.append( img.raw )
-                rawshape.append( img.rawshape )
-                sizdata.append( img.size )
-                ressizedt.append( img.ressize )
+                    rawdata.append(img.raw)
+                rawshape.append(img.rawshape)
+                sizdata.append(img.size)
+                ressizedt.append(img.ressize)
                 if img.thumb is not None:
-                    thmdata.append( img.thumb )
-                names.append( bytes(img.name, 'utf-8') )
-                types.append( bytes(img.type, 'utf-8') )
-                paths.append( bytes(img.image, 'utf-8') )
+                    thmdata.append(img.thumb)
+                names.append(bytes(img.name, 'utf-8'))
+                types.append(bytes(img.type, 'utf-8'))
+                paths.append(bytes(img.image, 'utf-8'))
 
         # if no collection name specified, use root of first test file.
         if self._name is None:
@@ -766,7 +822,7 @@ class Images(object):
                 self._name = "collection." + self._data[0].name
             else:
                 self._name = "collection.untitled"
-            
+
         # Write the images and labels to disk as HD5 file
         with h5py.File(self._dir + self._name + '.h5', 'w') as hf:
             try:
@@ -781,17 +837,17 @@ class Images(object):
             hf.create_dataset("rawshape", data=rawshape)
             if len(thmdata) > 0:
                 hf.create_dataset("thumb", data=thmdata)
-            hf.create_dataset("size",  data=sizdata)
+            hf.create_dataset("size", data=sizdata)
             hf.create_dataset("ressize", data=ressizedt)
             hf.create_dataset("names", data=names)
             hf.create_dataset("types", data=types)
             hf.create_dataset("paths", data=paths)
-            
+
     @property
     def dir(self):
         """ Getter for the image directory """
         return self._dir
-        
+
     @dir.setter
     def dir(self, dir):
         """ Setter for image directory """
@@ -800,30 +856,35 @@ class Images(object):
             if isinstance(dir, str) == False:
                 raise TypeError("String expected for image storage path")
             if dir.endswith("/") == False:
-                    dir += "/"  
+                dir += "/"
             self._dir = dir
-        self._dir = dir 
-        
+        self._dir = dir
+
     @property
     def labels(self):
         """ Getter for image labels (classification) """
         return self._labels
-        
+
     @labels.setter
     def labels(self, labels):
         """ Setter for image labels (classification) """
         self._labels = labels
-        
+
     @property
     def images(self):
         """ Getter for the list of processed images """
         return self._data
-        
+
     @property
     def name(self):
         """ Getter for the name of the collection """
         return self._name
-        
+
+    @property
+    def num_proc(self):
+        """ Getter for the number of processors """
+        return self._num_proc
+
     @property
     def time(self):
         """ Getter for the processing time """
@@ -833,7 +894,7 @@ class Images(object):
     def elapsed(self):
         """ Elapsed time in hh:mm:ss format for the processing time """
         return time.strftime("%H:%M:%S", time.gmtime(self._time))
-        
+
     @property
     def fail(self):
         """ Number of images that failed processing """
@@ -841,9 +902,14 @@ class Images(object):
 
     @property
     def errors(self):
-        """ list errors reporting """
+        """ list of errors reported """
         return self._errors
-        
+
+    @property
+    def classes(self):
+        """ list of mapping of class names to labels (integers) """
+        return self._classes
+
     def load(self, name, dir=None):
         """ Load a Collection of Images """
         if name is None:
@@ -851,13 +917,13 @@ class Images(object):
         if not isinstance(name, str):
             raise TypeError("String expected for collection name")
         self._name = name
-        
+
         if dir is not None:
             self.dir = dir
-            
+
         if self._dir is None:
             self._dir = "./"
-        
+
         # Read the images and labels from disk as HD5 file
         with h5py.File(self._dir + self._name + '.h5', 'r') as hf:
             self._data = []
@@ -883,19 +949,19 @@ class Images(object):
                 image._image = hf["paths"][i].decode()
                 image._shape = image._imgdata.shape
                 image._dir   = self._dir
-                self._data.append( image )
+                self._data.append(image)
             self._labels = hf["labels"][:]
-            
+
         gc.collect()
-        
+
     @property
     def split(self):
         """ Getter for return a split training set """
-        
+
         # Training set not already split, so split it
         if self._train == None:
             self.split = (1 - self._split)
-            
+
         # Construct the train and test lists
         X_train = []
         Y_train = []
@@ -903,18 +969,19 @@ class Images(object):
         Y_test  = []
         for _ in range(0, self._trainsz):
             ix = self._train[_]
-            X_train.append( self._data[ix]._imgdata )
-            Y_train.append( self._data[ix]._label )
+            X_train.append(self._data[ix]._imgdata)
+            Y_train.append(self._data[ix]._label)
+
         for _ in range(0, self._testsz):
             ix = self._test[_]
-            X_test.append( self._data[ix]._imgdata )
-            Y_test.append( self._data[ix]._label )
-          
+            X_test.append(self._data[ix]._imgdata)
+            Y_test.append(self._data[ix]._label)
+
         # calculate the number of labels in the training set
         if self._nlabels == None:
             self._nlabels = np.max(Y_train) + 1
-            
-        if self._testsz > 0:    
+
+        if self._testsz > 0:
             # labels already one-hot encoded
             if isinstance(Y_train[0], np.ndarray):
                 return np.asarray(X_train), np.asarray(X_test), np.asarray(Y_train), np.asarray(Y_test)
@@ -926,11 +993,11 @@ class Images(object):
         else:
             # Calculate the number of labels as a sequence starting from 0
             return np.asarray(X_train), None, self._one_hot(np.asarray(Y_train), self._nlabels), None
-        
+
     @split.setter
     def split(self, percent):
         """ Set the split for training/test and create a randomized index """
-        
+
         if isinstance(percent, tuple):
             if len(percent) != 2:
                 raise AttributeError("Split setter must be percent, seed")
@@ -938,17 +1005,17 @@ class Images(object):
             if not isinstance(self._seed, int):
                 raise TypeError("Seed parameter must be an integer")
             percent = percent[0]
-            
+
         if not isinstance(percent, float) and percent != 0:
             raise TypeError("Float expected for percent")
         if percent < 0 or percent >= 1:
             raise ValueError("Percent parameter must be between 0 and 1")
         self._split = (1 - percent)
-        
+
         # create a randomized index to the images
         random.seed(self._seed)
-        self._indices = random.sample([ index for index in range(len(self._data))], len(self._data))
-        
+        self._indices = random.sample([index for index in range(len(self._data))], len(self._data))
+
         # split the indexes into train and test
         split = int((1 - percent) * len(self._data))
         self._train   = self._indices[:split]
@@ -956,7 +1023,7 @@ class Images(object):
         self._trainsz = len(self._train)
         self._testsz  = len(self._test)
         self._next    = 0
-        
+
     def _one_hot(self, Y, C=0):
         """ Convert Vector to one-hot encoding """
         if C == 0:
@@ -964,14 +1031,14 @@ class Images(object):
             C = len(np.max(Y)) + 1
         Y = np.eye(C)[Y.reshape(-1)]
         return Y
-    
+
     @property
     def minibatch(self):
         """ Return a generator for the next mini batch """
         # Minibatch, return a generator
-        for _ in range(self._next, min(self._next + self._minisz, self._trainsz)): 
+        for _ in range(self._next, min(self._next + self._minisz, self._trainsz)):
             ix = self._train[_]
-            self._next += 1 
+            self._next += 1
             # pre-normalized: normalize as being feed
             if self.pixeltype == np.uint8:
                 yield (self._data[ix]._imgdata / 255.0).astype(np.float32), self._data[ix]._label
@@ -987,32 +1054,32 @@ class Images(object):
                     # already normalized
                     else:
                         yield self._data[ix].rotate(degree), self._data[ix]._label
-        
+
     @minibatch.setter
     def minibatch(self, batch_size):
         """ Generator for creating minibatches """
         if not isinstance(batch_size, int):
             raise TypeError("Integer expected for mini batch size")
-        
+
         # training set was not pre-split, implicitly split it.
         if self._train == None:
             self.split = 0.8
-            
+
         if batch_size < 2 or batch_size >= self._trainsz:
             raise ValueError("Mini batch size is out of range")
-            
+
         self._minisz = batch_size
-        
+
     @property
     def augment(self):
         """ Getter for image augmentation """
         return self._augment
-        
+
     @augment.setter
     def augment(self, augment):
         """ Setter for image augmentation """
         if not isinstance(augment, bool) and not isinstance(augment, tuple):
-           raise TypeError("Bool or Tuple expected for augment parameter")
+            raise TypeError("Bool or Tuple expected for augment parameter")
         if isinstance(augment, tuple):
             if len(augment) < 2:
                 raise AttributeError("Augment parameter must have at least two values")
@@ -1028,14 +1095,14 @@ class Images(object):
                 self._rotate[2] = augment[2]
                 self._rotate[3] = augment[2]
             self._augment = True
-        else:       
+        else:
             self._augment = augment
-            
+
     @property
     def flatten(self):
         """ dummy property """
         return None
-            
+
     @flatten.setter
     def flatten(self, flatten):
         """ (Un)Flatten the Image Data """
@@ -1059,36 +1126,36 @@ class Images(object):
                 resize = self._data[0]._raw.shape
             for image in self._data:
                 image._imgdata = image._imgdata.reshape( resize )
-                
+
     @property
     def resize(self):
         """ dummy property """
         return None
-        
+
     @resize.setter
     def resize(self, resize):
         """ Resize the Image Data """
         if not isinstance(resize, tuple):
             raise TypeError("Tuple expected for resize")
-        
+
         if len(resize) != 2:
             raise AttributeError("Tuple for resize must be in form (height, width)")
-            
+
         # there are no images
         if len(self) == 0:
             return
-            
+
         # openCV uses width, height
         resize = ( resize[1], resize[0] )
-        
+
         # Data is flatten, so let's unflatten it first
         if len(self._data[0].shape) == 1:
             self.flatten = False
-        
+
         for image in self._data:
             image._imgdata = cv2.resize(image._imgdata, resize, interpolation=cv2.INTER_AREA)
             image._shape   = image._imgdata.shape
-            
+
     @property
     def pixeltype(self):
         """ Return the datatype of pixel data """
@@ -1099,8 +1166,7 @@ class Images(object):
             return type(self._data[0]._imgdata[0][0])
         else:
             return type(self._data[0]._imgdata[0][0][0])
-         
-      
+
     def __next__(self):
         """ Iterate through the training set (single image at a time) """
 
@@ -1112,9 +1178,9 @@ class Images(object):
         if self._next >= self._trainsz:
             # Reshuffle the training data for the next round
             random.shuffle(self._train)
-            self._next = 0 
+            self._next = 0
             return None, None
- 
+
         ix = self._train[self._next]
         if self._augment:
             if self._rotate[3] > 0:
@@ -1128,39 +1194,38 @@ class Images(object):
                     return self._data[ix].rotate(degree), self._data[ix]._label
             else:
                 self._rotate[3] = self._rotate[2]
-            
+
         self._next += 1
-        
+
         # pre-normalize: normalize as being feed
         if self.pixeltype == np.uint8:
             return (self._data[ix]._imgdata / 255.0).astype(np.float32), self._data[ix]._label
         # already normalized
         else:
             return self._data[ix]._imgdata, self._data[ix]._label
-                
 
     def __len__(self):
         """ Override the len() operator - return the number of images """
         if self._data is None:
             return 0
         return len(self._data)
-        
+
     def __getitem__(self, ix):
         """ Override the index operator - return the image at the corresponding index """
         if not isinstance(ix, int):
             raise TypeError("Index must be an integer")
         if ix > len(self):
             raise IndexError("Index out of range for Images")
-        return self._data[ ix ]
+        return self._data[ix]
 
     def __iadd__(self, image):
         """ Override the += operator - add an image to the collection """
         if image is None:
             return self
-            
+
         # Add single image
-        if isinstance(image, Image):  
-            self._data.append( image )
+        if isinstance(image, Image):
+            self._data.append(image)
         # Add a collection of images
         elif isinstance(image, Images):
             for img in image:
