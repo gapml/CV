@@ -63,11 +63,9 @@
     <a class="current" href=".">Home</a>
     <ul class="subnav">
             
-    <li class="toctree-l2"><a href="#gap-nlpcv-data-engineering-framework">Gap : NLP/CV Data Engineering Framework</a></li>
+    <li class="toctree-l2"><a href="#gap-cv-data-engineering-framework">Gap : CV Data Engineering Framework</a></li>
     
         <ul>
-        
-            <li><a class="toctree-l3" href="#natural-language-processing-for-pdf-tiff-and-camera-captured-documents-and">Natural Language Processing for PDF, TIFF, and Camera Captured Documents, and</a></li>
         
             <li><a class="toctree-l3" href="#computer-vision-processing-for-images">Computer Vision Processing for Images</a></li>
         
@@ -118,6 +116,10 @@
                     
     <a class="" href="tutorials/computer_vision/">Computer Vision</a>
                 </li>
+                <li class="">
+                    
+    <a class="" href="tutorials/computer_vision_advanced/">Computer Vision advanced</a>
+                </li>
     </ul>
 	    </li>
           
@@ -167,11 +169,10 @@
           <div role="main">
             <div class="section">
               
-                <h1 id="gap-nlpcv-data-engineering-framework">Gap : NLP/CV Data Engineering Framework</h1>
-<h2 id="natural-language-processing-for-pdf-tiff-and-camera-captured-documents-and">Natural Language Processing for PDF, TIFF, and Camera Captured Documents, and</h2>
+                <h1 id="gap-cv-data-engineering-framework">Gap : CV Data Engineering Framework</h1>
 <h2 id="computer-vision-processing-for-images">Computer Vision Processing for Images</h2>
 <h3 id="framework">Framework</h3>
-<p>The Gap NLP/CV data engineering framework provides an easy to get started into the world of machine learning for your unstructured data in PDF documents, scanned documents, TIFF facsimiles and camera captured documents, and your image data in image files and image repositories.</p>
+<p>The Gap CV data engineering framework provides an easy to get started into the world of machine learning for your image data in image files and image repositories.</p>
 <p><em>CV , v0.9.4 (Pre-launch: beta)</em></p>
 <ul>
 <li>Automatic storage and retrieval with high performance HDF5 files.</li>
@@ -202,11 +203,6 @@
 <h2 id="prerequites">Prerequites</h2>
 <p>The Gap framework extensively uses a number of open source applications/modules. The following applications and modules will be downloaded onto your computer/laptop when the package <strong>OR</strong> setup file is installed.</p>
 <ol>
-<li>Artifex's Ghostscript - extracting text from text PDF</li>
-<li>ImageMagic's Magick - extracting image from scanned PDF</li>
-<li>Google's Tesseract - OCR of scanned/image captured text</li>
-<li>NLTK (Natural Language Toolkit) - stemming/lemmatizer/parts of speech annotation</li>
-<li>unidecode - romanization of latin character codes</li>
 <li>numpy - high performance in-memory arrays (tensors)</li>
 <li>HDF5 - high performance of on-disk data (tensors) access</li>
 <li>openCV - image manipulation and processing for computer vision</li>
@@ -221,7 +217,7 @@
 <li>
 <p>(optional)  </p>
 <ul>
-<li>Create an environment with: <code>conda create -n gap python==3.7 jupyter</code>  </li>
+<li>Create an environment with: <code>conda create -n gap python==3.6 jupyter</code>  </li>
 <li>Activate: <code>source activate gap</code></li>
 <li>Deactivate: <code>source deactivate</code></li>
 </ul>
@@ -229,7 +225,7 @@
 <li>
 <p>install GapML:  </p>
 <ul>
-<li><code>pip install gapml</code></li>
+<li><code>pip install gapcv</code></li>
 </ul>
 </li>
 </ol>
@@ -252,7 +248,7 @@
 <h2 id="modules">Modules</h2>
 <p>The framework provides the following pipeline of modules to support your data and knowledge extraction from both digital and scanned PDF documents, TIFF facsimiles and image captured documents.</p>
 <h4 id="vision"><span style='color: saddlebrown'>VISION</span></h4>
-<p>The splitter module is the CV entry point into the pipeline. It consists of a Images and Image class. The Images class handles the storage and (random access) batch retrieval of CV machine learning ready data, using open source openCV image processing, numpy high performance arrays (tensors) and HDF5 high performance disk (tensor) access. The Image class handles preprocessing of individual images into CV machine learning ready data. The batch and image preprocessing can be done synchronously or asynchronously, where in the latter case an event handler signals when the preprocessing of an image or batch has been completed and the machine learning ready data is accessible.</p>
+<p>The <strong>vision</strong> module is the CV entry point into the pipeline. It consists of a Images and Image class. The Images class handles the storage and (random access) batch retrieval of CV machine learning ready data, using open source openCV image processing, numpy high performance arrays (tensors) and HDF5 high performance disk (tensor) access. The Image class handles preprocessing of individual images into CV machine learning ready data. The batch and image preprocessing can be done synchronously or asynchronously, where in the latter case an event handler signals when the preprocessing of an image or batch has been completed and the machine learning ready data is accessible.</p>
 <p>The vision module handles:</p>
 <ul>
 <li>Mixed image size, format, resolution, number of channels</li>
@@ -335,5 +331,5 @@
 
 <!--
 MkDocs version : 1.0.3
-Build Date UTC : 2018-09-10 22:21:08
+Build Date UTC : 2018-10-08 23:46:19
 -->
