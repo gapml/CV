@@ -34,7 +34,7 @@ project_urls={"Documentation": "https://gapml.github.io/CV/",
 #https://pypi.org/pypi?%3Aaction=list_classifiers
 classifiers=[
     'Development Status :: 3 - Alpha',
-    'Topic :: Image Processing',
+    'Topic :: Scientific/Engineering :: Image Recognition',
     'License :: OSI Approved :: Apache Software License',
     'Operating System :: Microsoft :: Windows',
     'Operating System :: MacOS',
