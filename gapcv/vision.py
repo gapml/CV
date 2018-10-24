@@ -204,13 +204,13 @@ def loadImages(files, colorspace=COLOR, resize=(128, 128), flatten=False, normal
     switcher = {'http'   : loadImageRemote,
                 'str'    : loadImageDisk,
                 'ndarray': loadImageMemory}
-    
+
     argument = type(files[0]).__name__
 
     # check if list contains urls
     if argument == 'str' and files[0].startswith('http'):
         argument = 'http'
-    
+
     # Get the function from switcher dictionary
     func = switcher.get(argument)
 
@@ -230,15 +230,15 @@ def loadImages(files, colorspace=COLOR, resize=(128, 128), flatten=False, normal
 
     # Do not normalize if requesting to keep data in original integer bits per pixel (bpp)
     if datatype not in [np.uint8, np.int8, np.uint16, np.int16]:
-        # color, unflatten
-        if len(collection.shape) == 4:
-            bpp = type(collection[0][0][0][0])
-        # grayscale, unflatten
-        elif len(collection.shape) == 3:
-            bpp = type(collection[0][0][0])
-        # flatten
-        else:
-            bpp = type(collection[0][0])
+        collect_type = {4:         type(collection[0][0][0][0]), # color, unflatten
+                        3:         type(collection[0][0][0]),    # grayscale, unflatten
+                        'flatten': type(collection[0][0])}       # flatten
+
+        len_collect_shape = len(collection.shape)
+        if len_collect_shape not in [4, 3]:
+            len_collect_shape = 'flatten'
+
+        bpp = collect_type[len_collect_shape].__name__
 
         normalize = {'int8': {0: (lambda collection: collection / 255.0), # original pixel data is 8 bits per pixel
                               1: (lambda collection: collection / 127.5 - 1),
@@ -247,7 +247,6 @@ def loadImages(files, colorspace=COLOR, resize=(128, 128), flatten=False, normal
                               1: (lambda collection: collection / 32767.5 - 1),
                               2: (lambda collection: (collection - np.mean(collection)) / np.std(collection))}}
 
-        bpp = bpp.__name__
         if bpp in ['uint8', 'int8', 'uint16', 'int16']:
             i = 4
             if bpp in ['uint16', 'int16']:
@@ -283,7 +282,7 @@ def create_h5(dir, author, source, description, date, labels,
     """
     # Create the HDF5 file
     with h5py.File('../' + dir + '.h5', 'a') as hf:
-        # Dataset Atttributes
+        # Global Atttributes
         hf.attrs['name'] = dir
         hf.attrs['author'] = author
         hf.attrs['source'] = source
@@ -292,7 +291,7 @@ def create_h5(dir, author, source, description, date, labels,
         hf.attrs['labels'] = labels
         hf.attrs['total_elapsed'] = total_elapsed
         hf.attrs['shape'] = resize
-        hf.attrs['pixel_data_type'] = str(datatype)
+        hf.attrs['pixel_data_type'] = str(datatype.__name__)
         if colorspace == COLOR:
             hf.attrs['channel'] = str(['R', 'G', 'B'])
         else:
@@ -308,8 +307,8 @@ def create_h5(dir, author, source, description, date, labels,
 
         # Create dataset and attributes
         dset = group.create_dataset("data", data=collection)
-        dset.attrs['name'] = names
-        dset.attrs['type'] = types
+        dset.attrs['names'] = names
+        dset.attrs['types'] = types
         dset.attrs['shapes'] = shapes
         dset.attrs['sizes'] = sizes
 
@@ -335,7 +334,7 @@ def loadDirectory(dir, colorspace=COLOR, resize=(128, 128), flatten=False, norma
     err = []
     total_elapsed = 0
     n_images = 0 # total number of images
-    
+
     if os.path.isfile(dir + '.h5'):
         os.remove(dir + '.h5')
 
