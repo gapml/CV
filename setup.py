@@ -34,7 +34,7 @@ project_urls={"Documentation": "https://gapml.github.io/CV/",
 #https://pypi.org/pypi?%3Aaction=list_classifiers
 classifiers=[
     'Development Status :: 3 - Alpha',
-    'Topic :: Image Processing',
+    'Topic :: Scientific/Engineering :: Image Recognition',
     'License :: OSI Approved :: Apache Software License',
     'Operating System :: Microsoft :: Windows',
     'Operating System :: MacOS',
@@ -51,7 +51,7 @@ classifiers=[
 
 setup(
     name='gapcv',
-    version='0.9.4',
+    version='0.9.5',
     description='NLP and CV Data Engineering Framework',
     author='Andrew Ferlitsch',
     author_email='aferlitsch@gmail.com',
