@@ -30,12 +30,13 @@ def processImage(image, resize, flatten=False):
         :return       : a processed image as a numpy matrix (or vector if flattened).
     """
 
-    # resize each image to the target size (e.g., 50x50) and flatten into 1D vector
-    if flatten:
-        return cv2.resize(image, resize, interpolation=cv2.INTER_AREA).flatten()
     # resize each image to the target size (e.g., 50x50)
-    else:
-        return cv2.resize(image, resize, interpolation=cv2.INTER_AREA)
+    image = cv2.resize(image, resize, interpolation=cv2.INTER_AREA)
+    # flatten into 1D vector
+    if flatten:
+        image = image.flatten()
+
+    return image
 
 GRAYSCALE = cv2.IMREAD_GRAYSCALE
 COLOR     = cv2.IMREAD_COLOR
@@ -59,7 +60,7 @@ def loadImageDisk(file, colorspace=COLOR, resize=(128, 128), flatten=False):
     size = os.path.getsize(file)
 
     try:
-        if type in [ 'gif', 'jp2k']:
+        if type in ['gif', 'jp2k']:
             image = PILImage.open(file)
             if colorspace == GRAYSCALE:
                 image = image.convert('L')
@@ -170,7 +171,8 @@ NORMAL_0_1  = 0  # normalization between 0 and 1
 NORMAL_N1_1 = 1  # normalization between -1 and 1
 STANDARD    = 2  # standardization with mean at 0
 
-def loadImages(files, colorspace=COLOR, resize=(128, 128), flatten=False, normal=NORMAL_0_1, datatype=np.float32):
+def loadImages(files, colorspace=COLOR, resize=(128, 128), 
+               flatten=False, normal=NORMAL_0_1, datatype=np.float32):
     """ Load a collection of images
         :param files: list of file paths of images on-disk, or remote images, or in-memory images.
         :type  files: list[strings] or numpy array of matrixes
@@ -182,9 +184,10 @@ def loadImages(files, colorspace=COLOR, resize=(128, 128), flatten=False, normal
         :type  flatten   : bool
         :param normal    : method to normalize pixels
         :type  normal    : int
-        :param datatype  : the data type of the pixel data after processed into machine learning ready data
+        :param datatype  : the data type of the pixel data after processed into ML ready data
         :param type      : type
-        :return          : tuple(machine learning ready data, image names, image types, image shapes, image sizes, processing errors, processing time)
+        :return          : tuple(machine learning ready data, image names, image types, 
+                                 image shapes, image sizes, processing errors, processing time)
     """
     start_time = time.time()
 
@@ -195,27 +198,14 @@ def loadImages(files, colorspace=COLOR, resize=(128, 128), flatten=False, normal
     shapes = []
     errors = []
 
-    # Config Dictionary
-    config = {'colorspace': colorspace,
-              'resize'    : resize,
-              'flatten'   : flatten}
-
-    # Functions Dictionary
-    switcher = {'http'   : loadImageRemote,
-                'str'    : loadImageDisk,
-                'ndarray': loadImageMemory}
-
-    argument = type(files[0]).__name__
-
-    # check if list contains urls
-    if argument == 'str' and files[0].startswith('http'):
-        argument = 'http'
-
-    # Get the function from switcher dictionary
-    func = switcher.get(argument)
-
     for item in files:
-        image, shape, size, name, _type, error = func(item, **config)
+        if isinstance(files[0], str):
+            if files[0].startswith('http'):
+                image, shape, size, name, _type, error = loadImageRemote(item, colorspace, resize, flatten)
+            else:
+                image, shape, size, name, _type, error = loadImageDisk(item, colorspace, resize, flatten)
+        elif isinstance(files[0], np.ndarray):
+            image, shape, size, name, _type, error = loadImageMemory(item, colorspace, resize, flatten)
         # append each in-memory image into a list
         collection.append(image)
         # append the metadata for each image into a list
@@ -233,7 +223,7 @@ def loadImages(files, colorspace=COLOR, resize=(128, 128), flatten=False, normal
         collect_type = {4:         type(collection[0][0][0][0]), # color, unflatten
                         3:         type(collection[0][0][0]),    # grayscale, unflatten
                         'flatten': type(collection[0][0])}       # flatten
-
+        
         len_collect_shape = len(collection.shape)
         if len_collect_shape not in [4, 3]:
             len_collect_shape = 'flatten'
@@ -254,31 +244,31 @@ def loadImages(files, colorspace=COLOR, resize=(128, 128), flatten=False, normal
             bpp = bpp[-i:]
             collection = normalize[bpp][normal](collection)
 
-    return  collection, names, types, sizes, shapes, errors, time.time() - start_time
+    return collection, names, types, sizes, shapes, errors, time.time() - start_time
 
-def create_h5(dir, author, source, description, date, labels,
-              total_elapsed, colorspace, resize, datatype, n_images,
-              label, collection, n_label, elapsed, names, types, shapes, sizes):
+def createH5(dir, author, source, description, date, labels,
+             total_elapsed, colorspace, resize, datatype, n_images,
+             label, collection, n_label, elapsed, names, types, shapes, sizes):
     """ Create h5 file
         :param dir:
         :param author:
         :param source:
         :param description:
-        :param date: 
-        :param labels: 
-        :param total_elapsed: 
-        :param colorspace: 
-        :param resize: 
-        :param datatype: 
-        :param n_images: 
-        :param label: 
-        :param collection: 
-        :param n_label: 
-        :param elapsed: 
-        :param names: 
-        :param types: 
-        :param shapes: 
-        :param sizes: 
+        :param date:
+        :param labels:
+        :param total_elapsed:
+        :param colorspace:
+        :param resize:
+        :param datatype:
+        :param n_images:
+        :param label:
+        :param collection:
+        :param n_label:
+        :param elapsed:
+        :param names:
+        :param types:
+        :param shapes:
+        :param sizes:
     """
     # Create the HDF5 file
     with h5py.File('../' + dir + '.h5', 'a') as hf:
@@ -312,7 +302,8 @@ def create_h5(dir, author, source, description, date, labels,
         dset.attrs['shapes'] = shapes
         dset.attrs['sizes'] = sizes
 
-def loadDirectory(dir, colorspace=COLOR, resize=(128, 128), flatten=False, normal=NORMAL_0_1, datatype=np.float32, storage=True):
+def loadDirectory(dir, colorspace=COLOR, resize=(128, 128), flatten=False,
+                  normal=NORMAL_0_1, datatype=np.float32, storage=True):
     """ Load a Directory based dataset, where the toplevel subdirectories are the classes.
     :param files: list of file paths of images on-disk, or remote images, or in-memory images.
     :type  files: list[strings] or numpy array of matrixes
@@ -324,7 +315,7 @@ def loadDirectory(dir, colorspace=COLOR, resize=(128, 128), flatten=False, norma
     :type  flatten   : bool
     :param normal    : method to normalize pixels
     :type  normal    : int
-    :param datatype  : the data type of the pixel data after processed into machine learning ready data
+    :param datatype  : the data type of the pixel data after processed into ML ready data
     :param type      : type
     :return          : TODO
     """
@@ -341,7 +332,8 @@ def loadDirectory(dir, colorspace=COLOR, resize=(128, 128), flatten=False, norma
     # Get the list (generator) of the subdirectories of the parent directory of the dataset
     subdirs = os.scandir(dir)
     os.chdir(dir)
-    for i, subdir in enumerate(subdirs):
+
+    for subdir in subdirs:
         # skip entries that are not subdirectories or hidden directories (start with dot)
         if not subdir.is_dir() or subdir.name[0] == '.':
             continue
@@ -350,11 +342,12 @@ def loadDirectory(dir, colorspace=COLOR, resize=(128, 128), flatten=False, norma
         collection, names, types, sizes, shapes, errors, elapsed = loadImages(files, colorspace, resize, flatten, normal, datatype)
         os.chdir('..')
         collections.append(collection)
-        labels.append(bytes(subdir.name, 'utf-8'))
+        label = bytes(subdir.name, 'utf-8')
+        labels.append(label)
         err.append(errors)
 
         # increment the mapping of class name to label
-        n_label = i
+        n_label = labels.index(label)
 
         # maintain count of total images
         n_images += len(collection)
@@ -363,34 +356,33 @@ def loadDirectory(dir, colorspace=COLOR, resize=(128, 128), flatten=False, norma
         total_elapsed += elapsed
 
         # storage
-        attributes = {'dir': dir,
-                      'author': 'ABC Company',
-                      'source': 'http://....',
-                      'description': 'blah blah',
-                      'date': str(datetime.datetime.now()),
-                      'labels': labels,
-                      'total_elapsed': total_elapsed,
-                      'colorspace': colorspace,
-                      'resize': resize,
-                      'datatype': datatype,
-                      'n_images': n_images,
-                      'label': subdir.name,
-                      'collection': collection,
-                      'n_label': n_label,
-                      'elapsed': elapsed,
-                      'names': names,
-                      'types': types,
-                      'shapes': shapes,
-                      'sizes': sizes
-                     }
         if storage:
-            create_h5(**attributes)
+            createH5(dir=dir,
+                     author='ABC Company',
+                     source='http://....',
+                     description='blah blah',
+                     date=str(datetime.datetime.now()),
+                     labels=labels,
+                     total_elapsed=total_elapsed,
+                     colorspace=colorspace,
+                     resize=resize,
+                     datatype=datatype,
+                     n_images=n_images,
+                     label=subdir.name,
+                     collection=collection,
+                     n_label=n_label,
+                     elapsed=elapsed,
+                     names=names,
+                     types=types,
+                     shapes=shapes,
+                     sizes=sizes)
 
     os.chdir('..')
 
     return collections, labels
 
-def loadCSV(csv, header, image_col, label_col, colorspace=COLOR, resize=(128, 128), flatten=False, normal=NORMAL_0_1, datatype=np.float32):
+def loadCSV(csv, header, image_col, label_col, colorspace=COLOR, resize=(128, 128),
+            flatten=False, normal=NORMAL_0_1, datatype=np.float32):
     """ Read a dataset from a CSV file
     :param csv      : the CSV file
     :type  csv      : str
@@ -407,7 +399,8 @@ def loadCSV(csv, header, image_col, label_col, colorspace=COLOR, resize=(128, 12
 
     # TODO
 
-def loadJSON(json, image_key, label_key, colorspace=COLOR, resize=(128, 128), flatten=False, normal=NORMAL_0_1, datatype=np.float32):
+def loadJSON(json, image_key, label_key, colorspace=COLOR, resize=(128, 128),
+             flatten=False, normal=NORMAL_0_1, datatype=np.float32):
     """ Read a dataset from a JSON file
     :param json     : the JSON file
     :type  json     : str
