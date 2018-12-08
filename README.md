@@ -10,7 +10,7 @@ The module is written in a modern *object oriented programming (OOP)* abstractio
 
 ## Why and Why Now
 
-  ![MLEcoSystem](../img/MLEcoSystem.png')
+  ![MLEcoSystem](docs/img/MLEcoSystem.png')
 
 ## Summary of Features
 
