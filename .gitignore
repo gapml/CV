@@ -3,7 +3,7 @@ __pycache__
 build/
 dist/
 gapml.egg-info
-tests/__pycache__
 train/.ipynb_checkpoints/
 gapcv.egg-info
 site/
+.vscode
