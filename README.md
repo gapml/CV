@@ -108,15 +108,15 @@ The following are supported for on-disk management:
 
 The **GapCV** framework is supported on Windows, MacOS, and Linux. It has been packaged for distribution via PyPi on launch.
 
-  1. install [miniconda](https://conda.io/miniconda.html)
+  1. install [miniconda](https://conda.io/miniconda.html)  
 
-  2. install conda virtual environment and required packages
+  2. install conda virtual environment and required packages  
       + Create an environment with: `conda create -n gap python==3.5 jupyter pip`  
-      + Activate: `source activate gap`
+      + Activate: `source activate gap`  
       + `pip install gapcv`
 
-  3. exiting conda virtual environment:
-      + Windows: `deactivate`
+  3. exiting conda virtual environment:  
+      + Windows: `deactivate`  
       + Linux/macOS: `source deactivate`
 
 ## Setup.py Installation:
@@ -126,10 +126,135 @@ To install **GapCV** via setup.py:
   1. clone from the Github repo.  
       + `git clone https://github.com/gapml/CV.git`
 
-  2. install the GapML setup file. 
-      + access folder `cd CV`
+  2. install the GapML setup file.  
+      + access folder `cd CV`  
       + `python setup.py install`
 
 ## Quick Start
 
+Image preparation, neural network feeding and management of image datasets is handled through the class object `Images`. We will provide here a brief discussion on the
+various ways of using the `Images` class.
+
+The initializer has no required (positional) parameters. All the parameters are optional (keyword) parameters. The most frequently used parameters are:
+
+        Images( name, dataset, labels, config ) 
+        
+            name   : the name of the dataset (e.g., 'cats_n_dogs')
+            dataset: the dataset of images
+            labels : the labels
+            config : configuration settings
+
+### Preparing Datasets
+
+The first step is to transform the images in an image dataset into machine learning ready data. How the images are transformed is dependent on the image source and the configuration settings. By default, all images are transformed to:
+
+        1. RGB image format
+        2. Resized to (128, 128)
+        3. Float32 pixel data type
+        4. Normalization
+        
+In this quick start section, we will briefly cover preparing datasets that are on-disk, remotely stored and in-memory.
+ 
+*Directory*
+
+A common format for image datasets is to stored them on disk in a directory layout. The layout consists of a root (parent) directory and one or more subdirectories. Each subdirectory is a
+class (label), such as *cats*. Within the subdirectory are one or more images which belong to that class. Below is an example:
+
+                    cats_n_dogs
+                  /             \  
+                cats            dogs
+                /                  \
+            c1.jpg ...          d1.jpg ...
+            
+The following instantiation of the `Images` class object will load the images from local disk into in-memory according the default transformation settings.  Within memory, the set of transformed images will be grouped into two classes: cats, and dogs.      
+
+```python
+images = Images(dataset='cats_n_dogs')
+```
+
+Once loaded, you can get information on the transformed data as properties of the `Images` class. Below are a few frequently used properties.
+
+```python
+print(images.name)      # will output the name of the dataset: cats_and_dogs
+print(images.count)     # will output the total number of images in both cats and dogs
+print(images.classes)   # will output the class to label mapping: { 'cats': 0, 'dogs': 1 }
+print(images.images[0]) # will output the numpy arrays for each transformed image in the class with label 0 (cats).
+print(images.labels[0]) # will output the label for each transformed image in the class with label 0 (cats).
+```
+
+Several of the builtin functions have been overridden for the `Images` class. Below are a few frequently used overriden builtin functions:
+
+```python
+print(len(images))      # same as images.count
+print(images[0])        # same as images.images[0]
+```
+
+*List*
+
+Alternatively, local on-disk images maybe specified as a list of paths, with corresponding list of labels. Below is an example where the `dataset` parameter is specified as a list of
+paths to images, and the `labels` parameter is a list of corresponding labels.
+
+```python
+images = Images(name='cats_and_dogs', dataset=['cats/1.jpg', 'cats/2.jpg', ... 'dogs/1.jpg'], labels=[0, 0, ... 1])
+```
+
+Alternately, the image paths maybe specified as remote locations using URL paths. In this case, a HTTP request will be made to fetch the contents of the image from the remote site.
+
+```python
+images = Images(name='cats_and_dogs', dataset=['http://mysite.com/cats/1.jpg', 'http://mysite.com/cats/2.jpg', ... ], labels=[0, 0, ...])
+```
+
+*Memory*
+
+If the dataset is already in memory, for example a curated dataset that is part of a framework (e.g., CIFAR-10 in Keras), the in-memory multi-dimensional numpy arrays for the curated images and labels are passed as the values to the `dataset` and `labels` parameter.
+
+```python
+from keras.datasets import cifar10
+
+(x_train, y_train), (x_test, y_test) = cifar10.load_data()
+
+train = Images('cifar10', dataset=x_train, labels=y_train)
+test  = Images('cifar10', dataset=x_test,  labels=y_test)
+```
+
+*CSV*
+
+A dataset can be specified as a CSV (comma separated values) file. Both US (comma) and EU (semi-colon) standard for separators are supported. Each row in the CSV file corresponds to an image
+and corresponding label. The image may be local on-disk, remote or embedded. Below are some example CSV layouts:
+
+        *local on-disk*
+            label,image
+            'cat','cats/c1.jpg'
+            'dog','dogs/d1.jpg'
+            ...
+            
+        *remote*
+            label,image
+            'cat','http://mysite.com/c1.jpg'
+            'dog','http://mysite.com/d1.jpg'
+            ...
+            
+        *embedded pixel data*
+            label,name
+            'cat','[ embedded pixel data ]'
+            'dog','[ embedded pixel data ]'
+            
+For CSV, the `config` parameter is specified when instantiating the `Images` class object, to set the settings for:
+
+        header      # if present, CSV file has a header; otherwise it does not.
+        image_col   # the column index (starting at 0) of the image field.
+        label_col   # the column index (starting at 0) of the label field.
+        
+```python
+images = Images(dataset='cats_n_dogs.csv', config=['header', 'image_col=0', 'label_col=1'])
+```
+
+*JSON*
+
+### Feeding Datasets
+
+### Managing Datasets (Persistent Storage)
+
 ## Reference
+
+## Testing
