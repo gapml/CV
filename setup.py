@@ -10,15 +10,12 @@ with open('README.md', 'r', encoding="utf-8") as f:
     long_description = f.read()
 
 install_requires = [
-    'numpy==1.15.1',
-    'h5py==2.8.0',
-    'imutils==0.5.1',
-    'Unidecode==1.0.22',
-    'nltk==3.3',
-    'requests==2.19.1',
-    'opencv-python==3.4.3.18',
-    'Pillow==5.2.0',
-    'matplotlib==2.2.3']
+    'numpy',
+    'h5py',
+    'imutils',
+    'requests',
+    'opencv-python',
+    'Pillow']
 
 tests_require = [
     'pytest',

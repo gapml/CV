@@ -103,8 +103,10 @@ The following are supported for on-disk management:
     * HDF5 Storage and Indexing
     * Metadata handling
     * Distributed
+    
+## Installation
 
-## Pip Installation: 
+### Pip Installation: 
 
 The **GapCV** framework is supported on Windows, MacOS, and Linux. It has been packaged for distribution via PyPi on launch.
 
@@ -119,7 +121,7 @@ The **GapCV** framework is supported on Windows, MacOS, and Linux. It has been p
       + Windows: `deactivate`  
       + Linux/macOS: `source deactivate`
 
-## Setup.py Installation:
+### Setup.py Installation:
 
 To install **GapCV** via setup.py:
 
@@ -129,6 +131,16 @@ To install **GapCV** via setup.py:
   2. install the GapML setup file.  
       + access folder `cd CV`  
       + `python setup.py install`
+      
+### Importing GapCV
+
+To import GapCV into your python application, do:
+
+```python
+from gapcv.vision import Images
+```
+
+To import 
 
 ## Quick Start
 
