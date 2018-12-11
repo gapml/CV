@@ -520,3 +520,41 @@ print(cats.class)   # will output: {'cats': 0, 'dogs': 1}
 ## Reference
 
 ## Testing
+
+The GAP framework is developed using Test Driven Development methodology. The automated unit tests for the framework use pytest, which is a xUnit style form of testing (e.g., jUnit, nUnit, jsUnit, etc).
+
+#### Installation and Documentation
+
+The pytest application can be installed using pip:
+
+    pip install pytest
+
+Online documentation for [pytest](https://docs.pytest.org)
+
+#### Execution
+
+The following are the pre-built automated unit tests, which are located under the subdirectory tests:
+
+    image_test.py       # Tests the Image and Images Class in the Vision Module
+
+The automated tests are executed as follows:
+  
+  1. From directory root enter `cd tests`
+
+  2. Tests can be run by:
+
+    pytest -v image_test.py
+
+#### Code Coverage
+
+Information on the percent of code that is covered (and what source lines not covered) by the automated tests is obtained using pytest-cov. This version of pytest is installed using pip:
+
+    pip install pytest-cov
+
+  1. From directory root enter `cd tests`
+
+  2. To run tests with coverage: 
+
+    pytest --cov=gapcv.vision image_test.py
+
+        Statements=1355, Missed=86, Percent Covered: 94%
