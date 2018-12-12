@@ -1,8 +1,6 @@
 # Gap CV
 
-<p align="center">
-  <img width="345" height="200" src='docs/img/gap.jpg'>
-</p>
+  ![gap](docs/img/gap.png)
 
 ## Intro
 
@@ -569,4 +567,4 @@ Information on the percent of code that is covered (and what source lines not co
 
     pytest --cov=gapcv.vision image_test.py
 
-        Statements=1355, Missed=86, Percent Covered: 94%
+        Statements=1363, Missed=67, Percent Covered: 95%
