@@ -1,6 +1,6 @@
 # Gap CV
 
-  ![gap](img/gap.png)
+  ![gap](docs/img/gap.png)
 
 ## Intro
 
@@ -12,11 +12,11 @@ The module is written in a modern *object oriented programming (OOP)* abstractio
 
 ## Why and Why Now
 
-During the Spring of 2018, many of us had observed advancements in redesign of ML frameworks (such as Keras and PyTorch) to migrate into frameworks which would have broader adoption in the software engineering community. But, the focus was primarily on the model building and not on the data engineering. Across the Internet, between blogs, tutorials and online classes, the examples for data engineering was still a wild west. To us, we saw this as a gap, and hence the name Gap
+During the Spring of 2018, many of us had observed advancements in redesign of ML frameworks (such as **Keras** and **PyTorch**) to migrate into frameworks which would have broader adoption in the software engineering community. But, the focus was primarily on the model building and not on the data engineering. Across the Internet, between blogs, tutorials and online classes, the examples for data engineering was still a wild west. To us, we saw this as a gap, and hence the name **Gap**.
 
 ML practitioners today recognize the substantial component that data engineering is within the machine learning ecosystem, and the need to modernize, streamline and standardize to meet the needs of the software development community at the same pace as framework advancements are being made on the modeling components.
 
-  ![MLEcoSystem](img/MLEcoSystem.png)
+  ![MLEcoSystem](docs/img/MLEcoSystem.png)
 
 ## Summary of Features
 
@@ -34,13 +34,13 @@ The following image formats are supported:
     
 ### Image Set (Dataset) Layouts
 
-The following image set layouts are supported (i.e., can be ingested by Gap):  
+The following image dataset layouts are supported (i.e., can be ingested by **Gap**):  
 
     * On-Disk (directory, CSV and JSON)
     * In-Memory (list, numpy)
     * Remote (http)
     
-For CSV and JSON, the image data can be embedded (in-memory), local (on-disk) or url paths (remote).
+For CSV and JSON, the image data can be embedded (in-memory), local (on-disk) or URL paths (remote).
 
 ### Image Transformations
 
@@ -52,11 +52,11 @@ The following image transformations are supported:
     * Normalization and Standardization
     * Data Type Conversion: 8 and 16 bpp integer and 16, 32 and 64 bpp float
     
-Transformations can be performed when processing an image set (ingestion) or performed dynamically when feed during training.
+Transformations can be performed when processing an image dataset (ingestion) or performed dynamically in-place when feeding (training) a neural network.
 
 ### Image Augmentation
 
-The following image augmentations are supported.
+The following image augmentations are supported:
 
     * Rotation
     * Horizontal and Vertical Flip
@@ -106,16 +106,16 @@ The following are supported for on-disk management:
 
 ### Pip Installation: 
 
-The **GapCV** framework is supported on Windows, MacOS, and Linux. It has been packaged for distribution via PyPi on launch.
+The **GapCV** framework is supported on Windows, MacOS, and Linux. It has been packaged for distribution via PyPi.
 
-  1. install [miniconda](https://conda.io/miniconda.html)  
+  1. Install [miniconda](https://conda.io/miniconda.html).
 
-  2. install conda virtual environment and required packages  
+  2. Install conda virtual environment and required packages:
       + Create an environment with: `conda create -n gap python==3.5 jupyter pip`  
       + Activate: `source activate gap`  
       + `pip install gapcv`
 
-  3. exiting conda virtual environment:  
+  3. Exiting conda virtual environment:  
       + Windows: `deactivate`  
       + Linux/macOS: `source deactivate`
 
@@ -123,10 +123,10 @@ The **GapCV** framework is supported on Windows, MacOS, and Linux. It has been p
 
 To install **GapCV** via setup.py:
 
-  1. clone from the Github repo.  
+  1. Clone from the Github repo.  
       + `git clone https://github.com/gapml/CV.git`
 
-  2. install the GapML setup file.  
+  2. Install using the **GapCV** setup file.  
       + access folder `cd CV`  
       + `python setup.py install`
       
@@ -137,8 +137,6 @@ To import GapCV into your python application, do:
 ```python
 from gapcv.vision import Images
 ```
-
-To import 
 
 ## Quick Start
 
@@ -176,7 +174,7 @@ class (label), such as *cats*. Within the subdirectory are one or more images wh
                 /                  \
             c1.jpg ...          d1.jpg ...
             
-The following instantiation of the `Images` class object will load the images from local disk into in-memory according the default transformation settings.  Within memory, the set of transformed images will be grouped into two classes: cats, and dogs.      
+The following instantiation of the `Images` class object will load the images from local disk into in-memory according to the default transformation settings.  Within memory, the set of transformed images will be grouped into two classes: cats, and dogs.      
 
 ```python
 images = Images(dataset='cats_n_dogs')
@@ -192,7 +190,7 @@ print(images.images[0]) # will output the numpy arrays for each transformed imag
 print(images.labels[0]) # will output the label for each transformed image in the class with label 0 (cats).
 ```
 
-Several of the builtin functions have been overridden for the `Images` class. Below are a few frequently used overriden builtin functions:
+Several of the builtin functions have been overridden for the `Images` class. Below are a few frequently used overridden builtin functions:
 
 ```python
 print(len(images))      # same as images.count
@@ -201,14 +199,14 @@ print(images[0])        # same as images.images[0]
 
 *List*
 
-Alternatively, local on-disk images maybe specified as a list of paths, with corresponding list of labels. Below is an example where the `dataset` parameter is specified as a list of
+Alternatively, local on-disk images may be specified as a list of paths, with corresponding list of labels. Below is an example where the `dataset` parameter is specified as a list of
 paths to images, and the `labels` parameter is a list of corresponding labels.
 
 ```python
 images = Images(name='cats_and_dogs', dataset=['cats/1.jpg', 'cats/2.jpg', ... 'dogs/1.jpg'], labels=[0, 0, ... 1])
 ```
 
-Alternately, the image paths maybe specified as remote locations using URL paths. In this case, a HTTP request will be made to fetch the contents of the image from the remote site.
+Alternately, the image paths may be specified as remote locations using URL paths. In this case, a HTTP request will be made to fetch the contents of the image from the remote site.
 
 ```python
 images = Images(name='cats_and_dogs', dataset=['http://mysite.com/cats/1.jpg', 'http://mysite.com/cats/2.jpg', ... ], labels=[0, 0, ...])
@@ -216,7 +214,7 @@ images = Images(name='cats_and_dogs', dataset=['http://mysite.com/cats/1.jpg', '
 
 *Memory*
 
-If the dataset is already in memory, for example a curated dataset that is part of a framework (e.g., CIFAR-10 in Keras), the in-memory multi-dimensional numpy arrays for the curated images and labels are passed as the values to the `dataset` and `labels` parameter.
+If the dataset is already in memory, for example a curated dataset that is part of a framework (e.g., CIFAR-10 in **Keras**), the in-memory multi-dimensional numpy arrays for the curated images and labels are passed as the values to the `dataset` and `labels` parameter.
 
 ```python
 from keras.datasets import cifar10
@@ -311,7 +309,7 @@ The default settings of the image transformations can be overridden as `settings
         float16|float32 : pixel data type
         uint8|uint16    : pixel data type
         
-For example, if the target neural network is a DNN and the input is a gray scale flatten 28x28 vector, one would specify:
+For example, if the target neural network is a DNN and the input is a flattened gray scale 28x28 vector (e.g., mnist), one would specify:
         
 ```python
 images = Images(name='mnist', ..., config=[resize=(28,28), 'gray', 'flatten'])
@@ -331,7 +329,7 @@ images = Images(..., config=['float16'])
 ```
 
 In another example, you can do a space vs. speed tradeoff. The pixel data type can be set to `uint8` (8-bit integer). In this case, pixel normalization is deferred and performed dynamically 
-each time the image is feed to the neural network. The in-memory size of the image data will be 25% smaller than the corresponding `float32` version, or 50% smaller than the corresponding
+each time the image is feed to the neural network. The in-memory size of the image data will be 75% smaller than the corresponding `float32` version, or 50% smaller than the corresponding
 `float16` version.
 
 ```python
@@ -369,8 +367,8 @@ If the pixel data type is uint8 (or uint16), the pixel data will be normalized p
 
 *Iterative*
 
-The `next()` operator is overridden to act as a iterative for feeding a neural network. Each invocation of `next()` will return the next image and label in the training set. Once all
-the image data has been enumerated (i.e., epoch), the` next()` operator will return None and randomly reshuffle the training data for the next epoch. The image and label data are returned
+The `next()` operator is overridden to act as a iterator for feeding a neural network. Each invocation of `next()` will return the next image and label in the training set. Once all
+the image data has been enumerated (i.e., epoch), the` next()` operator will return `None` and randomly reshuffle the training data for the next epoch. The image and label data are returned
 as a multi-dimensional numpy array and one-hot encoded numpy vector, respectively.
 
 ```python
@@ -394,7 +392,7 @@ images.minibatch = 64
 ```
 
 The `minibatch` property when used as a getter creates a generator on each invocation. The generator will return a sequence of images and labels, whose size is specified as the parameter
-(or default) to `minibatch` when specified as a setter. Each creation of the generation will sequentially move through the training data. When the end of the training data is reached, the
+(or default) to `minibatch` when specified as a setter. Each creation of the generator will sequentially move through the training data. When the end of the training data is reached, the
 training data is randomly reshuffled and the `minibatch` getter is reset to start at the beginning of the training data. The image and label data are returned
 as a multi-dimensional numpy array and one-hot encoded numpy vector, respectively.
 
@@ -417,7 +415,7 @@ images.stratify = 64
 ```
 
 The `stratify` property when used as a getter creates a generator on each invocation. The generator will return a sequence of images and labels, whose size is specified as the parameter
-(or default) to `stratify` when specified as a setter. Each creation of the generation will sequentially move through the training data. When the end of the training data is reached, the
+(or default) to `stratify` when specified as a setter. Each creation of the generator will sequentially move through the training data. When the end of the training data is reached, the
 training data is randomly reshuffled and the 'stratify` getter is reset to start at the beginning of the training data. The image and label data are returned
 as a multi-dimensional numpy array and one-hot encoded numpy vector, respectively.
 
@@ -433,7 +431,7 @@ If the pixel data type is uint8 (or uint16), the pixel data will be normalized d
 
 ### Image Augmentation
 
-Image augmentation (synthesis of new images) occurs dynamically (i.e., in-place) when feeding a neural network, and is initiated through the parameter `augment` when instantiating an
+Image augmentation (synthesis of new images) occurs dynamically in-place when feeding a neural network, and is initiated through the parameter `augment` when instantiating an
 `Images` class object. The settings for the `augment` parameter are:
 
         rotate=min,max                  : random rotation of image within range min and max.
@@ -452,29 +450,29 @@ images = Images(..., augment=['rotate=-90,90', 'flip=vertical'])
 
 Image augmentation occurs dynamically during feeding. For each image feed, a second augmented image will follow. For example, if the training set is 1000 images, the next() operator will
 feed 2000 images per epoch. If the mini-batch or stratify size is set to 32, the corresponding generators will feed 64 images. If multiple image augmentation settings are specified, a 
-random selection is made of the type of augmentation per image. For example, if one specifies rotation, zoom and horizontal flip, then each time an image is augmentation a random choice is
+random selection is made of the type of augmentation per image. For example, if one specifies rotation, zoom and horizontal flip, then each time an image is augmented a random choice is
 made between the three.
 
 ### Managing Datasets (Persistent Storage)
 
-Image datasets which have been transformed into machine learning data can be stored and managed in persistent storage, using the HDF5 filesystem format. The following can be done:
+Image datasets which have been transformed into machine learning ready data can be stored and managed in persistent storage, using the HDF5 filesystem format. The following can be done:
 
     1. Save transformed images into storage (bulk or streamed).
     2. Load transformed images from storage (bulk or streamed).
-    3. Apply new transformations (e.g., convert to grayscale, flatten, change size, etc).
+    3. Apply new transformations (e.g., convert to gray scale, flatten, change size, etc).
     4. Combine collections (classes) of images.
     
 *Save to Persistent Storage*
 
 A transformed image dataset (i.e., collection) can be saved to, and subsequently retrieved from, persistent storage with the `config` setting `store`. When specified, the transformed
-(machine learning ready data) image dataset, along with associated metadata, is stored to HDF5 storage. Within the HDF5 storage, each class (label) of data is compacted and indexed into a contiguous volume with the HDF5 storage for subsequent fast retrieval.
+(machine learning ready data) image dataset, along with associated metadata, is stored to HDF5 storage. Within the HDF5 storage, each class (label) of data is compacted and indexed into a contiguous volume within the HDF5 storage for subsequent fast retrieval.
 
 ```python
 # store the transformed image dataset into HDF5 storage
 images = Images(..., config=['store'])
 ```
 
-If the image dataset is too large to hold the entire dataset in memory, the images can alternatively be processed one each at a time and streamed into the HDF5 storage. In this mode, the
+If the image dataset is too large to hold the entire dataset in memory, the images can alternatively be processed one at a time and streamed into the HDF5 storage. In this mode, the
 process only consumes memory resources for a single image. The stream mode is invoked when the `config` setting `stream` is specified.
 
 ```python
@@ -498,7 +496,7 @@ X_train, X_test, Y_train, Y_test = images.split
 
 *Apply Transforms*
 
-After a transformed image dataset has been loaded from persistent storage, one can further re-transform the dataset to match the input requirements of another neural network, without reprocessing the original image data. The re-transforms supported as setter properties of the `Images` class:
+After a transformed image dataset has been loaded from persistent storage, one can further re-transform the dataset to match the input requirements of another neural network, without reprocessing the original image data. The re-transforms are supported as setter properties of the `Images` class:
 
     - `gray`   : Converting to Grayscale
     - 'flatten`: Flattening
@@ -513,7 +511,7 @@ images.resize = (96, 96)
     
 *Combining Collections*
 
-Existing collections in persistent storage can be combined into a single new collection using the overridden `+=` operator. When combined, the label assignment is recalculated. For example,
+Existing collections in persistent storage can be combined into a single new collection using the overridden `+=` operator. When combined, the label assignment is reassigned. For example,
 if both collections are a single class with both having the respective value 0 for the class, in the combined version, one class will be 0 and the other 1.
 
 ```python
@@ -531,7 +529,7 @@ print(cats.class)   # will output: {'cats': 0, 'dogs': 1}
 
 ## Testing
 
-The GAP framework is developed using Test Driven Development methodology. The automated unit tests for the framework use pytest, which is a xUnit style form of testing (e.g., jUnit, nUnit, jsUnit, etc).
+The **Gap** framework is developed using Test Driven Development methodology. The automated unit tests for the framework use pytest, which is a xUnit style form of testing (e.g., jUnit, nUnit, jsUnit, etc).
 
 #### Installation and Documentation
 
