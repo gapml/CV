@@ -16,7 +16,7 @@ During the Spring of 2018, many of us had observed advancements in redesign of M
 
 ML practitioners today recognize the substantial component that data engineering is within the machine learning ecosystem, and the need to modernize, streamline and standardize to meet the needs of the software development community at the same pace as framework advancements are being made on the modeling components.
 
-  ![MLEcoSystem](docs/img/MLEcoSystem.png)
+  ![MLEcoSystem](img/MLEcoSystem.png)
 
 ## Summary of Features
 
