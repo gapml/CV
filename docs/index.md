@@ -1,6 +1,6 @@
 # Gap CV
 
-  ![gap](docs/img/gap.png)
+  ![gap](img/gap.png)
 
 ## Intro
 
