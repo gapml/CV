@@ -7,3 +7,5 @@ train/.ipynb_checkpoints/
 gapcv.egg-info
 site/
 .vscode
+htmlcov
+.coverage
