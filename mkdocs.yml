@@ -1,7 +1,7 @@
 site_name: GapML CV
 theme: readthedocs
 repo_url: https://github.com/gapml/CV
-google_analytics: ['UA-124527631-2', 'https://gapml.github.io/CV/']
+google_analytics: ['UA-124527631-2', 'gapml.github.io/CV/']
 nav:
   - Home: index.md
 # - About: about.md
