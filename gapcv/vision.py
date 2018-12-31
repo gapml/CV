@@ -83,6 +83,7 @@ class BareMetal(object):
             # non-empty dataset
             if self._dataset:
                 # dataset is in memory
+                # TODO Row 331 is not possible to evaluate because it is evaluate here:
                 if isinstance(self._dataset[0], np.ndarray):
                     collections, labels, classes, errors, elapsed = self._loadMemory()
                 # load from in-memory list
@@ -135,6 +136,7 @@ class BareMetal(object):
             self._hf.attrs['fail'] = len(errors)
 
             self._hf.close()
+            self._hf = None
 
         # tell garbage collector to free any unused memory
         gc.collect()
@@ -746,6 +748,8 @@ class BareMetal(object):
         errors = []
         d_index = 0
 
+        # TODO is it necesary evaluate files when this funtion is just used
+        # for _loadDirectory()?
         if isinstance(files[0], str):
             if files[0].startswith('http:') or files[0].startswith('https:'):
                 function = self._loadImageRemote
@@ -771,7 +775,7 @@ class BareMetal(object):
             else:
                 errors.append(error)
 
-        if not self._stream and len(collection) > 0:
+        if not self._stream and collection:
             collection = self._pixel_transform(collection)
 
         return collection, names, types, sizes, shapes, errors, time.time() - start_time
@@ -867,7 +871,11 @@ class BareMetal(object):
             :return           : a processed image as a numpy matrix (or vector if flattened).
         """
         # retain the original shape
-        shape = image.shape
+        try:
+            shape = image.shape
+        except Exception as e:
+            return None, None, None, '', '', e
+
         # retain original image information
         name = ''
         _type = ''
@@ -882,15 +890,18 @@ class BareMetal(object):
         if image.ndim == 1:
             return image, shape, size, name, _type, None
 
-        #  Grayscale conversion
-        if self._colorspace == GRAYSCALE:
-            # single channel (assume grayscale)
-            if image.ndim != 2:
-                image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
-        # Color Conversion
-        elif self._colorspace == COLOR:
-            if image.ndim != 3:
-                image = cv2.cvtColor(image, cv2.COLOR_GRAY2RGB)
+        try:
+            #  Grayscale conversion
+            if self._colorspace == GRAYSCALE:
+                # single channel (assume grayscale)
+                if image.ndim != 2:
+                    image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+            # Color Conversion
+            elif self._colorspace == COLOR:
+                if image.ndim != 3:
+                    image = cv2.cvtColor(image, cv2.COLOR_GRAY2RGB)
+        except Exception as e:
+            return None, None, None, '', '', e
 
         return image, shape, size, name, _type, None
 
@@ -933,7 +944,6 @@ class BareMetal(object):
             :param index: int
             :return     : None
         """
-
         try:
             if self._flatten:
                 # flatten into 1D vector
@@ -992,6 +1002,7 @@ class BareMetal(object):
         """
 
         self._group = self._hf.create_group(name) # Create dataset group
+        self._groups.append(name)
         if self._colorspace == GRAYSCALE:
             if self._flatten:
                 shape = (self._resize[0] * self._resize[1], )
@@ -1006,7 +1017,19 @@ class BareMetal(object):
                 shape = (self._resize[1], self._resize[0], 3)
 
         shape = ((nelem,) + shape)
-        return self._group.create_dataset('data', shape, dtype='i1')
+        if self._dtype == np.uint8:
+            dtype = 'i1'
+        elif self._dtype == np.uint16:
+            dtype = 'i2'
+        elif self._dtype == np.float16:
+            dtype = 'f2'
+        elif self._dtype == np.float32:
+            dtype = 'f4'
+        elif self._dtype == np.float64:
+            dtype = 'f8'
+        else:
+            dtype = 'i1'
+        return self._group.create_dataset('data', shape, dtype=dtype)
 
     def _write_group_hdf5(self, group, collection, label, elapsed,
                           names, types, sizes, shapes, dset):
@@ -1162,8 +1185,11 @@ class BareMetal(object):
 
     def _edgeImage(self, image):
         """ edge """
-        gray = cv2.GaussianBlur(image, (3, 3), 0)
-        edged = cv2.Canny(gray, 20, 100)
+        if self.dtype in [np.uint8, np.uint16]:
+            gray = cv2.GaussianBlur(image, (3, 3), 0)
+            edged = cv2.Canny(gray, 20, 100)
+        else:
+            edged = image
         return edged
 
     def _flipImage(self, image):
@@ -1191,7 +1217,10 @@ class BareMetal(object):
 
     def _denoiseImage(self, image):
         """ denoise """
-        denoise = cv2.fastNlMeansDenoisingColored(image, None, 10, 10, 7, 21)
+        if self.dtype in [np.uint8, np.uint16]:
+            denoise = cv2.fastNlMeansDenoisingColored(image, None, 10, 10, 7, 21)
+        else:
+            denoise = image
         return denoise
 
     def _brightnesscontrastImage(self, image):
@@ -1231,7 +1260,7 @@ class Images(BareMetal):
                 raise TypeError("Labels expected when images are a list or numpy array")
         else:
             if isinstance(labels, np.ndarray):
-                if not labels:
+                if not np.any(labels):
                     raise AttributeError("Array must be > 0 for labels")
                 if labels.dtype not in ['int32', 'uint32']:
                     raise TypeError("Array values must be integers for labels")
@@ -1258,6 +1287,7 @@ class Images(BareMetal):
                 raise TypeError("Function expected for ehandler")
 
         self._data = None
+        self._groups = []
         self._ehandler = ehandler
         self._resize = (128, 128)
         self._flatten = False
@@ -1282,6 +1312,7 @@ class Images(BareMetal):
         self._shape = (0,)
         self._count = 0
         self._16bpp = False
+        self._hf = None
 
         self._split = 0.8   # percentage of split between train / test
         self._seed = 0     # seed for random shuffle of data
@@ -1456,7 +1487,7 @@ class Images(BareMetal):
                                 raise AttributeError("Missing value for brightness")
                             try:
                                 self._brightness = ast.literal_eval(option[1])
-                                if self._brightness < 1 or self._brightness > 100:
+                                if self._brightness < 0 or self._brightness > 100:
                                     raise AttributeError("Brightness range must be between 0 and 100")
                             except:
                                 raise AttributeError("Brightness range not an integer or float")
@@ -1519,12 +1550,15 @@ class Images(BareMetal):
         if _dir is not None:
             self.dir = _dir
 
-        if self._dir is None:
-            self._dir = "./"
+        # unnecessary self._dir gets the value './' when images = Images()
+        # added exception if images = Images(_dir=None)
+        # if self._dir is None:
+        #     self._dir = "./"
 
         # Read the preprocessed dataset from the HD5 file
         self._data = []
         self._labels = []
+        self._groups = []
         with h5py.File(self._dir + self._name + '.h5', 'r') as self._hf:
             # Dataset Attributes
             self._name = self._hf.attrs['name']
@@ -1563,12 +1597,19 @@ class Images(BareMetal):
                 except:
                     # empty dataset
                     continue
-                data = dset["data"][:count]
-                self._data.append(data)
+                # will stream from HDF5 instead of memory when feeding
+                if not self._stream:
+                    data = dset["data"][:count]
+                    self._data.append(data)
                 label = dset["data"].attrs['label']
-                self._labels.append(np.asarray([label for _ in range(len(data))]))
+                self._labels.append(np.asarray([label for _ in range(count)]))
+                self._groups.append(group)
 
             pass # TODO: group attributes
+
+        # leave HDF5 open when streaming
+        if self._stream:
+            self._hf = h5py.File(self._dir + self._name + '.h5', 'r')
 
     ### Properties ###
 
@@ -1615,7 +1656,10 @@ class Images(BareMetal):
                 _dir += "/"
             self._dir = _dir
         self._dir = _dir
-        os.makedirs(self._dir, exist_ok=True)
+        try:
+            os.makedirs(self._dir, exist_ok=True)
+        except:
+            raise TypeError("String expected for image storage path")
 
     @property
     def time(self):
@@ -1765,6 +1809,9 @@ class Images(BareMetal):
     def split(self):
         """ Getter for return a split training set """
 
+        if self._stream:
+            raise AttributeError("Split incompatible in stream mode")
+
         # Training set not already split, so split it
         if self._train is None:
             self.split = (1 - self._split)
@@ -1835,15 +1882,19 @@ class Images(BareMetal):
         if percent < 0 or percent >= 1:
             raise ValueError("Percent parameter must be between 0 and 1")
 
-        if self._data is None:
+        if self._labels is None:
             raise AttributeError("No image data")
+
+        # open HDF5 for streaming when feeding
+        if self._stream and self._hf is None:
+            self._hf = h5py.File(self._dir + self._name + '.h5', 'r')
 
         self._split = (1 - percent)
 
         self._train = []
         self._test = []
         random.seed(self._seed)
-        for ix, collection in enumerate(self._data):
+        for ix, collection in enumerate(self._labels):
             # create a randomized index to the images in this collection, where each entry is:
             # (index of collection, index within collection)
             l = len(collection)
@@ -1872,10 +1923,18 @@ class Images(BareMetal):
         Y = np.eye(C)[Y.reshape(-1)].astype(np.uint8)
         return Y
 
+    def _verifyNormalization(self, image):
+        # pre-normalized
+        if self.dtype == np.uint8:
+            image = (image / 255.0).astype(np.float32)
+        elif self.dtype == np.uint16:
+            image = (image / 65535.0).astype(np.float32)
+        # else already normalized
+        return image
+
     @property
     def minibatch(self):
         """ Return a generator for the next mini batch """
-
         # mini-batch was not set, implicitly set it
         if self._minisz == 0:
             self.minibatch = 32
@@ -1890,19 +1949,18 @@ class Images(BareMetal):
             ix, iy = self._train[_]
             self._next += 1
             label = self._labels[ix]
-            # pre-normalized
-            if self.dtype == np.uint8:
-                image = (self._data[ix][iy] / 255.0).astype(np.float32)
-            elif self.dtype == np.uint16:
-                image = (self._data[ix][iy] / 65535.0).astype(np.float32)
-            # already normalized
+            # streaming
+            if self._stream:
+                data = self._hf[self._groups[ix]]["data"][iy]
+            # in-memory
             else:
-                image = self._data[ix][iy]
-            yield image, label
+                data = self._data[ix][iy]
+            yield self._verifyNormalization(data), label
 
             # if augmentation, feed a second augmented version of the image
             if self._augment:
-                yield self._augmentation(image), label
+                image = self._augmentation(data)
+                yield self._verifyNormalization(image), label
 
     @minibatch.setter
     def minibatch(self, batch_size):
@@ -1943,20 +2001,19 @@ class Images(BareMetal):
             for ix, collection in enumerate(self._train):
                 iy = random.randint(0, len(collection))
                 label = self._labels[ix]
-                # pre-normalized
-                if self.dtype == np.uint8:
-                    image = (self._data[ix][iy] / 255.0).astype(np.float32)
-                elif self.dtype == np.uint16:
-                    image = (self._data[ix][iy] / 65535.0).astype(np.float32)
-                # already normalized
+                # streaming
+                if self._stream:
+                    data = self._hf[self._groups[ix]]["data"][iy]
+                # in-memory
                 else:
-                    image = self._data[ix][iy]
-                yield image, label
+                    data = self._data[ix][iy]
+                yield self._verifyNormalization(data), label
                 n += 1
 
                 # if augmenting, send a second augmented version of the image
                 if self._augment:
-                    yield self._augmentation(image), label
+                    image = self._augmentation(data)
+                    yield self._verifyNormalization(image), label
 
     @stratify.setter
     def stratify(self, batch_size):
@@ -1989,10 +2046,10 @@ class Images(BareMetal):
             if not isinstance(self._seed, int):
                 raise TypeError("Seed parameter must be an integer")
 
-        if self._data is None:
+        if self._labels is None:
             raise AttributeError("No image data")
 
-        if self._minisz < len(self._data):
+        if self._minisz < len(self._labels):
             raise ValueError("Batch size too small")
 
         self._split = (1 - percent)
@@ -2002,7 +2059,7 @@ class Images(BareMetal):
         self._train = []
         self._test = []
         random.seed(self._seed)
-        for ix, collection in enumerate(self._data):
+        for ix, collection in enumerate(self._labels):
             l = len(collection)
             indices = [_ for _ in range(l)]
             random.shuffle(indices)
@@ -2018,6 +2075,10 @@ class Images(BareMetal):
             self._labels[ix] = ix
 
         self._labels = self._one_hot(np.asarray(self._labels), self._nlabels)
+
+        # open HDF5 for streaming when feeding
+        if self._stream and self._hf is None:
+            self._hf = h5py.File(self._dir + self._name + '.h5', 'r')
 
     def __next__(self):
         """ Iterate through the training set (single image at a time) """
@@ -2045,13 +2106,14 @@ class Images(BareMetal):
 
         # pre-normalize: normalize as being feed
         label = self._labels[ix]
-        if self.dtype == np.uint8:
-            image = (self._data[ix][iy] / 255.0).astype(np.float32)
-        elif self.dtype == np.uint16:
-            image = (self._data[ix][iy] / 65535.0).astype(np.float32)
-        # already normalized
+        if self._stream:
+            image = self._hf[self._groups[ix]]["data"][iy]
         else:
             image = self._data[ix][iy]
+        if self.dtype == np.uint8:
+            image = (image / 255.0).astype(np.float32)
+        elif self.dtype == np.uint16:
+            image = (image / 65535.0).astype(np.float32)
 
         # if augment, return original image, and then augmented version
         if self._augment:
