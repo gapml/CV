@@ -1,6 +1,6 @@
 """
 Copyright(c), Google, LLC (Andrew Ferlitsch)
-Copyright(c), virtualdvid (David Molina)
+Copyright(c), Virtualdvid (David Molina)
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -5160,40 +5160,28 @@ class MyTest(unittest.TestCase):
                         [0, 0, 0, 0, 1, 1, 1, 1])
         images.split = 0.5, 12
         images.minibatch = 2
-        # First batch
-        g = images.minibatch
-        n = 0
-        for x, y in g:
-            self.assertEqual(x.shape, (128, 128, 3))
-            if n == 0:
-                self.assertEqual(list(y), [1, 0])
-            else:
-                self.assertEqual(list(y), [0, 1])
-            n += 1
-        self.assertEqual(n, 2)
-        # second batch
-        g = images.minibatch
-        n = 0
-        for x, y in g:
-            self.assertEqual(x.shape, (128, 128, 3))
-            if n == 0:
-                self.assertEqual(list(y), [1, 0])
-            else:
-                self.assertEqual(list(y), [0, 1])
-            n += 1
-        self.assertEqual(n, 2)
 
-        # next epoch
         g = images.minibatch
-        n = 0
-        for x, y in g:
-            self.assertEqual(x.shape, (128, 128, 3))
-            if n == 0:
-                self.assertEqual(list(y), [0, 1])
-            else:
-                self.assertEqual(list(y), [1, 0])
-            n += 1
-        self.assertEqual(n, 2)
+        if True:
+            step = 0
+            for x_batch, y_batch in g:
+                self.assertEqual(x_batch.shape, (2, 128, 128, 3))
+                self.assertEqual(y_batch.shape, (2, 2))
+                step += 1
+                # first batch
+                if step == 1:
+                    self.assertEqual(list(y_batch[0]), [1, 0])
+                    self.assertEqual(list(y_batch[1]), [0, 1])
+                # second batch
+                elif step == 2:
+                    self.assertEqual(list(y_batch[0]), [1, 0])
+                    self.assertEqual(list(y_batch[1]), [0, 1])
+                # next epoch
+                elif step == 3:
+                    self.assertEqual(list(y_batch[0]), [0, 1])
+                    self.assertEqual(list(y_batch[1]), [1, 0])
+                else:
+                    break
 
     def test_081(self):
         """ stream file csv with urls paths """
@@ -5298,41 +5286,26 @@ class MyTest(unittest.TestCase):
                          'files/8rgb.png', 'files/1.jpg', 'files/2.jpg', 'files/3.jpg'],
                         [0, 0, 0, 0, 1, 1, 1, 1])
         images.stratify = 2, 0.5, 12
-        # First batch
-        g = images.stratify
-        n = 0
-        for x, y in g:
-            self.assertEqual(x.shape, (128, 128, 3))
-            if n == 0:
-                self.assertEqual(list(y), [1, 0])
-            else:
-                self.assertEqual(list(y), [0, 1])
-            n += 1
-        self.assertEqual(n, 2)
 
-        # Second batch
         g = images.stratify
-        n = 0
-        for x, y in g:
-            self.assertEqual(x.shape, (128, 128, 3))
-            if n == 0:
-                self.assertEqual(list(y), [1, 0])
-            else:
-                self.assertEqual(list(y), [0, 1])
-            n += 1
-        self.assertEqual(n, 2)
-
-        # next epoch
-        g = images.stratify
-        n = 0
-        for x, y in g:
-            self.assertEqual(x.shape, (128, 128, 3))
-            if n == 0:
-                self.assertEqual(list(y), [1, 0])
-            else:
-                self.assertEqual(list(y), [0, 1])
-            n += 1
-        self.assertEqual(n, 2)
+        if True:
+            step = 0
+            for x_batch, y_batch in g:
+                self.assertEqual(x_batch.shape, (2, 128, 128, 3))
+                self.assertEqual(y_batch.shape, (2, 2))
+                step += 1
+                # first batch
+                if step == 1:
+                    self.assertEqual(list(y_batch[0]), [1, 0])
+                    self.assertEqual(list(y_batch[1]), [0, 1])
+                elif step == 2:
+                    self.assertEqual(list(y_batch[0]), [1, 0])
+                    self.assertEqual(list(y_batch[1]), [0, 1])
+                elif step == 3:
+                    self.assertEqual(list(y_batch[0]), [1, 0])
+                    self.assertEqual(list(y_batch[1]), [0, 1])
+                else:
+                    break
 
     def test_086(self):
         """ Images - += Images - invalid """
@@ -5577,37 +5550,35 @@ class MyTest(unittest.TestCase):
                          'files/8rgb.png', 'files/1.jpg', 'files/2.jpg', 'files/3.jpg'],
                         [0, 0, 0, 0, 1, 1, 1, 1], augment=['flip=vertical'])
         images.split = 0.5, 12
-        images.minibatch = 2
-        # First batch
-        g = images.minibatch
-        n = 0
-        for x, y in g:
-            self.assertEqual(x.shape, (128, 128, 3))
-            if n == 0 or n == 1:
-                self.assertEqual(list(y), [1, 0])
-            else:
-                self.assertEqual(list(y), [0, 1])
-            n += 1
-        self.assertEqual(n, 4)
-        # second batch
-        g = images.minibatch
-        n = 0
-        for x, y in g:
-            self.assertEqual(x.shape, (128, 128, 3))
-            if n == 0 or n == 1:
-                self.assertEqual(list(y), [1, 0])
-            else:
-                self.assertEqual(list(y), [0, 1])
-            n += 1
-        self.assertEqual(n, 4)
 
-        # next epoch
+        images.minibatch = 2
         g = images.minibatch
-        n = 0
-        for x, y in g:
-            self.assertEqual(x.shape, (128, 128, 3))
-            n += 1
-        self.assertEqual(n, 4)
+        if True:
+            step = 0
+            for x_batch, y_batch in g:
+                self.assertEqual(x_batch.shape, (4, 128, 128, 3))
+                self.assertEqual(y_batch.shape, (4, 2))
+                step += 1
+                # first batch
+                if step == 1:
+                    self.assertEqual(list(y_batch[0]), [1, 0])
+                    self.assertEqual(list(y_batch[1]), [1, 0])
+                    self.assertEqual(list(y_batch[2]), [0, 1])
+                    self.assertEqual(list(y_batch[3]), [0, 1])
+                # second batch
+                elif step == 2:
+                    self.assertEqual(list(y_batch[0]), [1, 0])
+                    self.assertEqual(list(y_batch[1]), [1, 0])
+                    self.assertEqual(list(y_batch[2]), [0, 1])
+                    self.assertEqual(list(y_batch[3]), [0, 1])
+                # next epoch
+                elif step == 3:
+                    self.assertEqual(list(y_batch[0]), [1, 0])
+                    self.assertEqual(list(y_batch[1]), [1, 0])
+                    self.assertEqual(list(y_batch[2]), [1, 0])
+                    self.assertEqual(list(y_batch[3]), [1, 0])
+                else:
+                    break
 
     def test_093(self):
         """ Images - stratify - augmentation """
@@ -5616,37 +5587,34 @@ class MyTest(unittest.TestCase):
                          'files/8rgb.png', 'files/1.jpg', 'files/2.jpg', 'files/3.jpg'],
                         [0, 0, 0, 0, 1, 1, 1, 1], augment=['flip=both'])
         images.stratify = 2, 0.5, 12
-        # First batch
-        g = images.stratify
-        n = 0
-        for x, y in g:
-            self.assertEqual(x.shape, (128, 128, 3))
-            if n == 0 or n == 1:
-                self.assertEqual(list(y), [1, 0])
-            else:
-                self.assertEqual(list(y), [0, 1])
-            n += 1
-        self.assertEqual(n, 4)
 
-        # Second batch
         g = images.stratify
-        n = 0
-        for x, y in g:
-            self.assertEqual(x.shape, (128, 128, 3))
-            if n == 0 or n == 1:
-                self.assertEqual(list(y), [1, 0])
-            else:
-                self.assertEqual(list(y), [0, 1])
-            n += 1
-        self.assertEqual(n, 4)
-
-        # next epoch
-        g = images.stratify
-        n = 0
-        for x, y in g:
-            self.assertEqual(x.shape, (128, 128, 3))
-            n += 1
-        self.assertEqual(n, 4)
+        if True:
+            step = 0
+            for x_batch, y_batch in g:
+                self.assertEqual(x_batch.shape, (4, 128, 128, 3))
+                self.assertEqual(y_batch.shape, (4, 2))
+                step += 1
+                # first batch
+                if step == 1:
+                    self.assertEqual(list(y_batch[0]), [1, 0])
+                    self.assertEqual(list(y_batch[1]), [1, 0])
+                    self.assertEqual(list(y_batch[2]), [0, 1])
+                    self.assertEqual(list(y_batch[3]), [0, 1])
+                # second batch
+                elif step == 2:
+                    self.assertEqual(list(y_batch[0]), [1, 0])
+                    self.assertEqual(list(y_batch[1]), [1, 0])
+                    self.assertEqual(list(y_batch[2]), [0, 1])
+                    self.assertEqual(list(y_batch[3]), [0, 1])
+                # next epoch
+                elif step == 3:
+                    self.assertEqual(list(y_batch[0]), [1, 0])
+                    self.assertEqual(list(y_batch[1]), [1, 0])
+                    self.assertEqual(list(y_batch[2]), [0, 1])
+                    self.assertEqual(list(y_batch[3]), [0, 1])
+                else:
+                    break
 
     def test_094(self):
         """ Images - augmentation - minibatch - uint8 """
@@ -5656,39 +5624,35 @@ class MyTest(unittest.TestCase):
                         [0, 0, 0, 0, 1, 1, 1, 1], config=['uint8'], augment=['flip=vertical'])
         images.split = 0.5, 12
         images.minibatch = 2
-        # First batch
-        g = images.minibatch
-        n = 0
-        for x, y in g:
-            self.assertEqual(x.shape, (128, 128, 3))
-            self.assertEqual(x.dtype, np.float32)
-            if n == 0 or n == 1:
-                self.assertEqual(list(y), [1, 0])
-            else:
-                self.assertEqual(list(y), [0, 1])
-            n += 1
-        self.assertEqual(n, 4)
-        # second batch
-        g = images.minibatch
-        n = 0
-        for x, y in g:
-            self.assertEqual(x.shape, (128, 128, 3))
-            self.assertEqual(x.dtype, np.float32)
-            if n == 0 or n == 1:
-                self.assertEqual(list(y), [1, 0])
-            else:
-                self.assertEqual(list(y), [0, 1])
-            n += 1
-        self.assertEqual(n, 4)
 
-        # next epoch
         g = images.minibatch
-        n = 0
-        for x, y in g:
-            self.assertEqual(x.shape, (128, 128, 3))
-            self.assertEqual(x.dtype, np.float32)
-            n += 1
-        self.assertEqual(n, 4)
+        if True:
+            step = 0
+            for x_batch, y_batch in g:
+                self.assertEqual(x_batch.shape, (4, 128, 128, 3))
+                self.assertEqual(y_batch.shape, (4, 2))
+                self.assertEqual(x_batch.dtype, np.float32)
+                step += 1
+                # first batch
+                if step == 1:
+                    self.assertEqual(list(y_batch[0]), [1, 0])
+                    self.assertEqual(list(y_batch[1]), [1, 0])
+                    self.assertEqual(list(y_batch[2]), [0, 1])
+                    self.assertEqual(list(y_batch[3]), [0, 1])
+                # second batch
+                elif step == 2:
+                    self.assertEqual(list(y_batch[0]), [1, 0])
+                    self.assertEqual(list(y_batch[1]), [1, 0])
+                    self.assertEqual(list(y_batch[2]), [0, 1])
+                    self.assertEqual(list(y_batch[3]), [0, 1])
+                # next epoch
+                elif step == 3:
+                    self.assertEqual(list(y_batch[0]), [1, 0])
+                    self.assertEqual(list(y_batch[1]), [1, 0])
+                    self.assertEqual(list(y_batch[2]), [1, 0])
+                    self.assertEqual(list(y_batch[3]), [1, 0])
+                else:
+                    break
 
     def test_095(self):
         """ Images - stratify - augmentation - uint16 """
@@ -5697,40 +5661,35 @@ class MyTest(unittest.TestCase):
                          'files/8rgb.png', 'files/1.jpg', 'files/2.jpg', 'files/3.jpg'],
                         [0, 0, 0, 0, 1, 1, 1, 1], augment=['flip=both'], config=['uint16'])
         images.stratify = 2, 0.5, 12
-        # First batch
-        g = images.stratify
-        n = 0
-        for x, y in g:
-            self.assertEqual(x.shape, (128, 128, 3))
-            self.assertEqual(x.dtype, np.float32)
-            if n == 0 or n == 1:
-                self.assertEqual(list(y), [1, 0])
-            else:
-                self.assertEqual(list(y), [0, 1])
-            n += 1
-        self.assertEqual(n, 4)
 
-        # Second batch
         g = images.stratify
-        n = 0
-        for x, y in g:
-            self.assertEqual(x.shape, (128, 128, 3))
-            self.assertEqual(x.dtype, np.float32)
-            if n == 0 or n == 1:
-                self.assertEqual(list(y), [1, 0])
-            else:
-                self.assertEqual(list(y), [0, 1])
-            n += 1
-        self.assertEqual(n, 4)
-
-        # next epoch
-        g = images.stratify
-        n = 0
-        for x, y in g:
-            self.assertEqual(x.shape, (128, 128, 3))
-            self.assertEqual(x.dtype, np.float32)
-            n += 1
-        self.assertEqual(n, 4)
+        if True:
+            step = 0
+            for x_batch, y_batch in g:
+                self.assertEqual(x_batch.shape, (4, 128, 128, 3))
+                self.assertEqual(y_batch.shape, (4, 2))
+                self.assertEqual(x_batch.dtype, np.float32)
+                step += 1
+                # first batch
+                if step == 1:
+                    self.assertEqual(list(y_batch[0]), [1, 0])
+                    self.assertEqual(list(y_batch[1]), [1, 0])
+                    self.assertEqual(list(y_batch[2]), [0, 1])
+                    self.assertEqual(list(y_batch[3]), [0, 1])
+                # second batch
+                elif step == 2:
+                    self.assertEqual(list(y_batch[0]), [1, 0])
+                    self.assertEqual(list(y_batch[1]), [1, 0])
+                    self.assertEqual(list(y_batch[2]), [0, 1])
+                    self.assertEqual(list(y_batch[3]), [0, 1])
+                # next epoch
+                elif step == 3:
+                    self.assertEqual(list(y_batch[0]), [1, 0])
+                    self.assertEqual(list(y_batch[1]), [1, 0])
+                    self.assertEqual(list(y_batch[2]), [0, 1])
+                    self.assertEqual(list(y_batch[3]), [0, 1])
+                else:
+                    break
 
     def test_096(self):
         """ Images - augmentation - minibatch - uint8 """
@@ -5750,25 +5709,14 @@ class MyTest(unittest.TestCase):
                                  ])
         images.split = 0.2, 12
         images.minibatch = 2
-        # First batch
-        g = images.minibatch
-        n = 0
-        for x, y in g:
-            n += 1
-        self.assertEqual(n, 4)
-        # second batch
-        g = images.minibatch
-        n = 0
-        for x, y in g:
-            n += 1
-        self.assertEqual(n, 4)
 
-        # next epoch
         g = images.minibatch
-        n = 0
-        for x, y in g:
-            n += 1
-        self.assertEqual(n, 4)
+        if True:
+            for x_batch, y_batch in g:
+                self.assertEqual(x_batch.shape, (4, 50, 50, 3))
+                self.assertEqual(y_batch.shape, (4, 5))
+                self.assertEqual(x_batch.dtype, np.float32)
+                break
 
     def test_097(self):
         """ Images - stratify - augmentation - uint8 """
@@ -5787,26 +5735,14 @@ class MyTest(unittest.TestCase):
                                  'contrast=1.0'
                                  ])
         images.stratify = 5, 0.2, 12
-        # First batch
-        g = images.stratify
-        n = 0
-        for x, y in g:
-            n += 1
-        self.assertEqual(n, 10)
 
-        # Second batch
         g = images.stratify
-        n = 0
-        for x, y in g:
-            n += 1
-        self.assertEqual(n, 10)
-
-        # next epoch
-        g = images.stratify
-        n = 0
-        for x, y in g:
-            n += 1
-        self.assertEqual(n, 10)
+        if True:
+            for x_batch, y_batch in g:
+                self.assertEqual(x_batch.shape, (10, 50, 50, 3))
+                self.assertEqual(y_batch.shape, (10, 5))
+                self.assertEqual(x_batch.dtype, np.float32)
+                break
 
     def test_098(self):
         """ Images - augmentation - minibatch - float32 """
@@ -5826,25 +5762,14 @@ class MyTest(unittest.TestCase):
                                  ])
         images.split = 0.2, 12
         images.minibatch = 2
-        # First batch
-        g = images.minibatch
-        n = 0
-        for x, y in g:
-            n += 1
-        self.assertEqual(n, 4)
-        # second batch
-        g = images.minibatch
-        n = 0
-        for x, y in g:
-            n += 1
-        self.assertEqual(n, 4)
 
-        # next epoch
         g = images.minibatch
-        n = 0
-        for x, y in g:
-            n += 1
-        self.assertEqual(n, 4)
+        if True:
+            for x_batch, y_batch in g:
+                self.assertEqual(x_batch.shape, (4, 50, 50, 3))
+                self.assertEqual(y_batch.shape, (4, 5))
+                self.assertEqual(x_batch.dtype, np.float32)
+                break
 
     def test_099(self):
         """ Images - stratify - augmentation - float32 """
@@ -5865,26 +5790,67 @@ class MyTest(unittest.TestCase):
         images.stratify = 5, 0.2, 12
         # First batch
         g = images.stratify
-        n = 0
-        for x, y in g:
-            n += 1
-        self.assertEqual(n, 10)
-
-        # Second batch
-        g = images.stratify
-        n = 0
-        for x, y in g:
-            n += 1
-        self.assertEqual(n, 10)
-
-        # next epoch
-        g = images.stratify
-        n = 0
-        for x, y in g:
-            n += 1
-        self.assertEqual(n, 10)
+        if True:
+            for x_batch, y_batch in g:
+                self.assertEqual(x_batch.shape, (10, 50, 50, 3))
+                self.assertEqual(y_batch.shape, (10, 5))
+                self.assertEqual(x_batch.dtype, np.float32)
+                break
 
     def test_100(self):
+        """ Images - augmentation - minibatch - float16 """
+        images = Images('foo', 'files/fp_urls.csv',
+                        config=['float16',
+                                'resize=(50,50)',
+                                'label_col=1',
+                                'image_col=0',
+                                'header'],
+                        augment=['flip=both',
+                                 'edge',
+                                 'zoom=0.5',
+                                 'rotate=-30,60',
+                                 'denoise',
+                                 'brightness=0',
+                                 'contrast=1.0'
+                                 ])
+        images.split = 0.2, 12
+        images.minibatch = 2
+
+        g = images.minibatch
+        if True:
+            for x_batch, y_batch in g:
+                self.assertEqual(x_batch.shape, (4, 50, 50, 3))
+                self.assertEqual(y_batch.shape, (4, 5))
+                self.assertEqual(x_batch.dtype, np.float16)
+                break
+
+    def test_101(self):
+        """ Images - stratify - augmentation - float16 """
+        images = Images('foo', 'files/fp_urls.csv',
+                        config=['float16',
+                                'resize=(50,50)',
+                                'label_col=1',
+                                'image_col=0',
+                                'header'],
+                        augment=['flip=both',
+                                 'edge',
+                                 'zoom=0.5',
+                                 'rotate=-30,60',
+                                 'denoise',
+                                 'brightness=0',
+                                 'contrast=1.0'
+                                 ])
+        images.stratify = 5, 0.2, 12
+        # First batch
+        g = images.stratify
+        if True:
+            for x_batch, y_batch in g:
+                self.assertEqual(x_batch.shape, (10, 50, 50, 3))
+                self.assertEqual(y_batch.shape, (10, 5))
+                self.assertEqual(x_batch.dtype, np.float16)
+                break
+
+    def test_102(self):
         """ Images - memory - load/stream """
 
         # one class
@@ -5945,7 +5911,7 @@ class MyTest(unittest.TestCase):
 
         os.remove('foo.h5')
 
-    def test_101(self):
+    def test_103(self):
         """ Images - split - stream """
         a = cv2.imread('files/1.jpg', cv2.IMREAD_COLOR)
         c = np.asarray([a, a, a, a, a])
@@ -5963,7 +5929,7 @@ class MyTest(unittest.TestCase):
 
         os.remove('foo.h5')
 
-    def test_102(self):
+    def test_104(self):
         """ Images - minibatch - stream """
         images = Images('foo',
                         ['files/1.jpg', 'files/2.jpg', 'files/3.jpg', 'files/8rgb.jpg',
@@ -5972,40 +5938,27 @@ class MyTest(unittest.TestCase):
         # during store
         images.split = 0.5, 12
         images.minibatch = 2
-        # First batch
-        g = images.minibatch
-        n = 0
-        for x, y in g:
-            self.assertEqual(x.shape, (128, 128, 3))
-            if n == 0:
-                self.assertEqual(list(y), [1, 0])
-            else:
-                self.assertEqual(list(y), [0, 1])
-            n += 1
-        self.assertEqual(n, 2)
-        # second batch
-        g = images.minibatch
-        n = 0
-        for x, y in g:
-            self.assertEqual(x.shape, (128, 128, 3))
-            if n == 0:
-                self.assertEqual(list(y), [1, 0])
-            else:
-                self.assertEqual(list(y), [0, 1])
-            n += 1
-        self.assertEqual(n, 2)
-
-        # next epoch
-        g = images.minibatch
-        n = 0
-        for x, y in g:
-            self.assertEqual(x.shape, (128, 128, 3))
-            if n == 0:
-                self.assertEqual(list(y), [0, 1])
-            else:
-                self.assertEqual(list(y), [1, 0])
-            n += 1
-        self.assertEqual(n, 2)
+        if True:
+            step = 0
+            g = images.minibatch
+            for x_batch, y_batch in g:
+                self.assertEqual(x_batch.shape, (2, 128, 128, 3))
+                self.assertEqual(y_batch.shape, (2, 2))
+                step += 1
+                # first batch
+                if step == 1:
+                    self.assertEqual(list(y_batch[0]), [1, 0])
+                    self.assertEqual(list(y_batch[1]), [0, 1])
+                # second batch
+                elif step == 2:
+                    self.assertEqual(list(y_batch[0]), [1, 0])
+                    self.assertEqual(list(y_batch[1]), [0, 1])
+                # next epoch
+                elif step == 3:
+                    self.assertEqual(list(y_batch[0]), [0, 1])
+                    self.assertEqual(list(y_batch[1]), [1, 0])
+                else:
+                    break
 
         # temp
         images._hf.close()
@@ -6015,47 +5968,34 @@ class MyTest(unittest.TestCase):
         images.load('foo')
         images.split = 0.5, 12
         images.minibatch = 2
-        # First batch
-        g = images.minibatch
-        n = 0
-        for x, y in g:
-            self.assertEqual(x.shape, (128, 128, 3))
-            if n == 0:
-                self.assertEqual(list(y), [1, 0])
-            else:
-                self.assertEqual(list(y), [0, 1])
-            n += 1
-        self.assertEqual(n, 2)
-        # second batch
-        g = images.minibatch
-        n = 0
-        for x, y in g:
-            self.assertEqual(x.shape, (128, 128, 3))
-            if n == 0:
-                self.assertEqual(list(y), [1, 0])
-            else:
-                self.assertEqual(list(y), [0, 1])
-            n += 1
-        self.assertEqual(n, 2)
-
-        # next epoch
-        g = images.minibatch
-        n = 0
-        for x, y in g:
-            self.assertEqual(x.shape, (128, 128, 3))
-            if n == 0:
-                self.assertEqual(list(y), [0, 1])
-            else:
-                self.assertEqual(list(y), [1, 0])
-            n += 1
-        self.assertEqual(n, 2)
+        if True:
+            step = 0
+            g = images.minibatch
+            for x_batch, y_batch in g:
+                self.assertEqual(x_batch.shape, (2, 128, 128, 3))
+                self.assertEqual(y_batch.shape, (2, 2))
+                step += 1
+                # first batch
+                if step == 1:
+                    self.assertEqual(list(y_batch[0]), [1, 0])
+                    self.assertEqual(list(y_batch[1]), [0, 1])
+                # second batch
+                elif step == 2:
+                    self.assertEqual(list(y_batch[0]), [1, 0])
+                    self.assertEqual(list(y_batch[1]), [0, 1])
+                # next epoch
+                elif step == 3:
+                    self.assertEqual(list(y_batch[0]), [0, 1])
+                    self.assertEqual(list(y_batch[1]), [1, 0])
+                else:
+                    break
 
         # temp
         images._hf.close()
 
         os.remove('foo.h5')
 
-    def test_103(self):
+    def test_105(self):
         """ Images - augmentation - minibatch - stream """
         images = Images('foo',
                         ['files/1.jpg', 'files/2.jpg', 'files/3.jpg', 'files/8rgb.jpg',
@@ -6063,36 +6003,33 @@ class MyTest(unittest.TestCase):
                         [0, 0, 0, 0, 1, 1, 1, 1], augment=['flip=vertical'], config=['stream'])
         images.split = 0.5, 12
         images.minibatch = 2
-        # First batch
         g = images.minibatch
-        n = 0
-        for x, y in g:
-            self.assertEqual(x.shape, (128, 128, 3))
-            if n == 0 or n == 1:
-                self.assertEqual(list(y), [1, 0])
-            else:
-                self.assertEqual(list(y), [0, 1])
-            n += 1
-        self.assertEqual(n, 4)
-        # second batch
-        g = images.minibatch
-        n = 0
-        for x, y in g:
-            self.assertEqual(x.shape, (128, 128, 3))
-            if n == 0 or n == 1:
-                self.assertEqual(list(y), [1, 0])
-            else:
-                self.assertEqual(list(y), [0, 1])
-            n += 1
-        self.assertEqual(n, 4)
-
-        # next epoch
-        g = images.minibatch
-        n = 0
-        for x, y in g:
-            self.assertEqual(x.shape, (128, 128, 3))
-            n += 1
-        self.assertEqual(n, 4)
+        if True:
+            step = 0
+            for x_batch, y_batch in g:
+                self.assertEqual(x_batch.shape, (4, 128, 128, 3))
+                self.assertEqual(y_batch.shape, (4, 2))
+                step += 1
+                # first batch
+                if step == 1:
+                    self.assertEqual(list(y_batch[0]), [1, 0])
+                    self.assertEqual(list(y_batch[1]), [1, 0])
+                    self.assertEqual(list(y_batch[2]), [0, 1])
+                    self.assertEqual(list(y_batch[3]), [0, 1])
+                # second batch
+                elif step == 2:
+                    self.assertEqual(list(y_batch[0]), [1, 0])
+                    self.assertEqual(list(y_batch[1]), [1, 0])
+                    self.assertEqual(list(y_batch[2]), [0, 1])
+                    self.assertEqual(list(y_batch[3]), [0, 1])
+                # next epoch
+                elif step == 3:
+                    self.assertEqual(list(y_batch[0]), [1, 0])
+                    self.assertEqual(list(y_batch[1]), [1, 0])
+                    self.assertEqual(list(y_batch[2]), [1, 0])
+                    self.assertEqual(list(y_batch[3]), [1, 0])
+                else:
+                    break
 
         # temp
         images._hf.close()
@@ -6102,76 +6039,66 @@ class MyTest(unittest.TestCase):
         images.load('foo')
         images.split = 0.5, 12
         images.minibatch = 2
-        # First batch
         g = images.minibatch
-        n = 0
-        for x, y in g:
-            self.assertEqual(x.shape, (128, 128, 3))
-            if n == 0 or n == 1:
-                self.assertEqual(list(y), [1, 0])
-            else:
-                self.assertEqual(list(y), [0, 1])
-            n += 1
-        self.assertEqual(n, 4)
-        # second batch
-        g = images.minibatch
-        n = 0
-        for x, y in g:
-            self.assertEqual(x.shape, (128, 128, 3))
-            if n == 0 or n == 1:
-                self.assertEqual(list(y), [1, 0])
-            else:
-                self.assertEqual(list(y), [0, 1])
-            n += 1
-        self.assertEqual(n, 4)
+        if True:
+            step = 0
+            for x_batch, y_batch in g:
+                self.assertEqual(x_batch.shape, (4, 128, 128, 3))
+                self.assertEqual(y_batch.shape, (4, 2))
+                step += 1
+                # first batch
+                if step == 1:
+                    self.assertEqual(list(y_batch[0]), [1, 0])
+                    self.assertEqual(list(y_batch[1]), [1, 0])
+                    self.assertEqual(list(y_batch[2]), [0, 1])
+                    self.assertEqual(list(y_batch[3]), [0, 1])
+                # second batch
+                elif step == 2:
+                    self.assertEqual(list(y_batch[0]), [1, 0])
+                    self.assertEqual(list(y_batch[1]), [1, 0])
+                    self.assertEqual(list(y_batch[2]), [0, 1])
+                    self.assertEqual(list(y_batch[3]), [0, 1])
+                # next epoch
+                elif step == 3:
+                    self.assertEqual(list(y_batch[0]), [1, 0])
+                    self.assertEqual(list(y_batch[1]), [1, 0])
+                    self.assertEqual(list(y_batch[2]), [1, 0])
+                    self.assertEqual(list(y_batch[3]), [1, 0])
+                else:
+                    break
 
         # temp
         images._hf.close()
 
         os.remove('foo.h5')
 
-    def test_104(self):
+    def test_106(self):
         """ Images - stratify - stream """
         images = Images('foo',
                         ['files/1.jpg', 'files/2.jpg', 'files/3.jpg', 'files/8rgb.jpg',
                          'files/8rgb.png', 'files/1.jpg', 'files/2.jpg', 'files/3.jpg'],
                         [0, 0, 0, 0, 1, 1, 1, 1], config=['stream'])
         images.stratify = 2, 0.5, 12
-        # First batch
-        g = images.stratify
-        n = 0
-        for x, y in g:
-            self.assertEqual(x.shape, (128, 128, 3))
-            if n == 0:
-                self.assertEqual(list(y), [1, 0])
-            else:
-                self.assertEqual(list(y), [0, 1])
-            n += 1
-        self.assertEqual(n, 2)
 
-        # Second batch
         g = images.stratify
-        n = 0
-        for x, y in g:
-            self.assertEqual(x.shape, (128, 128, 3))
-            if n == 0:
-                self.assertEqual(list(y), [1, 0])
-            else:
-                self.assertEqual(list(y), [0, 1])
-            n += 1
-        self.assertEqual(n, 2)
-
-        # next epoch
-        g = images.stratify
-        n = 0
-        for x, y in g:
-            self.assertEqual(x.shape, (128, 128, 3))
-            if n == 0:
-                self.assertEqual(list(y), [1, 0])
-            else:
-                self.assertEqual(list(y), [0, 1])
-            n += 1
-        self.assertEqual(n, 2)
+        if True:
+            step = 0
+            for x_batch, y_batch in g:
+                self.assertEqual(x_batch.shape, (2, 128, 128, 3))
+                self.assertEqual(y_batch.shape, (2, 2))
+                step += 1
+                # first batch
+                if step == 1:
+                    self.assertEqual(list(y_batch[0]), [1, 0])
+                    self.assertEqual(list(y_batch[1]), [0, 1])
+                elif step == 2:
+                    self.assertEqual(list(y_batch[0]), [1, 0])
+                    self.assertEqual(list(y_batch[1]), [0, 1])
+                elif step == 3:
+                    self.assertEqual(list(y_batch[0]), [1, 0])
+                    self.assertEqual(list(y_batch[1]), [0, 1])
+                else:
+                    break
 
         # temp
         images._hf.close()
@@ -6180,85 +6107,65 @@ class MyTest(unittest.TestCase):
         images = Images(config=['stream'])
         images.load('foo')
         images.stratify = 2, 0.5, 12
-        # First batch
-        g = images.stratify
-        n = 0
-        for x, y in g:
-            self.assertEqual(x.shape, (128, 128, 3))
-            if n == 0:
-                self.assertEqual(list(y), [1, 0])
-            else:
-                self.assertEqual(list(y), [0, 1])
-            n += 1
-        self.assertEqual(n, 2)
 
-        # Second batch
         g = images.stratify
-        n = 0
-        for x, y in g:
-            self.assertEqual(x.shape, (128, 128, 3))
-            if n == 0:
-                self.assertEqual(list(y), [1, 0])
-            else:
-                self.assertEqual(list(y), [0, 1])
-            n += 1
-        self.assertEqual(n, 2)
-
-        # next epoch
-        g = images.stratify
-        n = 0
-        for x, y in g:
-            self.assertEqual(x.shape, (128, 128, 3))
-            if n == 0:
-                self.assertEqual(list(y), [1, 0])
-            else:
-                self.assertEqual(list(y), [0, 1])
-            n += 1
-        self.assertEqual(n, 2)
+        if True:
+            step = 0
+            for x_batch, y_batch in g:
+                self.assertEqual(x_batch.shape, (2, 128, 128, 3))
+                self.assertEqual(y_batch.shape, (2, 2))
+                step += 1
+                # first batch
+                if step == 1:
+                    self.assertEqual(list(y_batch[0]), [1, 0])
+                    self.assertEqual(list(y_batch[1]), [0, 1])
+                elif step == 2:
+                    self.assertEqual(list(y_batch[0]), [1, 0])
+                    self.assertEqual(list(y_batch[1]), [0, 1])
+                elif step == 3:
+                    self.assertEqual(list(y_batch[0]), [1, 0])
+                    self.assertEqual(list(y_batch[1]), [0, 1])
+                else:
+                    break
 
         # temp
         images._hf.close()
 
         os.remove('foo.h5')
 
-    def test_105(self):
+    def test_107(self):
         """ Images - stratify - augmentation - stream """
         images = Images('foo',
                         ['files/1.jpg', 'files/2.jpg', 'files/3.jpg', 'files/8rgb.jpg',
                          'files/8rgb.png', 'files/1.jpg', 'files/2.jpg', 'files/3.jpg'],
                         [0, 0, 0, 0, 1, 1, 1, 1], augment=['flip=both'], config=['stream'])
         images.stratify = 2, 0.5, 12
-        # First batch
-        g = images.stratify
-        n = 0
-        for x, y in g:
-            self.assertEqual(x.shape, (128, 128, 3))
-            if n == 0 or n == 1:
-                self.assertEqual(list(y), [1, 0])
-            else:
-                self.assertEqual(list(y), [0, 1])
-            n += 1
-        self.assertEqual(n, 4)
 
-        # Second batch
         g = images.stratify
-        n = 0
-        for x, y in g:
-            self.assertEqual(x.shape, (128, 128, 3))
-            if n == 0 or n == 1:
-                self.assertEqual(list(y), [1, 0])
-            else:
-                self.assertEqual(list(y), [0, 1])
-            n += 1
-        self.assertEqual(n, 4)
-
-        # next epoch
-        g = images.stratify
-        n = 0
-        for x, y in g:
-            self.assertEqual(x.shape, (128, 128, 3))
-            n += 1
-        self.assertEqual(n, 4)
+        if True:
+            step = 0
+            for x_batch, y_batch in g:
+                self.assertEqual(x_batch.shape, (4, 128, 128, 3))
+                self.assertEqual(y_batch.shape, (4, 2))
+                step += 1
+                # first batch
+                if step == 1:
+                    self.assertEqual(list(y_batch[0]), [1, 0])
+                    self.assertEqual(list(y_batch[1]), [1, 0])
+                    self.assertEqual(list(y_batch[2]), [0, 1])
+                    self.assertEqual(list(y_batch[3]), [0, 1])
+                elif step == 2:
+                    self.assertEqual(list(y_batch[0]), [1, 0])
+                    self.assertEqual(list(y_batch[1]), [1, 0])
+                    self.assertEqual(list(y_batch[2]), [0, 1])
+                    self.assertEqual(list(y_batch[3]), [0, 1])
+                elif step == 3:
+                    self.assertEqual(list(y_batch[0]), [1, 0])
+                    self.assertEqual(list(y_batch[1]), [1, 0])
+                    self.assertEqual(list(y_batch[2]), [0, 1])
+                    self.assertEqual(list(y_batch[3]), [0, 1])
+                else:
+                    break
 
         # temp
         images._hf.close()
@@ -6267,44 +6174,39 @@ class MyTest(unittest.TestCase):
         images = Images(config=['stream'], augment=['flip=both'])
         images.load('foo')
         images.stratify = 2, 0.5, 12
-        # First batch
-        g = images.stratify
-        n = 0
-        for x, y in g:
-            self.assertEqual(x.shape, (128, 128, 3))
-            if n == 0 or n == 1:
-                self.assertEqual(list(y), [1, 0])
-            else:
-                self.assertEqual(list(y), [0, 1])
-            n += 1
-        self.assertEqual(n, 4)
 
-        # Second batch
         g = images.stratify
-        n = 0
-        for x, y in g:
-            self.assertEqual(x.shape, (128, 128, 3))
-            if n == 0 or n == 1:
-                self.assertEqual(list(y), [1, 0])
-            else:
-                self.assertEqual(list(y), [0, 1])
-            n += 1
-        self.assertEqual(n, 4)
-
-        # next epoch
-        g = images.stratify
-        n = 0
-        for x, y in g:
-            self.assertEqual(x.shape, (128, 128, 3))
-            n += 1
-        self.assertEqual(n, 4)
+        if True:
+            step = 0
+            for x_batch, y_batch in g:
+                self.assertEqual(x_batch.shape, (4, 128, 128, 3))
+                self.assertEqual(y_batch.shape, (4, 2))
+                step += 1
+                # first batch
+                if step == 1:
+                    self.assertEqual(list(y_batch[0]), [1, 0])
+                    self.assertEqual(list(y_batch[1]), [1, 0])
+                    self.assertEqual(list(y_batch[2]), [0, 1])
+                    self.assertEqual(list(y_batch[3]), [0, 1])
+                elif step == 2:
+                    self.assertEqual(list(y_batch[0]), [1, 0])
+                    self.assertEqual(list(y_batch[1]), [1, 0])
+                    self.assertEqual(list(y_batch[2]), [0, 1])
+                    self.assertEqual(list(y_batch[3]), [0, 1])
+                elif step == 3:
+                    self.assertEqual(list(y_batch[0]), [1, 0])
+                    self.assertEqual(list(y_batch[1]), [1, 0])
+                    self.assertEqual(list(y_batch[2]), [0, 1])
+                    self.assertEqual(list(y_batch[3]), [0, 1])
+                else:
+                    break
 
         # temp
         images._hf.close()
 
         os.remove('foo.h5')
 
-    def test_106(self):
+    def test_108(self):
         """ Images -next() operator - stream """
         images = Images('foo',
                         ['files/1.jpg', 'files/2.jpg', 'files/3.jpg', 'files/8rgb.jpg'],
@@ -6323,6 +6225,9 @@ class MyTest(unittest.TestCase):
             self.assertEqual(y.shape, (2,))
             self.assertEqual(x.dtype, np.float16)
 
+        # temp
+        images._hf.close()
+
         # load
         images = Images('foo',
                         ['files/1.jpg', 'files/2.jpg', 'files/3.jpg', 'files/8rgb.jpg'],
@@ -6363,6 +6268,9 @@ class MyTest(unittest.TestCase):
             self.assertEqual(y.shape, (2,))
             self.assertEqual(x.dtype, np.float16)
 
+        # temp
+        images._hf.close()
+
         # load
         images = Images('foo',
                         ['files/1.jpg', 'files/2.jpg', 'files/3.jpg', 'files/8rgb.jpg'],
@@ -6388,7 +6296,7 @@ class MyTest(unittest.TestCase):
 
         os.remove('foo.h5')
 
-    def test_107(self):
+    def test_109(self):
         """ Images -next() operator with augmentation - stream """
         images = Images('foo',
                         ['files/1.jpg', 'files/2.jpg', 'files/3.jpg', 'files/8rgb.jpg'],
@@ -6432,45 +6340,45 @@ class MyTest(unittest.TestCase):
 
         os.remove('foo.h5')
 
-    def test_108(self):
+    def test_110(self):
         """ data type when streaming """
         images = Images('foo', ['files/1.jpg'], 0, config=['store', 'uint8'])
-        x1 = images.data[0][0][0][0][0]
+        x1 = images._data[0][0][0][0][0]
         images = Images('foo', ['files/1.jpg'], 0, config=['stream', 'uint8'])
         images = Images()
         images.load('foo')
-        x2 = images.data[0][0][0][0][0]
+        x2 = images._data[0][0][0][0][0]
         self.assertEqual(x1, x2)
 
         images = Images('foo', ['files/1.jpg'], 0, config=['store', 'uint16'])
-        x1 = images.data[0][0][0][0][0]
+        x1 = images._data[0][0][0][0][0]
         images = Images('foo', ['files/1.jpg'], 0, config=['stream', 'uint16'])
         images = Images()
         images.load('foo')
-        x2 = images.data[0][0][0][0][0]
+        x2 = images._data[0][0][0][0][0]
         self.assertEqual(x1, x2)
 
         images = Images('foo', ['files/1.jpg'], 0, config=['store', 'float16'])
-        x1 = images.data[0][0][0][0][0]
+        x1 = images._data[0][0][0][0][0]
         images = Images('foo', ['files/1.jpg'], 0, config=['stream', 'float16'])
         images = Images()
         images.load('foo')
-        x2 = images.data[0][0][0][0][0]
+        x2 = images._data[0][0][0][0][0]
         self.assertEqual(x1, x2)
 
         images = Images('foo', ['files/1.jpg'], 0, config=['store', 'float32'])
-        x1 = images.data[0][0][0][0][0]
+        x1 = images._data[0][0][0][0][0]
         images = Images('foo', ['files/1.jpg'], 0, config=['stream', 'float32'])
         images = Images()
         images.load('foo')
-        x2 = images.data[0][0][0][0][0]
+        x2 = images._data[0][0][0][0][0]
         self.assertEqual(x1, x2)
 
         images = Images('foo', ['files/1.jpg'], 0, config=['store', 'float64'])
-        x1 = images.data[0][0][0][0][0]
+        x1 = images._data[0][0][0][0][0]
         images = Images('foo', ['files/1.jpg'], 0, config=['stream', 'float64'])
         images = Images()
         images.load('foo')
-        x2 = images.data[0][0][0][0][0]
+        x2 = images._data[0][0][0][0][0]
         self.assertEqual(x1, x2)
         os.remove('foo.h5')

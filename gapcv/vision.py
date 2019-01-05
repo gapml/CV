@@ -1172,6 +1172,10 @@ class BareMetal(object):
         """ rotate the image """
 
         degree = random.randint(self._rotate[0], self._rotate[1])
+        
+        # operation not supported in float16
+        if self._dtype == np.float16:
+            image = image.astype(np.float32)
 
         # rotate the image
         rotated = imutils.rotate_bound(image, degree)
@@ -1181,6 +1185,9 @@ class BareMetal(object):
             # resize takes only height x width
             shape = (image.shape[0], image.shape[1])
             rotated = cv2.resize(rotated, shape, interpolation=cv2.INTER_AREA)
+            
+        if self._dtype == np.float16:
+            return rotated.astype(np.float16)
         return rotated
 
     def _edgeImage(self, image):
@@ -1194,14 +1201,24 @@ class BareMetal(object):
 
     def _flipImage(self, image):
         """ flip """
+        # operation not supported as float16
+        if self._dtype == np.float16:
+            image = image.astype(np.float32)
+            
         if self._horizontal:
             flip = cv2.flip(image, 1) # flip image horizontally
         if self._vertical:
-            flip = cv2.flip(image, 0) # flip image vertically
+            flip = cv2.flip(image, 0) # flip image 
+        if self._dtype == np.float16:
+            return flip.astype(np.float16)
         return flip
 
     def _zoomImage(self, image):
         """ zoom """
+        # operation not supported as float16
+        if self._dtype == np.float16:
+            image = image.astype(np.float32)
+            
         old_height, old_width = image.shape[:2]
         image = cv2.resize(image,
                            (int(self._zoom*old_width), int(self._zoom*old_height)),
@@ -1213,6 +1230,8 @@ class BareMetal(object):
         h = int(old_height/2)
         w = int(old_width/2)
         zoom_img = image[y-h:y+h, x-w:x+w]
+        if self._dtype == np.float16:
+            return zoom_img.astype(np.float16)
         return zoom_img
 
     def _denoiseImage(self, image):
@@ -1225,9 +1244,15 @@ class BareMetal(object):
 
     def _brightnesscontrastImage(self, image):
         """ brightness & contrast """
+        # operation not supported as float16
+        if self._dtype == np.float16:
+            image = image.astype(np.float32)
+            
         brightness_contrast = cv2.convertScaleAbs(image,
                                                   alpha=self._contrast,
                                                   beta=self._brightness)
+        if self._dtype == np.float16:
+            return brightness_contrast.astype(np.float16)
         return brightness_contrast
 
 class Images(BareMetal):
@@ -1938,29 +1963,37 @@ class Images(BareMetal):
         # mini-batch was not set, implicitly set it
         if self._minisz == 0:
             self.minibatch = 32
+              
+        # Mini-batch, return a batch on each iteration 
+        while True:
 
-        # reshuffle the training data after an entire pass
-        if self._next >= self._trainsz:
-            random.shuffle(self._train)
-            self._next = 0
+            # reshuffle the training data after an entire pass
+            if self._next >= self._trainsz:
+                random.shuffle(self._train)
+                self._next = 0
 
-        # Mini-batch, return a generator
-        for _ in range(self._next, min(self._next + self._minisz, self._trainsz)):
-            ix, iy = self._train[_]
-            self._next += 1
-            label = self._labels[ix]
-            # streaming
-            if self._stream:
-                data = self._hf[self._groups[ix]]["data"][iy]
-            # in-memory
-            else:
-                data = self._data[ix][iy]
-            yield self._verifyNormalization(data), label
+            x_batch = []
+            y_batch = []
+            for _ in range(self._next, min(self._next + self._minisz, self._trainsz)):
+                ix, iy = self._train[_]
+                label = self._labels[ix]
+                # streaming
+                if self._stream:
+                    data = self._hf[self._groups[ix]]["data"][iy]
+                # in-memory
+                else:
+                    data = self._data[ix][iy]
+                x_batch.append(self._verifyNormalization(data))
+                y_batch.append(label)
 
-            # if augmentation, feed a second augmented version of the image
-            if self._augment:
-                image = self._augmentation(data)
-                yield self._verifyNormalization(image), label
+                # if augmentation, feed a second augmented version of the image
+                if self._augment:
+                    image = self._augmentation(data)
+                    x_batch.append(self._verifyNormalization(image))
+                    y_batch.append(label)
+            
+            self._next += self._minisz        
+            yield np.asarray(x_batch), np.asarray(y_batch)
 
     @minibatch.setter
     def minibatch(self, batch_size):
@@ -1977,6 +2010,10 @@ class Images(BareMetal):
 
         if batch_size < 2 or batch_size >= self._trainsz:
             raise ValueError("Mini batch size is out of range")
+
+        # half the batch size when augmenting
+        if self._augment:
+            batch_size //= 2
 
         # Create one-hot encoded labels
         if self._nlabels is None:
@@ -1996,24 +2033,32 @@ class Images(BareMetal):
         if self._minisz == 0:
             self.stratify = 32
 
-        n = 0
-        while n < self._minisz:
-            for ix, collection in enumerate(self._train):
-                iy = random.randint(0, len(collection))
-                label = self._labels[ix]
-                # streaming
-                if self._stream:
-                    data = self._hf[self._groups[ix]]["data"][iy]
-                # in-memory
-                else:
-                    data = self._data[ix][iy]
-                yield self._verifyNormalization(data), label
-                n += 1
+        while True:
+            # Mini-batch, return a batch on each iteration
+            x_batch = []
+            y_batch = []
+            n = 0
+            while n < self._minisz:
+                for ix, collection in enumerate(self._train):
+                    iy = random.randint(0, len(collection))
+                    label = self._labels[ix]
+                    # streaming
+                    if self._stream:
+                        data = self._hf[self._groups[ix]]["data"][iy]
+                    # in-memory
+                    else:
+                        data = self._data[ix][iy]
+                    x_batch.append(self._verifyNormalization(data))
+                    y_batch.append(label)
+                    n += 1
 
-                # if augmenting, send a second augmented version of the image
-                if self._augment:
-                    image = self._augmentation(data)
-                    yield self._verifyNormalization(image), label
+                    # if augmenting, send a second augmented version of the image
+                    if self._augment:
+                        image = self._augmentation(data)
+                        x_batch.append(self._verifyNormalization(image))
+                        y_batch.append(label)
+ 
+            yield np.asarray(x_batch), np.asarray(y_batch)
 
     @stratify.setter
     def stratify(self, batch_size):
@@ -2024,7 +2069,7 @@ class Images(BareMetal):
         if not isinstance(batch_size, tuple):
             raise AttributeError("Stratify setter must be batch_size, percent[,seed]")
         if len(batch_size) > 3:
-            raise AttributeError("Split setter must be percent, seed")
+            raise AttributeError("Stratify setter must be batch size, percent[,seed]")
 
         self._minisz = batch_size[0]
         if not isinstance(self._minisz, int):
