@@ -5556,27 +5556,21 @@ class MyTest(unittest.TestCase):
         if True:
             step = 0
             for x_batch, y_batch in g:
-                self.assertEqual(x_batch.shape, (4, 128, 128, 3))
-                self.assertEqual(y_batch.shape, (4, 2))
+                self.assertEqual(x_batch.shape, (2, 128, 128, 3))
+                self.assertEqual(y_batch.shape, (2, 2))
                 step += 1
                 # first batch
                 if step == 1:
                     self.assertEqual(list(y_batch[0]), [1, 0])
                     self.assertEqual(list(y_batch[1]), [1, 0])
-                    self.assertEqual(list(y_batch[2]), [0, 1])
-                    self.assertEqual(list(y_batch[3]), [0, 1])
                 # second batch
                 elif step == 2:
-                    self.assertEqual(list(y_batch[0]), [1, 0])
-                    self.assertEqual(list(y_batch[1]), [1, 0])
-                    self.assertEqual(list(y_batch[2]), [0, 1])
-                    self.assertEqual(list(y_batch[3]), [0, 1])
+                    self.assertEqual(list(y_batch[0]), [0, 1])
+                    self.assertEqual(list(y_batch[1]), [0, 1])
                 # next epoch
                 elif step == 3:
                     self.assertEqual(list(y_batch[0]), [1, 0])
                     self.assertEqual(list(y_batch[1]), [1, 0])
-                    self.assertEqual(list(y_batch[2]), [1, 0])
-                    self.assertEqual(list(y_batch[3]), [1, 0])
                 else:
                     break
 
@@ -5629,28 +5623,22 @@ class MyTest(unittest.TestCase):
         if True:
             step = 0
             for x_batch, y_batch in g:
-                self.assertEqual(x_batch.shape, (4, 128, 128, 3))
-                self.assertEqual(y_batch.shape, (4, 2))
+                self.assertEqual(x_batch.shape, (2, 128, 128, 3))
+                self.assertEqual(y_batch.shape, (2, 2))
                 self.assertEqual(x_batch.dtype, np.float32)
                 step += 1
                 # first batch
                 if step == 1:
                     self.assertEqual(list(y_batch[0]), [1, 0])
                     self.assertEqual(list(y_batch[1]), [1, 0])
-                    self.assertEqual(list(y_batch[2]), [0, 1])
-                    self.assertEqual(list(y_batch[3]), [0, 1])
                 # second batch
                 elif step == 2:
-                    self.assertEqual(list(y_batch[0]), [1, 0])
-                    self.assertEqual(list(y_batch[1]), [1, 0])
-                    self.assertEqual(list(y_batch[2]), [0, 1])
-                    self.assertEqual(list(y_batch[3]), [0, 1])
+                    self.assertEqual(list(y_batch[0]), [0, 1])
+                    self.assertEqual(list(y_batch[1]), [0, 1])
                 # next epoch
                 elif step == 3:
                     self.assertEqual(list(y_batch[0]), [1, 0])
                     self.assertEqual(list(y_batch[1]), [1, 0])
-                    self.assertEqual(list(y_batch[2]), [1, 0])
-                    self.assertEqual(list(y_batch[3]), [1, 0])
                 else:
                     break
 
@@ -5713,8 +5701,8 @@ class MyTest(unittest.TestCase):
         g = images.minibatch
         if True:
             for x_batch, y_batch in g:
-                self.assertEqual(x_batch.shape, (4, 50, 50, 3))
-                self.assertEqual(y_batch.shape, (4, 5))
+                self.assertEqual(x_batch.shape, (2, 50, 50, 3))
+                self.assertEqual(y_batch.shape, (2, 5))
                 self.assertEqual(x_batch.dtype, np.float32)
                 break
 
@@ -5766,8 +5754,8 @@ class MyTest(unittest.TestCase):
         g = images.minibatch
         if True:
             for x_batch, y_batch in g:
-                self.assertEqual(x_batch.shape, (4, 50, 50, 3))
-                self.assertEqual(y_batch.shape, (4, 5))
+                self.assertEqual(x_batch.shape, (2, 50, 50, 3))
+                self.assertEqual(y_batch.shape, (2, 5))
                 self.assertEqual(x_batch.dtype, np.float32)
                 break
 
@@ -5819,8 +5807,8 @@ class MyTest(unittest.TestCase):
         g = images.minibatch
         if True:
             for x_batch, y_batch in g:
-                self.assertEqual(x_batch.shape, (4, 50, 50, 3))
-                self.assertEqual(y_batch.shape, (4, 5))
+                self.assertEqual(x_batch.shape, (2, 50, 50, 3))
+                self.assertEqual(y_batch.shape, (2, 5))
                 self.assertEqual(x_batch.dtype, np.float16)
                 break
 
@@ -6007,27 +5995,21 @@ class MyTest(unittest.TestCase):
         if True:
             step = 0
             for x_batch, y_batch in g:
-                self.assertEqual(x_batch.shape, (4, 128, 128, 3))
-                self.assertEqual(y_batch.shape, (4, 2))
+                self.assertEqual(x_batch.shape, (2, 128, 128, 3))
+                self.assertEqual(y_batch.shape, (2, 2))
                 step += 1
                 # first batch
                 if step == 1:
                     self.assertEqual(list(y_batch[0]), [1, 0])
                     self.assertEqual(list(y_batch[1]), [1, 0])
-                    self.assertEqual(list(y_batch[2]), [0, 1])
-                    self.assertEqual(list(y_batch[3]), [0, 1])
                 # second batch
                 elif step == 2:
-                    self.assertEqual(list(y_batch[0]), [1, 0])
-                    self.assertEqual(list(y_batch[1]), [1, 0])
-                    self.assertEqual(list(y_batch[2]), [0, 1])
-                    self.assertEqual(list(y_batch[3]), [0, 1])
+                    self.assertEqual(list(y_batch[0]), [0, 1])
+                    self.assertEqual(list(y_batch[1]), [0, 1])
                 # next epoch
                 elif step == 3:
                     self.assertEqual(list(y_batch[0]), [1, 0])
                     self.assertEqual(list(y_batch[1]), [1, 0])
-                    self.assertEqual(list(y_batch[2]), [1, 0])
-                    self.assertEqual(list(y_batch[3]), [1, 0])
                 else:
                     break
 
@@ -6043,27 +6025,21 @@ class MyTest(unittest.TestCase):
         if True:
             step = 0
             for x_batch, y_batch in g:
-                self.assertEqual(x_batch.shape, (4, 128, 128, 3))
-                self.assertEqual(y_batch.shape, (4, 2))
+                self.assertEqual(x_batch.shape, (2, 128, 128, 3))
+                self.assertEqual(y_batch.shape, (2, 2))
                 step += 1
                 # first batch
                 if step == 1:
                     self.assertEqual(list(y_batch[0]), [1, 0])
                     self.assertEqual(list(y_batch[1]), [1, 0])
-                    self.assertEqual(list(y_batch[2]), [0, 1])
-                    self.assertEqual(list(y_batch[3]), [0, 1])
                 # second batch
                 elif step == 2:
-                    self.assertEqual(list(y_batch[0]), [1, 0])
-                    self.assertEqual(list(y_batch[1]), [1, 0])
-                    self.assertEqual(list(y_batch[2]), [0, 1])
-                    self.assertEqual(list(y_batch[3]), [0, 1])
+                    self.assertEqual(list(y_batch[0]), [0, 1])
+                    self.assertEqual(list(y_batch[1]), [0, 1])
                 # next epoch
                 elif step == 3:
                     self.assertEqual(list(y_batch[0]), [1, 0])
                     self.assertEqual(list(y_batch[1]), [1, 0])
-                    self.assertEqual(list(y_batch[2]), [1, 0])
-                    self.assertEqual(list(y_batch[3]), [1, 0])
                 else:
                     break
 
@@ -6382,3 +6358,108 @@ class MyTest(unittest.TestCase):
         x2 = images._data[0][0][0][0][0]
         self.assertEqual(x1, x2)
         os.remove('foo.h5')
+
+    def test_111(self):
+        ''' memory labels - empty '''
+        a = cv2.imread('files/1.jpg', cv2.IMREAD_GRAYSCALE)
+
+        # list
+        i = np.asarray([a])
+        with pytest.raises(AttributeError):
+            images = Images('foo', i, [], config=['resize=(50,50)'])
+
+        # numpy array
+        l = np.asarray([])
+        with pytest.raises(AttributeError):
+            images = Images('foo', i, l, config=['resize=(50,50)'])
+
+    def test_112(self):
+        ''' memory numpy - different int types for labels '''
+
+        # uint8
+        a = cv2.imread('files/1.jpg', cv2.IMREAD_GRAYSCALE)
+        i = np.asarray([a])
+        l = np.asarray([0]).astype(np.uint8)
+        images = Images('foo', i, l, config=['resize=(50,50)'])
+        self.assertEqual(images.fail, 0)
+        self.assertEqual(images.errors, [])
+        self.assertEqual(images.count, 1)
+        self.assertEqual(images.shape, (50, 50))
+        self.assertEqual(len(images.images), 1)
+        self.assertEqual(len(images.labels), 1)
+        self.assertEqual(images.classes, {0: 0})
+        self.assertEqual(images.labels[0][0], 0)
+
+        # uint16
+        a = cv2.imread('files/1.jpg', cv2.IMREAD_GRAYSCALE)
+        i = np.asarray([a])
+        l = np.asarray([0]).astype(np.uint16)
+        images = Images('foo', i, l, config=['resize=(50,50)'])
+        self.assertEqual(images.fail, 0)
+        self.assertEqual(images.errors, [])
+        self.assertEqual(images.count, 1)
+        self.assertEqual(images.shape, (50, 50))
+        self.assertEqual(len(images.images), 1)
+        self.assertEqual(len(images.labels), 1)
+        self.assertEqual(images.classes, {0: 0})
+        self.assertEqual(images.labels[0][0], 0)
+
+        # uint32
+        a = cv2.imread('files/1.jpg', cv2.IMREAD_GRAYSCALE)
+        i = np.asarray([a])
+        l = np.asarray([0]).astype(np.uint32)
+        images = Images('foo', i, l, config=['resize=(50,50)'])
+        self.assertEqual(images.fail, 0)
+        self.assertEqual(images.errors, [])
+        self.assertEqual(images.count, 1)
+        self.assertEqual(images.shape, (50, 50))
+        self.assertEqual(len(images.images), 1)
+        self.assertEqual(len(images.labels), 1)
+        self.assertEqual(images.classes, {0: 0})
+        self.assertEqual(images.labels[0][0], 0)
+
+        # int8
+        a = cv2.imread('files/1.jpg', cv2.IMREAD_GRAYSCALE)
+        i = np.asarray([a])
+        l = np.asarray([0]).astype(np.int8)
+        images = Images('foo', i, l, config=['resize=(50,50)'])
+        self.assertEqual(images.fail, 0)
+        self.assertEqual(images.errors, [])
+        self.assertEqual(images.count, 1)
+        self.assertEqual(images.shape, (50, 50))
+        self.assertEqual(len(images.images), 1)
+        self.assertEqual(len(images.labels), 1)
+        self.assertEqual(images.classes, {0: 0})
+        self.assertEqual(images.labels[0][0], 0)
+
+        # int16
+        a = cv2.imread('files/1.jpg', cv2.IMREAD_GRAYSCALE)
+        i = np.asarray([a])
+        l = np.asarray([0]).astype(np.uint16)
+        images = Images('foo', i, l, config=['resize=(50,50)'])
+        self.assertEqual(images.fail, 0)
+        self.assertEqual(images.errors, [])
+        self.assertEqual(images.count, 1)
+        self.assertEqual(images.shape, (50, 50))
+        self.assertEqual(len(images.images), 1)
+        self.assertEqual(len(images.labels), 1)
+        self.assertEqual(images.classes, {0: 0})
+        self.assertEqual(images.labels[0][0], 0)
+
+        # int32
+        a = cv2.imread('files/1.jpg', cv2.IMREAD_GRAYSCALE)
+        i = np.asarray([a])
+        l = np.asarray([0]).astype(np.int32)
+        images = Images('foo', i, l, config=['resize=(50,50)'])
+        self.assertEqual(images.fail, 0)
+        self.assertEqual(images.errors, [])
+        self.assertEqual(images.count, 1)
+        self.assertEqual(images.shape, (50, 50))
+        self.assertEqual(len(images.images), 1)
+        self.assertEqual(len(images.labels), 1)
+        self.assertEqual(images.classes, {0: 0})
+        self.assertEqual(images.labels[0][0], 0)
+
+    def test_113(self):
+        ''' resize= None '''
+        pass
