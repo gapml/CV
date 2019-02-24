@@ -915,13 +915,11 @@ class BareMetal(object):
         try:
             if self._flatten:
                 # flatten into 1D vector and resize
-                collection = [cv2.resize(image,
-                                         self._resize,
+                collection = [cv2.resize(image, self._resize,
                                          interpolation=cv2.INTER_AREA).flatten() for image in collection]
             else:
                 # resize each image to the target size (e.g., 50x50)
-                collection = [cv2.resize(image,
-                                         self._resize,
+                collection = [cv2.resize(image, self._resize,
                                          interpolation=cv2.INTER_AREA) for image in collection]
         except:
             return None
@@ -944,6 +942,7 @@ class BareMetal(object):
             :param index: int
             :return     : None
         """
+        
         try:
             if self._flatten:
                 # flatten into 1D vector
@@ -1093,7 +1092,7 @@ class BareMetal(object):
 
         # initialize the collections
         self._count = len(self._dataset)
-        if isinstance(self._labels, list):
+        if isinstance(self._labels, list) or isinstance(self._labels, np.ndarray):
             if len(self._labels) != self._count:
                 raise AttributeError("Number of labels does not match number of images")
 
@@ -1142,6 +1141,7 @@ class BareMetal(object):
 
         return collections, labels, classes, counts, names, types, sizes, shapes, dset, d_index
 
+    # UNUSED method
     def _processImage(self, image, resize, flatten=False):
         """ Lowest level processing of an raw pixel data. [UNUSED]
             :param image  : raw pixel data as 2D (grayscale) or 3D (color) matrix.
@@ -1285,12 +1285,12 @@ class Images(BareMetal):
                 raise TypeError("Labels expected when images are a list or numpy array")
         else:
             if isinstance(labels, np.ndarray):
-                if not np.any(labels):
+                if len(labels) == 0:
                     raise AttributeError("Array must be > 0 for labels")
-                if labels.dtype not in ['int32', 'uint32']:
+                if labels.dtype not in ['int8', 'int16', 'int32', 'uint8', 'uint16', 'uint32']:
                     raise TypeError("Array values must be integers for labels")
             elif isinstance(labels, list):
-                if not labels:
+                if len(labels) == 0:
                     raise AttributeError("List must be > 0 for labels")
                 if not isinstance(labels[0], int) and not isinstance(labels[0], str):
                     raise TypeError("List values must be integers or strings for labels")
@@ -2010,7 +2010,7 @@ class Images(BareMetal):
 
         if batch_size < 2 or batch_size >= self._trainsz:
             raise ValueError("Mini batch size is out of range")
-
+            
         # half the batch size when augmenting
         if self._augment:
             batch_size //= 2
@@ -2057,7 +2057,7 @@ class Images(BareMetal):
                         image = self._augmentation(data)
                         x_batch.append(self._verifyNormalization(image))
                         y_batch.append(label)
- 
+                        
             yield np.asarray(x_batch), np.asarray(y_batch)
 
     @stratify.setter
