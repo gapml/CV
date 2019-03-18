@@ -127,7 +127,7 @@ class BareMetal(object):
 
         if self._store:
             self._hf.attrs['count'] = self._count
-            self._hf.attrs['time'] = elapsed
+            self._hf.attrs['time']  = elapsed
             self._hf.attrs['shape'] = self._shape
             self._hf.attrs['class'] = str(classes)
             self._hf.attrs['color'] = self._colorspace
@@ -160,7 +160,7 @@ class BareMetal(object):
         self._count = 0
 
         # Get the list (generator) of the subdirectories of the parent directory of the dataset
-        subdirs = os.scandir(self._dataset)
+        subdirs = sorted(os.scandir(self._dataset), key=lambda e: e.name)
         cwd = os.getcwd()
         os.chdir(self._dataset)
 
@@ -952,12 +952,12 @@ class BareMetal(object):
                 image = cv2.resize(image, self._resize, interpolation=cv2.INTER_AREA)
         except:
             return None
-
+            
         # calculate the bits per pixel of the original data
         bpp = image.itemsize * 8
 
         image = self._pixel_normalize(image.astype(self._dtype), bpp)
-
+    
         # load image array into dataset
         dset[index, :] = image
         return index + 1
@@ -1337,7 +1337,7 @@ class Images(BareMetal):
         self._shape = (0,)
         self._count = 0
         self._16bpp = False
-        self._hf = None
+        self._hf    = None
 
         self._split = 0.8   # percentage of split between train / test
         self._seed = 0     # seed for random shuffle of data
@@ -1631,7 +1631,7 @@ class Images(BareMetal):
                 self._groups.append(group)
 
             pass # TODO: group attributes
-
+            
         # leave HDF5 open when streaming
         if self._stream:
             self._hf = h5py.File(self._dir + self._name + '.h5', 'r')
@@ -1833,7 +1833,7 @@ class Images(BareMetal):
     @property
     def split(self):
         """ Getter for return a split training set """
-
+        
         if self._stream:
             raise AttributeError("Split incompatible in stream mode")
 
@@ -1909,7 +1909,7 @@ class Images(BareMetal):
 
         if self._labels is None:
             raise AttributeError("No image data")
-
+            
         # open HDF5 for streaming when feeding
         if self._stream and self._hf is None:
             self._hf = h5py.File(self._dir + self._name + '.h5', 'r')
@@ -1976,7 +1976,7 @@ class Images(BareMetal):
             y_batch = []
             for _ in range(self._next, min(self._next + self._minisz, self._trainsz)):
                 ix, iy = self._train[_]
-                label = self._labels[ix]
+                label = self._labels[ix][iy]
                 # streaming
                 if self._stream:
                     data = self._hf[self._groups[ix]]["data"][iy]
@@ -1993,7 +1993,7 @@ class Images(BareMetal):
                     y_batch.append(label)
             
             self._next += self._minisz        
-            yield np.asarray(x_batch), np.asarray(y_batch)
+            yield np.asarray(x_batch), self._one_hot(np.asarray(y_batch), self._nlabels)     
 
     @minibatch.setter
     def minibatch(self, batch_size):
@@ -2018,9 +2018,6 @@ class Images(BareMetal):
         # Create one-hot encoded labels
         if self._nlabels is None:
             self._nlabels = len(self._classes)
-            for ix, labels in enumerate(self._labels):
-                self._labels[ix] = np.zeros(self._nlabels).astype(np.uint8)
-                self._labels[ix][ix] = 1
 
         self._minisz = batch_size
         self._nlabels = len(self._classes)
@@ -2058,7 +2055,7 @@ class Images(BareMetal):
                         x_batch.append(self._verifyNormalization(image))
                         y_batch.append(label)
                         
-            yield np.asarray(x_batch), np.asarray(y_batch)
+            yield np.asarray(x_batch), self._one_hot(np.asarray(y_batch), self._nlabels)
 
     @stratify.setter
     def stratify(self, batch_size):
@@ -2119,11 +2116,47 @@ class Images(BareMetal):
             # make a one-hot encoding for the labels
             self._labels[ix] = ix
 
-        self._labels = self._one_hot(np.asarray(self._labels), self._nlabels)
-
+        #self._labels = self._one_hot(np.asarray(self._labels), self._nlabels)   
+        
         # open HDF5 for streaming when feeding
         if self._stream and self._hf is None:
             self._hf = h5py.File(self._dir + self._name + '.h5', 'r')
+
+    @property
+    def test(self):
+        """ Return the test data """
+        # Training set not already split, so split it
+        if self._train is None:
+            self.split = (1 - self._split)
+
+        X_test = []
+        Y_test = []
+        for ix, index in self._test:
+            if self._stream:
+                X_test.append(self._hf[self._groups[ix]]["data"][index])
+            else:
+                X_test.append(self._data[ix][index])
+            Y_test.append(self._labels[ix][0])
+
+        # calculate the number of labels in the training set
+        if self._nlabels == None:
+            self._nlabels = np.max(Y_test) + 1
+
+        # convert from list to numpy array
+        X_test  = np.asarray(X_test)
+        # data was not normalized prior, normalize now during feeding
+        # TODO: There is no way to set the float data type
+        if self.dtype == np.uint8:
+            X_test = (X_test / 255.0).astype(np.float32)
+        elif self.dtype == np.uint16:
+            X_test = (X_test / 65535.0).astype(np.float32)
+
+        # labels already one-hot encoded
+        if isinstance(Y_test[0], np.ndarray):
+            return X_test, np.asarray(Y_test)
+        # one-hot encode the labels
+        else:
+            return X_test, self._one_hot(np.asarray(Y_test), self._nlabels)
 
     def __next__(self):
         """ Iterate through the training set (single image at a time) """
