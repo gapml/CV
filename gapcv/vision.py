@@ -51,27 +51,7 @@ class BareMetal(object):
 
         # Create the HDF5 file
         if self._store:
-            if self._name:
-                self._hf = h5py.File(os.path.join(self._dir, self._name + '.h5'), 'w')
-            else:
-                self._hf = h5py.File(os.path.join(self._dir, self._dataset + '.h5'), 'w')
-
-            # Dataset Attributes
-            if self._name:
-                self._hf.attrs['name'] = self._name
-            else:
-                self._hf.attrs['name'] = str(self._dataset)
-            self._hf.attrs['author'] = self._author
-            self._hf.attrs['source'] = self._src
-            self._hf.attrs['description'] = self._desc
-            self._hf.attrs['license'] = self._license
-            self._hf.attrs['date'] = str(datetime.datetime.now())
-            self._hf.attrs['dtype'] = str(self._dtype)
-
-            if self._colorspace == COLOR:
-                self._hf.attrs['channel'] = str(['R', 'G', 'B'])
-            else:
-                self._hf.attrs['channel'] = str(['K'])
+           self._create_hdf5()
         # no storage
         else:
             self._hf = None
@@ -126,17 +106,10 @@ class BareMetal(object):
             collections, labels, classes, errors, elapsed = self._loadDirectory()
 
         if self._store:
-            self._hf.attrs['count'] = self._count
-            self._hf.attrs['time']  = elapsed
-            self._hf.attrs['shape'] = self._shape
-            self._hf.attrs['class'] = str(classes)
-            self._hf.attrs['color'] = self._colorspace
-
-            # only store the number of failures, not the failures themselves
-            self._hf.attrs['fail'] = len(errors)
-
-            self._hf.close()
-            self._hf = None
+            self._classes = classes
+            self._errors  = errors
+            self._time    = elapsed
+            self._end_hdf5()
 
         # tell garbage collector to free any unused memory
         gc.collect()
@@ -990,6 +963,45 @@ class BareMetal(object):
                     image_or_collection = (image_or_collection - np.mean(image_or_collection)) / np.std(image_or_collection)
 
         return image_or_collection
+        
+    def _create_hdf5(self):
+        """ Create the HDF5 file and add toplevel metadata """
+        
+        if self._name:
+            self._hf = h5py.File(os.path.join(self._dir, self._name + '.h5'), 'w')
+        else:
+            self._hf = h5py.File(os.path.join(self._dir, self._dataset + '.h5'), 'w')
+
+        # Dataset Attributes
+        if self._name:
+            self._hf.attrs['name'] = self._name
+        else:
+            self._hf.attrs['name'] = str(self._dataset)
+        self._hf.attrs['author'] = self._author
+        self._hf.attrs['source'] = self._src
+        self._hf.attrs['description'] = self._desc
+        self._hf.attrs['license'] = self._license
+        self._hf.attrs['date'] = str(datetime.datetime.now())
+        self._hf.attrs['dtype'] = str(self._dtype)
+
+        if self._colorspace == COLOR:
+            self._hf.attrs['channel'] = str(['R', 'G', 'B'])
+        else:
+            self._hf.attrs['channel'] = str(['K'])
+            
+    def _end_hdf5(self):
+        ''' finish storing to HDF5 and update remaining metadata '''
+        self._hf.attrs['count'] = self._count
+        self._hf.attrs['time']  = self._time
+        self._hf.attrs['shape'] = self._shape
+        self._hf.attrs['class'] = str(self._classes)
+        self._hf.attrs['color'] = self._colorspace
+
+        # only store the number of failures, not the failures themselves
+        self._hf.attrs['fail'] = len(self._errors)
+
+        self._hf.close()
+        self._hf = None
 
     def _init_stream_hdf5(self, name, nelem):
         """
@@ -1573,6 +1585,8 @@ class Images(BareMetal):
         self._name = name
 
         if _dir is not None:
+            if not isinstance(_dir, str):
+                raise TypeError("String expected for directory name")
             self.dir = _dir
 
         # unnecessary self._dir gets the value './' when images = Images()
@@ -1635,6 +1649,34 @@ class Images(BareMetal):
         # leave HDF5 open when streaming
         if self._stream:
             self._hf = h5py.File(self._dir + self._name + '.h5', 'r')
+
+    def store(self, name='unnamed', _dir=None):
+        """ Load a Collection of Images """
+        if name is None:
+            raise ValueError("Name parameter cannot be None")
+        if not isinstance(name, str):
+            raise TypeError("String expected for collection name")
+        self._name = name
+
+        if _dir is not None:
+            if not isinstance(_dir, str):
+                raise TypeError("String expected for directory name")
+            self.dir = _dir
+            
+        self._create_hdf5()
+        
+        for n_label in range(len(self._data)):
+            collection = self._data[n_label]
+            for key, value in self._classes.items():
+                if value == n_label:
+                    name = key
+            names = None
+            types = None
+            sizes = None
+            shapes = None
+            self._write_group_hdf5(name, collection, n_label, 0, names, types, sizes, shapes, None)
+        
+        self._end_hdf5()
 
     ### Properties ###
 
