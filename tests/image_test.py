@@ -6507,3 +6507,50 @@ class MyTest(unittest.TestCase):
         self.assertEqual(y.shape, (2, 2))
         self.assertEqual(list(y[0]), [1, 0])
         self.assertEqual(list(y[1]), [0, 1])
+        
+    def test_116(self):
+        ''' load - invalid params '''
+        images = Images()
+        with pytest.raises(TypeError):
+            images.load(_dir=16)
+        
+    def test_117(self):
+        ''' store - invalid params '''
+        images = Images()
+        with pytest.raises(ValueError):
+            images.store(name=None)
+        with pytest.raises(TypeError):
+            images.store(name=16)
+        with pytest.raises(TypeError):
+            images.store(_dir=16)
+            
+    def test_118(self):
+        ''' store '''
+        # single class
+        images = Images('foo', ['files/1.jpg', 'files/2.jpg'], 0)
+        images.store('foo')
+        images = Images()
+        images.load('foo')
+        self.assertEqual(images.count, 2)
+        self.assertEqual(images.classes, { '0': 0 })
+        self.assertEqual(len(images._data), 1)
+        self.assertEqual(len(images._data[0]), 2)
+        self.assertEqual(len(images._labels), 1)
+        #self.assertEqual(images._labels[0], 0)
+        
+        # multi-class
+        images = Images('foo', ['files/1.jpg', 'files/2.jpg'], ['a', 'b'])
+        images.store('foo')
+        images = Images()
+        images.load('foo')
+        self.assertEqual(images.count, 2)
+        self.assertEqual(images.classes, { 'a': 0, 'b': 1 })
+        self.assertEqual(len(images._data), 2)
+        self.assertEqual(len(images._data[0]), 1)
+        self.assertEqual(len(images._data[1]), 1)
+        self.assertEqual(len(images._labels), 2)
+        #self.assertEqual(images._labels[0], 0)
+        #self.assertEqual(images._labels[1], 1)
+        
+        os.remove('foo.h5')
+        pass
