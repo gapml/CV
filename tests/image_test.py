@@ -6525,7 +6525,7 @@ class MyTest(unittest.TestCase):
             images.store(_dir=16)
             
     def test_118(self):
-        ''' store '''
+        ''' store - basic '''
         # single class
         images = Images('foo', ['files/1.jpg', 'files/2.jpg'], 0)
         images.store('foo')
@@ -6536,7 +6536,6 @@ class MyTest(unittest.TestCase):
         self.assertEqual(len(images._data), 1)
         self.assertEqual(len(images._data[0]), 2)
         self.assertEqual(len(images._labels), 1)
-        #self.assertEqual(images._labels[0], 0)
         
         # multi-class
         images = Images('foo', ['files/1.jpg', 'files/2.jpg'], ['a', 'b'])
@@ -6544,13 +6543,33 @@ class MyTest(unittest.TestCase):
         images = Images()
         images.load('foo')
         self.assertEqual(images.count, 2)
-        self.assertEqual(images.classes, { 'a': 0, 'b': 1 })
+        if images.classes['a'] == 0:
+            self.assertEqual(images.classes, { 'a': 0, 'b': 1 })
+        else:
+            self.assertEqual(images.classes, { 'a': 1, 'b': 0 })
         self.assertEqual(len(images._data), 2)
         self.assertEqual(len(images._data[0]), 1)
         self.assertEqual(len(images._data[1]), 1)
         self.assertEqual(len(images._labels), 2)
-        #self.assertEqual(images._labels[0], 0)
-        #self.assertEqual(images._labels[1], 1)
         
         os.remove('foo.h5')
-        pass
+
+            
+    def test_119(self):
+        ''' store - += '''
+        images = Images('apple', ['files/1.jpg', 'files/2.jpg'], 'apple')
+        images += Images('pear', ['files/3.jpg', 'files/8gray.bmp'], 'pear')
+        images.store('foo')
+        images = Images()
+        images.load('foo')
+        self.assertEqual(images.count, 4)
+        if images.classes['apple'] == 0:
+            self.assertEqual(images.classes, { 'apple': 0, 'pear': 1 })
+        else:
+            self.assertEqual(images.classes, { 'apple': 1, 'pear': 0 })
+        self.assertEqual(len(images._data), 2)
+        self.assertEqual(len(images._data[0]), 2)
+        self.assertEqual(len(images._data[1]), 2)
+        self.assertEqual(len(images._labels), 2)
+        
+        os.remove('foo.h5')
