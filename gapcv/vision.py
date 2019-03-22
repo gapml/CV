@@ -137,9 +137,11 @@ class BareMetal(object):
         cwd = os.getcwd()
         os.chdir(self._dataset)
 
-        MP = 1
-        if MP > 1:
-            pool = mp.Pool(MP)
+        # concurrent processing of subdirectories of images
+        if self._mp > 1:
+            pool = mp.Pool(self._mp)
+            results = []
+            
         for subdir in subdirs:
             # skip entries that are not subdirectories or hidden directories (start with dot)
             if not subdir.is_dir() or subdir.name[0] == '.':
@@ -151,9 +153,8 @@ class BareMetal(object):
             classes[subdir.name] = n_label
 
             if pool:
-                pool.apply_async(self._poolDirectory,
-                                 (subdir.name, files, n_label),
-                                 callback=collections.append)
+                results.append(pool.apply_async(self._poolDirectory,
+                                 (subdir.name, files, n_label)))
             else:
                 os.chdir(subdir.name)
                 if self._stream:
@@ -188,7 +189,16 @@ class BareMetal(object):
         if pool:
             pool.close()
             pool.join()
-
+            for result in results:
+                params = result.get()
+                collections.append(params[0])
+                errors.append(params[5])
+                n_label = params[7]
+                l = len(params[0])
+                labels.append(np.asarray([n_label for _ in range(l)]))
+                self._count += l
+                total_elapsed += int(params[6])
+            
         if not self._stream:
             return collections, labels, classes, errors, total_elapsed
 
@@ -216,11 +226,8 @@ class BareMetal(object):
             self._write_group_hdf5(subdir, collection, n_label, elapsed,
                                    names, types, sizes, shapes, dset)
 
-        # TODO: variables are in a different context from parent
-        self._count += len(files) - len(errors)
-
-        # TODO: we are missing labels, wah
-        return collection
+        os.chdir("../")
+        return collection, names, types, sizes, shapes, errors, elapsed, label
 
     def _loadMemory(self):
         """ Read a dataset from in-memory
@@ -925,12 +932,12 @@ class BareMetal(object):
                 image = cv2.resize(image, self._resize, interpolation=cv2.INTER_AREA)
         except:
             return None
-            
+
         # calculate the bits per pixel of the original data
         bpp = image.itemsize * 8
 
         image = self._pixel_normalize(image.astype(self._dtype), bpp)
-    
+
         # load image array into dataset
         dset[index, :] = image
         return index + 1
@@ -1350,15 +1357,16 @@ class Images(BareMetal):
         self._count = 0
         self._16bpp = False
         self._hf    = None
+        self._mp    = 1         # parallel processing threads
 
-        self._split = 0.8   # percentage of split between train / test
-        self._seed = 0     # seed for random shuffle of data
-        self._train = None  # indexes for training set
-        self._trainsz = 0     # size of training set
-        self._test = None  # indexes for test set
-        self._next = 0     # next item in training set
-        self._nlabels = None  # number of labels in the collection
-        self._minisz = 0     # (mini) batch size
+        self._split = 0.8       # percentage of split between train / test
+        self._seed = 0          # seed for random shuffle of data
+        self._train = None      # indexes for training set
+        self._trainsz = 0       # size of training set
+        self._test = None       # indexes for test set
+        self._next = 0          # next item in training set
+        self._nlabels = None    # number of labels in the collection
+        self._minisz = 0        # (mini) batch size
 
         self._remote = False
 
@@ -1424,6 +1432,14 @@ class Images(BareMetal):
                         self._src = setting.split('=')[1]
                     elif setting.startswith("license="):
                         self._license = setting.split('=')[1]
+                    elif setting.startswith("mp="):
+                        val = setting.split('=')[1]
+                        if not val:
+                            raise AttributeError("Integer expected for mp")
+                        try:
+                            self._mp = int(val)
+                        except:
+                            raise AttributeError("Integer expected for mp")
                     elif setting in ['gray', 'grayscale']:
                         self._colorspace = GRAYSCALE
                     elif setting in ['flat', 'flatten']:
@@ -1645,7 +1661,7 @@ class Images(BareMetal):
                 self._groups.append(group)
 
             pass # TODO: group attributes
-            
+
         # leave HDF5 open when streaming
         if self._stream:
             self._hf = h5py.File(self._dir + self._name + '.h5', 'r')
@@ -1875,7 +1891,7 @@ class Images(BareMetal):
     @property
     def split(self):
         """ Getter for return a split training set """
-        
+
         if self._stream:
             raise AttributeError("Split incompatible in stream mode")
 
@@ -1951,7 +1967,7 @@ class Images(BareMetal):
 
         if self._labels is None:
             raise AttributeError("No image data")
-            
+
         # open HDF5 for streaming when feeding
         if self._stream and self._hf is None:
             self._hf = h5py.File(self._dir + self._name + '.h5', 'r')
