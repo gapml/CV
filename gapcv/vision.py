@@ -144,7 +144,7 @@ class BareMetal(object):
             
         for subdir in subdirs:
             # skip entries that are not subdirectories or hidden directories (start with dot)
-            if not subdir.is_dir() or subdir.name[0] == '.':
+            if not subdir.is_dir() or subdir.name[0] == '.' or subdir.name.startswith('_'):
                 continue
             files = os.listdir(subdir.name)
             if not files:
