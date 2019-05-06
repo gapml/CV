@@ -78,10 +78,10 @@ class ImgUtils(object):
         """ List Labels Origin """
         # list of labels into root_path folder
         if self._transf == '1to2':
-            self._labels_org = ['{}/{}'.format(self.root_path, lb) for lb in self.labels]
+            self._labels_org = ['./{}/{}'.format(self.root_path, lb) for lb in self.labels]
         elif self._transf == '2to1':
-            train_tr = ['{}/train_tr/{}'.format(self.root_path, lb) for lb in self.labels]
-            train_val = ['{}/train_val/{}'.format(self.root_path, lb) for lb in self.labels]
+            train_tr = ['./{}/train_tr/{}'.format(self.root_path, lb) for lb in self.labels]
+            train_val = ['./{}/train_val/{}'.format(self.root_path, lb) for lb in self.labels]
             self._labels_org = train_tr + train_val
 
     def _makedirs(self):
@@ -91,13 +91,13 @@ class ImgUtils(object):
             if self._transf == '2to1':
                 self.root_path = self.root_path[:-3]
             for lb in self.labels:
-                os.makedirs('{}{}/{}'.format(self.root_path, self._end, lb), exist_ok=True)
+                os.makedirs('./{}{}/{}'.format(self.root_path, self._end, lb), exist_ok=True)
         elif self.tree == 2:
             for lb in self.labels:
-                os.makedirs('{}{}/train_tr/{}'.format(self.root_path, self._end2, lb), exist_ok=True)
-                os.makedirs('{}{}/train_val/{}'.format(self.root_path, self._end2, lb), exist_ok=True)
-            os.makedirs('{}{}/test/test'.format(self.root_path, self._end2), exist_ok=True)
-            os.makedirs('{}{}/errors'.format(self.root_path, self._end2), exist_ok=True)
+                os.makedirs('./{}{}/train_tr/{}'.format(self.root_path, self._end2, lb), exist_ok=True)
+                os.makedirs('./{}{}/train_val/{}'.format(self.root_path, self._end2, lb), exist_ok=True)
+            os.makedirs('./{}{}/test/test'.format(self.root_path, self._end2), exist_ok=True)
+            os.makedirs('./{}{}/errors'.format(self.root_path, self._end2), exist_ok=True)
         elif self.tree is None:
             pass
         else:
@@ -115,11 +115,11 @@ class ImgUtils(object):
         # verify type of tree to transform
         label = lb.split('/')[-1]
         if self._transf == '1to2':
-            org_file = '{}/{}'.format(lb, img_list[index])
-            dst_file = '{}{}/{}/{}'.format(self.root_path, ppath, label, img_list[index])
+            org_file = './{}/{}'.format(lb, img_list[index])
+            dst_file = './{}{}/{}/{}'.format(self.root_path, ppath, label, img_list[index])
         elif self._transf == '2to1':
-            org_file = '{}/{}'.format(lb, img_list)
-            dst_file = '{}/{}/{}'.format(self.root_path, label, img_list)
+            org_file = './{}/{}'.format(lb, img_list)
+            dst_file = './{}/{}/{}'.format(self.root_path, label, img_list)
 
         # move or copy images into new tree structure
         if action == 'copy':
@@ -194,10 +194,10 @@ class ImgUtils(object):
                 for index in list_index:
                     if count <= img_tr:
                         # move or copy images in the train folder
-                        self._copy_move('{}/train_tr'.format(self._end2), action, lb, img_list, index)
+                        self._copy_move('./{}/train_tr'.format(self._end2), action, lb, img_list, index)
                     else:
                         # move or copy images in the validation folder
-                        self._copy_move('{}/train_val'.format(self._end2), action, lb, img_list, index)
+                        self._copy_move('./{}/train_val'.format(self._end2), action, lb, img_list, index)
                     count += 1
             elif self.tree is None:
                 pass
@@ -249,17 +249,17 @@ class ImgUtils(object):
             # extract label name
             text_lb = lb.split('/')[-1]
             for i, img in enumerate(img_list):
-                if os.path.isdir('{}/{}'.format(lb, img)):
+                if os.path.isdir('./{}/{}'.format(lb, img)):
                     print('There is not images to rename')
                     break
                 dtype = img.split('.')[-1]
                 if text is True:
-                    img_name = '{}_{}'.format(text_lb, i)
+                    img_name = './{}_{}'.format(text_lb, i)
                 elif text is not None:
-                    img_name = '{}_{}'.format(text, i)
+                    img_name = './{}_{}'.format(text, i)
                 else:
                     img_name = i
-                os.rename('{}/{}'.format(lb, img), '{}/{}.{}'.format(lb, img_name, dtype))
+                os.rename('./{}/{}'.format(lb, img), './{}/{}.{}'.format(lb, img_name, dtype))
 
     def img_replace(self, old, new, img_id=False):
         """
@@ -281,13 +281,13 @@ class ImgUtils(object):
             # list of images per label
             img_list = os.listdir(lb)
             for i, img in enumerate(img_list):
-                if os.path.isdir('{}/{}'.format(lb, img)):
+                if os.path.isdir('./{}/{}'.format(lb, img)):
                     print('There is not images to replace')
                     break
                 if img_id:
-                    os.rename('{}/{}'.format(lb, img), '{}/{}'.format(lb, img.replace(old, '{}_{}'.format(new, i))))
+                    os.rename('./{}/{}'.format(lb, img), './{}/{}'.format(lb, img.replace(old, './{}_{}'.format(new, i))))
                 else:
-                    os.rename('{}/{}'.format(lb, img), '{}/{}'.format(lb, img.replace(old, new)))
+                    os.rename('./{}/{}'.format(lb, img), './{}/{}'.format(lb, img.replace(old, new)))
 
     @property
     def transf(self):
