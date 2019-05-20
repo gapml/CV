@@ -21,7 +21,7 @@ tests_require = [
     'pytest',
     'pytest-cov']
 
-package_data = {'gapcv': ['train/*']}
+# package_data = {'gapcv': ['train/*']}
 
 project_urls = {'Documentation': 'https://gapml.github.io/CV/',
                 'Source Code': 'https://github.com/gapml/CV'}
@@ -47,7 +47,7 @@ classifiers = [
 setup(
     name='gapcv',
     version='1.0.0',
-    description='NLP and CV Data Engineering Framework',
+    description='CV Data Engineering Framework',
     author='Andrew Ferlitsch',
     author_email='aferlitsch@gmail.com',
     license='Apache 2.0',
