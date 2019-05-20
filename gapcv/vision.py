@@ -26,10 +26,11 @@ import h5py
 import gc
 import threading
 import random
-import numpy as np
 import ast
 import imutils
+import numpy as np
 import multiprocessing as mp
+from tqdm import tqdm
 
 # Import pillow for Python image manipulation for GIF and JP2K
 from PIL import Image as PILImage
@@ -141,48 +142,51 @@ class BareMetal(object):
         if self._mp > 1:
             pool = mp.Pool(self._mp)
             results = []
-            
-        for subdir in subdirs:
-            # skip entries that are not subdirectories or hidden directories (start with dot)
-            if not subdir.is_dir() or subdir.name[0] == '.' or subdir.name.startswith('_'):
-                continue
-            files = os.listdir(subdir.name)
-            if not files:
-                continue
 
-            classes[subdir.name] = n_label
+        with tqdm(subdirs, postfix='processing: ?', disable=self._verbose) as pbar:
+            for subdir in pbar:
+                # skip entries that are not subdirectories or hidden directories (start with dot)
+                if not subdir.is_dir() or subdir.name[0] == '.' or subdir.name.startswith('_'):
+                    continue
+                files = os.listdir(subdir.name)
+                if not files:
+                    continue
 
-            if pool:
-                results.append(pool.apply_async(self._poolDirectory,
-                                 (subdir.name, files, n_label)))
-            else:
-                os.chdir(subdir.name)
-                if self._stream:
-                    dset = self._init_stream_hdf5(subdir.name, len(files))
+                classes[subdir.name] = n_label
 
-                collection, names, types, sizes, shapes, errors, elapsed = self._loadImages(files, dset)
+                pbar.postfix = 'processing: {}'.format(subdir.name)
 
-                if not self._stream:
-                    # Accumulate the collections
-                    collections.append(collection)
-                    # Accumulate the labels
-                    l = len(collection)
-                    labels.append(np.asarray([n_label for _ in range(l)]))
-                    self._count += l
+                if pool:
+                    results.append(pool.apply_async(self._poolDirectory,
+                                    (subdir.name, files, n_label)))
                 else:
-                    self._count += len(files) - len(errors)
+                    os.chdir(subdir.name)
+                    if self._stream:
+                        dset = self._init_stream_hdf5(subdir.name, len(files))
 
-                # Write collection to HDF5 storage
-                if self._store:
-                    self._write_group_hdf5(subdir.name, collection, n_label, elapsed,
-                                           names, types, sizes, shapes, dset)
+                    collection, names, types, sizes, shapes, errors, elapsed = self._loadImages(files, dset)
 
-                # maintain total time to process
-                total_elapsed += elapsed
-                os.chdir('..')
+                    if not self._stream:
+                        # Accumulate the collections
+                        collections.append(collection)
+                        # Accumulate the labels
+                        l = len(collection)
+                        labels.append(np.asarray([n_label for _ in range(l)]))
+                        self._count += l
+                    else:
+                        self._count += len(files) - len(errors)
 
-            # increment the mapping of class name to label
-            n_label += 1
+                    # Write collection to HDF5 storage
+                    if self._store:
+                        self._write_group_hdf5(subdir.name, collection, n_label, elapsed,
+                                            names, types, sizes, shapes, dset)
+
+                    # maintain total time to process
+                    total_elapsed += elapsed
+                    os.chdir('..')
+
+                # increment the mapping of class name to label
+                n_label += 1
 
         os.chdir(cwd)
 
@@ -1357,6 +1361,7 @@ class Images(BareMetal):
         self._count = 0
         self._16bpp = False
         self._hf    = None
+        self._verbose = False
         self._mp    = 1         # parallel processing threads
 
         self._split = 0.8       # percentage of split between train / test
@@ -1441,6 +1446,13 @@ class Images(BareMetal):
                             self._mp = int(val)
                         except:
                             raise AttributeError("Integer expected for mp")
+                    elif setting.startswith("verbose="):
+                        try:
+                            self._verbose = eval(setting.split('=')[1])
+                        except:
+                            raise AttributeError("Boolean expected for verbose")
+                        if not isinstance(self._verbose, bool):
+                            raise AttributeError("Boolean expected for verbose")
                     elif setting in ['gray', 'grayscale']:
                         self._colorspace = GRAYSCALE
                     elif setting in ['flat', 'flatten']:
