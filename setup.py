@@ -21,7 +21,7 @@ tests_require = [
     'pytest',
     'pytest-cov']
 
-# package_data = {'gapcv': ['train/*']}
+package_data = {'gapcv': ['gapcv/*']}
 
 project_urls = {'Documentation': 'https://gapml.github.io/CV/',
                 'Source Code': 'https://github.com/gapml/CV'}
