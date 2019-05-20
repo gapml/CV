@@ -15,7 +15,8 @@ install_requires = [
     'imutils',
     'requests',
     'opencv-python',
-    'Pillow'
+    'pillow',
+    'tqdm'
 ]
 
 tests_require = [
