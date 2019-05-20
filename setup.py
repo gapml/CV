@@ -54,10 +54,14 @@ setup(
     url='https://github.com/gapml/CV',
     project_urls=project_urls,
     long_description=long_description,
-    packages=find_packages(exclude=["*.tests",
-                                    "*.tests.*",
-                                    "tests.*",
-                                    "tests"]),
+    packages=find_packages(
+        exclude=[
+            "*.tests",
+            "*.tests.*",
+            "tests.*",
+            "tests"
+        ]
+    ),
     install_requires=install_requires,
     tests_require=tests_require,
     package_data=package_data,
