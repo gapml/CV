@@ -15,16 +15,22 @@ install_requires = [
     'imutils',
     'requests',
     'opencv-python',
-    'Pillow']
+    'Pillow'
+]
 
 tests_require = [
     'pytest',
-    'pytest-cov']
+    'pytest-cov'
+]
 
-package_data = {'gapcv': ['gapcv/*']}
+package_data = {
+    'gapcv': ['gapcv/*']
+}
 
-project_urls = {'Documentation': 'https://gapml.github.io/CV/',
-                'Source Code': 'https://github.com/gapml/CV'}
+project_urls = {
+    'Documentation': 'https://gapml.github.io/CV/',
+    'Source Code': 'https://github.com/gapml/CV'
+}
 
 # https://pypi.org/pypi?%3Aaction=list_classifiers
 classifiers = [
@@ -42,7 +48,8 @@ classifiers = [
     'Programming Language :: Python :: 3.4',
     'Programming Language :: Python :: 3.5',
     'Programming Language :: Python :: 3.6',
-    'Programming Language :: Python :: 3.7']
+    'Programming Language :: Python :: 3.7'
+]
 
 setup(
     name='gapcv',
@@ -54,6 +61,7 @@ setup(
     url='https://github.com/gapml/CV',
     project_urls=project_urls,
     long_description=long_description,
+    long_description_content_type='text/markdown',
     packages=find_packages(
         exclude=[
             "*.tests",
