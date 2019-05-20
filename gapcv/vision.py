@@ -1917,9 +1917,11 @@ class Images(BareMetal):
         for ix, index in self._test:
             X_test.append(self._data[ix][index])
             Y_test.append(self._labels[ix][0])
-            
+
         # assemble the validation data
+        val_validator = False
         if self._val:
+            val_validator = True
             for ix, index in self._val:
                 X_val.append(self._data[ix][index])
                 Y_val.append(self._labels[ix][0])
@@ -1934,37 +1936,37 @@ class Images(BareMetal):
         # convert from list to numpy array
         X_train = np.asarray(X_train)
         X_test = np.asarray(X_test)
-        if X_val:
+        if val_validator:
             X_val = np.asarray(X_val)
         # data was not normalized prior, normalize now during feeding
         # TODO: There is no way to set the float data type
         if self.dtype == np.uint8:
             X_train = (X_train / 255.0).astype(np.float32)
             X_test = (X_test / 255.0).astype(np.float32)
-            if X_val:
+            if val_validator:
                 X_val = (X_val / 255.0).astype(np.float32)
         elif self.dtype == np.uint16:
             X_train = (X_train / 65535.0).astype(np.float32)
             X_test = (X_test / 65535.0).astype(np.float32)
-            if X_val:
+            if val_validator:
                 X_val = (X_val / 65535.0).astype(np.float32)
 
         if len(self._test) > 0:
             # labels already one-hot encoded
             if isinstance(Y_train[0], np.ndarray):
-                if X_val:
+                if val_validator:
                     return X_train, X_val, X_test, np.asarray(Y_train), np.asarray(Y_val), np.asarray(Y_test)
                 else:
                     return X_train, X_test, np.asarray(Y_train), np.asarray(Y_test)
             # one-hot encode the labels
             else:
-                if X_val:
+                if val_validator:
                     return X_train, X_val, X_test, self._one_hot(np.asarray(Y_train), self._nlabels), self._one_hot(np.asarray(Y_val), self._nlabels), self._one_hot(np.asarray(Y_test), self._nlabels)
                 else:
                     return X_train, X_test, self._one_hot(np.asarray(Y_train), self._nlabels), self._one_hot(np.asarray(Y_test), self._nlabels)
         else:
             # Calculate the number of labels as a sequence starting from 0
-            if X_val:
+            if val_validator:
                 return X_train, X_val, None, self._one_hot(np.asarray(Y_train), self._nlabels), self._one_hot(np.asarray(Y_val), self._nlabels), None
             else:
                 return X_train, None, self._one_hot(np.asarray(Y_train), self._nlabels), None
@@ -2011,6 +2013,7 @@ class Images(BareMetal):
 
         self._train = []
         self._test = []
+        self._val = []
         random.seed(self._seed)
         for ix, collection in enumerate(self._labels):
             # create a randomized index to the images in this collection, where each entry is:
