@@ -77,6 +77,7 @@ The following image feeding mechanisms are supported:
     * Mini-batch
     * Stratification
     * One-Hot Label Encoding
+    * Streaming
 
 When feeding, shuffling is handled using indirect indexing, maintaining the location of data in the heap. One-hot encoding of labels is performed
 dynamically when the feeder is instantiated.
@@ -161,7 +162,7 @@ The first step is to transform the images in an image dataset into machine learn
         3. Float32 pixel data type
         4. Normalization
         
-In this quick start section, we will briefly cover preparing datasets that are on-disk, remotely stored and in-memory.
+In this quick start section, we will briefly cover preparing datasets that are on-disk, or remotely stored, or in-memory.
  
 *Directory*
 
@@ -193,7 +194,7 @@ print(images.labels[0]) # will output the label for each transformed image in th
 Several of the builtin functions have been overridden for the `Images` class. Below are a few frequently used overridden builtin functions:
 
 ```python
-print(len(images))      # same as images.count
+print(len(images))      # number of collections (classes)
 print(images[0])        # same as images.images[0]
 ```
 
@@ -382,6 +383,8 @@ for _ in range(epochs):
 
 If the pixel data type is uint8 (or uint16), the pixel data will be normalized dynamically per invocation of the `next()` operator.
 
+If the `config` setting `stream` is specified, the pixel data is streamed (memory-less) in from the HDF5 storage on each invocation of the `next()` operator.
+
 *Mini-batch (Generative)*
 
 The `minibatch` property when used as a setter will set the mini-batch size for creating a generator for feeding the neural network in mini-batches. By default, the mini-batch size is 32.
@@ -392,18 +395,21 @@ images.minibatch = 64
 ```
 
 The `minibatch` property when used as a getter creates a generator on each invocation. The generator will return a sequence of images and labels, whose size is specified as the parameter
-(or default) to `minibatch` when specified as a setter. Each creation of the generator will sequentially move through the training data. When the end of the training data is reached, the
+(or default) to `minibatch` when specified as a setter. Each iteration of the generator will sequentially move through the training data. When the end of the training data is reached, the
 training data is randomly reshuffled and the `minibatch` getter is reset to start at the beginning of the training data. The image and label data are returned
 as a multi-dimensional numpy array and one-hot encoded numpy vector, respectively.
 
 ```python
+# create the generator
+g = images.minibatch
 # feed in steps number of mini-batches
 for _ in range(steps):
-    # create the generator
-    g = images.minibatch
+    x_batch, y_batch = g
 ```
 
 If the pixel data type is uint8 (or uint16), the pixel data will be normalized dynamically per creation of a mini-batch generator.
+
+If the `config` setting `stream` is specified, each batch of pixel data is streamed (memory-less) in from the HDF5 storage per invocation of the `minibatch` property when used as a getter.
 
 *Stratified mini-batch*
 
@@ -420,13 +426,16 @@ training data is randomly reshuffled and the 'stratify` getter is reset to start
 as a multi-dimensional numpy array and one-hot encoded numpy vector, respectively.
 
 ```python
+# create the generator
+g = images.stratify
 # feed in steps number of stratified mini-batches
 for _ in range(steps):
-    # create the generator
-    g = images.stratify
+    x_batch, y_batch = g
 ```
 
-If the pixel data type is uint8 (or uint16), the pixel data will be normalized dynamically per creation of a stratified mini-batch generator.
+If the pixel data type is uint8 (or uint16), the pixel data will be normalized dynamically per creation of a stratified mini-batch generator..
+
+If the `config` setting `stream` is specified, each batch of pixel data is streamed (memory-less) in from the HDF5 storage per invocation of the `minibatch` property when used as a getter.
 
 
 ### Image Augmentation
@@ -485,13 +494,23 @@ images = Images(..., config=['stream'])
 The `load()` method of the `Images` class will retrieve (load) a collection of transformed (machine learning ready data) images, and associated metadata, from persistent storage. Once loaded, the collection can then be feed to a neural network for training.
 
 ```python
-# load a previously preprocessed collection of images
+# load a previously preprocessed collection of images entirely in-memory
 images = Images()
 images.load('cats_n_dogs')
 
-# load into a neural network
+# feed into a neural network
 images.split = 0.1, 112
 X_train, X_test, Y_train, Y_test = images.split
+
+# alternately, stream a previously preprocessed collection of images
+images = Images(config=['stream'])
+images.load('cats_n_dogs')
+
+# feed (streaming) into a neural network
+images.minibatch = 32
+g = images.minibatch
+for step in range(steps):
+    x_batch, y_batch = g
 ```
 
 *Apply Transforms*
@@ -565,4 +584,4 @@ Information on the percent of code that is covered (and what source lines not co
 
     pytest --cov=gapcv.vision image_test.py
 
-        Statements=1363, Missed=67, Percent Covered: 95%
+        Statements=1364, Missed=59, Percent Covered: 96%
