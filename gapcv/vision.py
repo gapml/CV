@@ -265,31 +265,34 @@ class BareMetal(object):
         errors = []
         collections, labels, classes, counts, names, types, sizes, shapes, dset, d_index = self._init_labels()
 
-        for index, image in enumerate(self._dataset):
-            label = self._labels[index]
+        with tqdm(self._dataset, postfix='Getting ready...', disable=self._disable) as pbar:
+            for index, image in enumerate(pbar):
+                label = self._labels[index]
 
-            # load image from remote location
-            image, shape, size, name, _type, error = self._loadImageMemory(image)
+                pbar.postfix = 'Processing: {}'.format(label)
 
-            if image is not None:
-                if self._stream:
-                    d_index[label] = self._pixel_transform_stream(
-                        image,
-                        dset[label],
-                        d_index[label]
-                    )
+                # load image from remote location
+                image, shape, size, name, _type, error = self._loadImageMemory(image)
+
+                if image is not None:
+                    if self._stream:
+                        d_index[label] = self._pixel_transform_stream(
+                            image,
+                            dset[label],
+                            d_index[label]
+                        )
+                    else:
+                        # append each in-memory image into a list
+                        collections[label].append(image)
+
+                    # append the metadata for each image into a list
+                    names[label].append(bytes(name, 'utf-8'))
+                    types[label].append(bytes(_type, 'utf-8'))
+                    sizes[label].append(size)
+                    shapes[label].append(shape)
                 else:
-                    # append each in-memory image into a list
-                    collections[label].append(image)
-
-                # append the metadata for each image into a list
-                names[label].append(bytes(name, 'utf-8'))
-                types[label].append(bytes(_type, 'utf-8'))
-                sizes[label].append(size)
-                shapes[label].append(shape)
-            else:
-                errors.append(error)
-                counts[label] -= 1
+                    errors.append(error)
+                    counts[label] -= 1
 
         # perform final transformations of pixels in the collection
         _labels = []
@@ -352,31 +355,34 @@ class BareMetal(object):
         errors = []
         collections, labels, classes, counts, names, types, sizes, shapes, dset, d_index = self._init_labels()
 
-        for index, image in enumerate(self._dataset):
-            label = self._labels[index]
+        with tqdm(self._dataset, postfix='Getting ready...', disable=self._disable) as pbar:
+            for index, image in enumerate(pbar):
+                label = self._labels[index]
 
-            # load image from remote location
-            image, shape, size, name, _type, error = function(image)
+                pbar.postfix = 'Processing: {}'.format(label)
 
-            if image is not None:
-                if self._stream:
-                    d_index[label] = self._pixel_transform_stream(
-                        image,
-                        dset[label],
-                        d_index[label]
-                    )
+                # load image from remote location
+                image, shape, size, name, _type, error = function(image)
+
+                if image is not None:
+                    if self._stream:
+                        d_index[label] = self._pixel_transform_stream(
+                            image,
+                            dset[label],
+                            d_index[label]
+                        )
+                    else:
+                        # append each in-memory image into a list
+                        collections[label].append(image)
+
+                    # append the metadata for each image into a list
+                    names[label].append(bytes(name, 'utf-8'))
+                    types[label].append(bytes(_type, 'utf-8'))
+                    sizes[label].append(size)
+                    shapes[label].append(shape)
                 else:
-                    # append each in-memory image into a list
-                    collections[label].append(image)
-
-                # append the metadata for each image into a list
-                names[label].append(bytes(name, 'utf-8'))
-                types[label].append(bytes(_type, 'utf-8'))
-                sizes[label].append(size)
-                shapes[label].append(shape)
-            else:
-                errors.append(error)
-                counts[label] -= 1
+                    errors.append(error)
+                    counts[label] -= 1
 
         # perform final transformations of pixels in the collection
         _labels = []
