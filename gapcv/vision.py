@@ -509,56 +509,60 @@ class BareMetal(object):
             next(reader)
 
         first_row = True
-        for row in reader:
+        with tqdm(reader, postfix='Getting ready...', disable=self._disable) as pbar:
+            for row in pbar:
 
-            try:
-                image = row[self._image_col]
-                label = row[self._label_col]
-            except Exception as e:
-                errors.append(e)
-                counts[label] -= 1
-                continue
-
-            if first_row:
-                first_row = False
                 try:
-                    # load image from memory
-                    ast.literal_eval(image)
-                    is_memory = True
-                    function = self._loadImageMemory
-                except:
-                    # load image from remote location
-                    if image.startswith('http:') or image.startswith('https:'):
-                        function = self._loadImageRemote
+                    image = row[self._image_col]
+                    label = row[self._label_col]
+                except Exception as e:
+                    errors.append(e)
+                    counts[label] -= 1
+                    continue
+
+                pbar.postfix = 'Processing: {}'.format(label)
+
+                if first_row:
+                    first_row = False
+                    try:
+                        # load image from memory
+                        ast.literal_eval(image)
+                        is_memory = True
+                        function = self._loadImageMemory
+                    except:
+                        # load image from remote location
+                        if image.startswith('http:') or image.startswith('https:'):
+                            function = self._loadImageRemote
+                        else:
+                            # load image from local disk
+                            function = self._loadImageDisk
+
+                if is_memory:
+                    image = ast.literal_eval(image)
+                    image = np.asarray([np.asarray(img).astype(self._dtype) for img in image])
+
+                image, shape, size, name, _type, error = function(image)
+
+                # append each in-memory image into a list
+                if image is not None:
+                    if self._stream:
+                        d_index[label] = self._pixel_transform_stream(
+                            image,
+                            dset[label],
+                            d_index[label]
+                        )
                     else:
-                        # load image from local disk
-                        function = self._loadImageDisk
-
-            if is_memory:
-                image = ast.literal_eval(image)
-                image = np.asarray([np.asarray(img).astype(self._dtype) for img in image])
-
-            image, shape, size, name, _type, error = function(image)
-
-            # append each in-memory image into a list
-            if image is not None:
-                if self._stream:
-                    d_index[label] = self._pixel_transform_stream(
-                        image,
-                        dset[label],
-                        d_index[label]
-                    )
+                        # append each in-memory image into a list
+                        collections[label].append(image)
+                    # append the metadata for each image into a list
+                    names[label].append(bytes(name, 'utf-8'))
+                    types[label].append(bytes(_type, 'utf-8'))
+                    sizes[label].append(size)
+                    shapes[label].append(shape)
                 else:
-                    # append each in-memory image into a list
-                    collections[label].append(image)
-                # append the metadata for each image into a list
-                names[label].append(bytes(name, 'utf-8'))
-                types[label].append(bytes(_type, 'utf-8'))
-                sizes[label].append(size)
-                shapes[label].append(shape)
-            else:
-                errors.append(error)
-                counts[label] -= 1
+                    errors.append(error)
+                    counts[label] -= 1
+
         if not self._remote:
             csvf.close()
 
@@ -650,7 +654,6 @@ class BareMetal(object):
                 data = json.loads(item)
 
         # Prepass
-
         first = True
         self._count = 0
         n_label = 0
@@ -701,36 +704,39 @@ class BareMetal(object):
                 dset[label] = None
             d_index[label] = 0
 
-        for entry in data:
+        with tqdm(data, postfix='Getting ready...', disable=self._disable) as pbar:
+            for entry in pbar:
 
-            image = entry[self._image_key]
-            label = entry[self._label_key]
+                image = entry[self._image_key]
+                label = entry[self._label_key]
 
-            if is_memory:
-                image = ast.literal_eval(image)
-                image = np.asarray([np.asarray(img).astype(self._dtype) for img in image])
+                pbar.postfix = 'Processing: {}'.format(label)
 
-            image, shape, size, name, _type, error = function(image)
+                if is_memory:
+                    image = ast.literal_eval(image)
+                    image = np.asarray([np.asarray(img).astype(self._dtype) for img in image])
 
-            # append each in-memory image into a list
-            if image is not None:
-                if self._stream:
-                    d_index[label] = self._pixel_transform_stream(
-                        image,
-                        dset[label],
-                        d_index[label]
-                    )
+                image, shape, size, name, _type, error = function(image)
+
+                # append each in-memory image into a list
+                if image is not None:
+                    if self._stream:
+                        d_index[label] = self._pixel_transform_stream(
+                            image,
+                            dset[label],
+                            d_index[label]
+                        )
+                    else:
+                        # append each in-memory image into a list
+                        collections[label].append(image)
+                    # append the metadata for each image into a list
+                    names[label].append(bytes(name, 'utf-8'))
+                    types[label].append(bytes(_type, 'utf-8'))
+                    sizes[label].append(size)
+                    shapes[label].append(shape)
                 else:
-                    # append each in-memory image into a list
-                    collections[label].append(image)
-                # append the metadata for each image into a list
-                names[label].append(bytes(name, 'utf-8'))
-                types[label].append(bytes(_type, 'utf-8'))
-                sizes[label].append(size)
-                shapes[label].append(shape)
-            else:
-                errors.append(error)
-                counts[label] -= 1
+                    errors.append(error)
+                    counts[label] -= 1
 
         if not self._remote:
             jsonf.close()
@@ -1006,10 +1012,18 @@ class BareMetal(object):
         try:
             if self._flatten:
                 # flatten into 1D vector
-                image = cv2.resize(image, self._resize, interpolation=cv2.INTER_AREA).flatten()
+                image = cv2.resize(
+                    image,
+                    self._resize,
+                    interpolation=cv2.INTER_AREA
+                ).flatten()
             else:
                 # resize each image to the target size (e.g., 50x50)
-                image = cv2.resize(image, self._resize, interpolation=cv2.INTER_AREA)
+                image = cv2.resize(
+                    image,
+                    self._resize,
+                    interpolation=cv2.INTER_AREA
+                )
         except:
             return None
 
