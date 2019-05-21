@@ -9,3 +9,5 @@ site/
 .vscode
 htmlcov
 .coverage
+deleteme*
+.ipynb_checkpoints/
