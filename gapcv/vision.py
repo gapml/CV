@@ -154,7 +154,7 @@ class BareMetal(object):
 
                 classes[subdir.name] = n_label
 
-                pbar.postfix = 'Processing: {}'.format(subdir.name)
+                pbar.postfix = 'Processing: label: {}'.format(subdir.name)
 
                 if pool:
                     results.append(
@@ -344,6 +344,7 @@ class BareMetal(object):
 
         start_time = time.time()
 
+        verbosity_nparray = False
         if isinstance(self._dataset[0], str):
             if self._dataset[0].startswith('http:') or self._dataset[0].startswith('https:'):
                 function = self._loadImageRemote
@@ -351,6 +352,7 @@ class BareMetal(object):
                 function = self._loadImageDisk
         elif isinstance(self._dataset[0], np.ndarray):
             function = self._loadImageMemory
+            verbosity_nparray = True
 
         errors = []
         collections, labels, classes, counts, names, types, sizes, shapes, dset, d_index = self._init_labels()
@@ -359,7 +361,12 @@ class BareMetal(object):
             for index, image in enumerate(pbar):
                 label = self._labels[index]
 
-                pbar.postfix = 'Processing: {}'.format(label)
+                if verbosity_nparray:
+                    print_image = index
+                else:
+                    print_image = image
+
+                pbar.postfix = 'Processing: image: {} label: {}'.format(print_image, label)
 
                 # load image from remote location
                 image, shape, size, name, _type, error = function(image)
@@ -526,7 +533,7 @@ class BareMetal(object):
                     counts[label] -= 1
                     continue
 
-                pbar.postfix = 'Processing: {}'.format(label)
+                pbar.postfix = 'Processing: image: {} label: {}'.format(image, label)
 
                 if first_row:
                     first_row = False
@@ -716,7 +723,7 @@ class BareMetal(object):
                 image = entry[self._image_key]
                 label = entry[self._label_key]
 
-                pbar.postfix = 'Processing: {}'.format(label)
+                pbar.postfix = 'Processing: image: {} label: {}'.format(image, label)
 
                 if is_memory:
                     image = ast.literal_eval(image)
@@ -812,6 +819,7 @@ class BareMetal(object):
 
         # TODO is it necesary evaluate files when this funtion is just used
         # for _loadDirectory()?
+        verbosity_nparray = False
         if isinstance(files[0], str):
             if files[0].startswith('http:') or files[0].startswith('https:'):
                 function = self._loadImageRemote
@@ -819,23 +827,33 @@ class BareMetal(object):
                 function = self._loadImageDisk
         elif isinstance(files[0], np.ndarray):
             function = self._loadImageMemory
+            verbosity_nparray = True
 
-        for item in files:
-            image, shape, size, name, _type, error = function(item)
+        with tqdm(files, postfix='Getting ready...', disable=self._disable) as pbar:
+            for index, item in enumerate(pbar):
 
-            if image is not None:
-                if self._stream:
-                    d_index = self._pixel_transform_stream(image, dset, d_index)
+                if verbosity_nparray:
+                    print_image = index
                 else:
-                    # append each in-memory image into a list
-                    collection.append(image)
-                # append the metadata for each image into a list
-                names.append(bytes(name, 'utf-8'))
-                types.append(bytes(_type, 'utf-8'))
-                sizes.append(size)
-                shapes.append(shape)
-            else:
-                errors.append(error)
+                    print_image = image
+
+                pbar.postfix = 'Processing: image: {}'.format(print_image)
+
+                image, shape, size, name, _type, error = function(item)
+
+                if image is not None:
+                    if self._stream:
+                        d_index = self._pixel_transform_stream(image, dset, d_index)
+                    else:
+                        # append each in-memory image into a list
+                        collection.append(image)
+                    # append the metadata for each image into a list
+                    names.append(bytes(name, 'utf-8'))
+                    types.append(bytes(_type, 'utf-8'))
+                    sizes.append(size)
+                    shapes.append(shape)
+                else:
+                    errors.append(error)
 
         if not self._stream and collection:
             collection = self._pixel_transform(collection)
