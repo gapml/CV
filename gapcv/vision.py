@@ -45,6 +45,25 @@ class BareMetal(object):
     """ Data Preprocessing of Images
     """
 
+    ## Utils
+    def _final_transformation_of_pixels(self, collections, counts, labels, option=True):
+        # perform final transformations of pixels in the collection
+        _labels = []
+        _collections = []
+        for key in collections:
+            # empty collection
+            if not counts[key]:
+                continue
+            if not self._stream and collections[key]:
+                _collections.append(self._pixel_transform(collections[key]))
+            else:
+                _collections.append(np.asarray([]))
+            if option:
+                _labels.append(np.asarray(labels[key][:counts[key]]))
+            else:
+                _labels.append(np.asarray([labels[key] for _ in range(counts[key])]))
+        return _labels, _collections
+
     def _loadDataset(self):
         """ Load a Dataset
             :return          : collections, labels, classes, errors, elapsed time
@@ -295,17 +314,11 @@ class BareMetal(object):
                     counts[label] -= 1
 
         # perform final transformations of pixels in the collection
-        _labels = []
-        _collections = []
-        for key in collections:
-            # empty collection
-            if not counts[key]:
-                continue
-            if not self._stream and collections[key]:
-                _collections.append(self._pixel_transform(collections[key]))
-            else:
-                _collections.append(np.asarray([]))
-            _labels.append(np.asarray(labels[key][:counts[key]]))
+        _labels, _collections = self._final_transformation_of_pixels(
+            collections,
+            counts,
+            labels
+        )
 
         elapsed = time.time() - start_time
 
@@ -392,17 +405,11 @@ class BareMetal(object):
                     counts[label] -= 1
 
         # perform final transformations of pixels in the collection
-        _labels = []
-        _collections = []
-        for key in collections:
-            # empty collection
-            if not counts[key]:
-                continue
-            if not self._stream and collections[key]:
-                _collections.append(self._pixel_transform(collections[key]))
-            else:
-                _collections.append(np.asarray([]))
-            _labels.append(np.asarray(labels[key][:counts[key]]))
+        _labels, _collections = self._final_transformation_of_pixels(
+            collections,
+            counts,
+            labels
+        )
 
         elapsed = time.time() - start_time
 
@@ -580,17 +587,12 @@ class BareMetal(object):
             csvf.close()
 
         # perform final transformations of pixels in the collection
-        _labels = []
-        _collections = []
-        for key in collections:
-            # empty collection
-            if not counts[key]:
-                continue
-            if not self._stream and collections[key]:
-                _collections.append(self._pixel_transform(collections[key]))
-            else:
-                _collections.append(np.asarray([]))
-            _labels.append(np.asarray([labels[key] for _ in range(counts[key])]))
+        _labels, _collections = self._final_transformation_of_pixels(
+            collections,
+            counts,
+            labels,
+            option=False
+        )
 
         elapsed = time.time() - start_time
 
@@ -755,17 +757,12 @@ class BareMetal(object):
             jsonf.close()
 
         # perform final transformations of pixels in the collection
-        _labels = []
-        _collections = []
-        for key in collections:
-            # empty collection
-            if not counts[key]:
-                continue
-            if not self._stream and collections[key]:
-                _collections.append(self._pixel_transform(collections[key]))
-            else:
-                _collections.append(np.asarray([]))
-            _labels.append(np.asarray([labels[key] for _ in range(counts[key])]))
+        _labels, _collections = self._final_transformation_of_pixels(
+            collections,
+            counts,
+            labels,
+            option=False
+        )
 
         elapsed = time.time() - start_time
 
