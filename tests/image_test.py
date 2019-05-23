@@ -6603,13 +6603,13 @@ class MyTest(unittest.TestCase):
         images = Images('apple', ['files/1.jpg', 'files/2.jpg', 'files/3.jpg', 'files/8gray.bmp', 'files/1.jpg', 'files/2.jpg', 'files/3.jpg', '8gray.bmp'], 'apple')
         images.split = [0.25, 0.50]
         self.assertEquals(len(images._test), 2)
-        self.assertEquals(len(images._train), 3)
+        self.assertEquals(len(images._train), 2)
         self.assertEquals(len(images._val), 3)
         
         # non-zero holdout
         X_train, X_val, X_test, Y_train, Y_val, Y_test = images.split
         self.assertEquals(len(X_test), 2)
-        self.assertEquals(len(X_train), 3)
+        self.assertEquals(len(X_train), 2)
         self.assertEquals(len(X_val), 3)
         
         # zero holdout
