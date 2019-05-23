@@ -26,10 +26,11 @@ import h5py
 import gc
 import threading
 import random
-import numpy as np
 import ast
 import imutils
+import numpy as np
 import multiprocessing as mp
+from tqdm import tqdm
 
 # Import pillow for Python image manipulation for GIF and JP2K
 from PIL import Image as PILImage
@@ -51,7 +52,7 @@ class BareMetal(object):
 
         # Create the HDF5 file
         if self._store:
-           self._create_hdf5()
+            self._create_hdf5()
         # no storage
         else:
             self._hf = None
@@ -107,8 +108,8 @@ class BareMetal(object):
 
         if self._store:
             self._classes = classes
-            self._errors  = errors
-            self._time    = elapsed
+            self._errors = errors
+            self._time = elapsed
             self._end_hdf5()
 
         # tell garbage collector to free any unused memory
@@ -141,48 +142,64 @@ class BareMetal(object):
         if self._mp > 1:
             pool = mp.Pool(self._mp)
             results = []
-            
-        for subdir in subdirs:
-            # skip entries that are not subdirectories or hidden directories (start with dot)
-            if not subdir.is_dir() or subdir.name[0] == '.' or subdir.name.startswith('_'):
-                continue
-            files = os.listdir(subdir.name)
-            if not files:
-                continue
 
-            classes[subdir.name] = n_label
+        with tqdm(subdirs, postfix='Getting ready...', disable=self._disable) as pbar:
+            for subdir in pbar:
+                # skip entries that are not subdirectories or hidden directories (start with dot)
+                if not subdir.is_dir() or subdir.name[0] == '.' or subdir.name.startswith('_'):
+                    continue
+                files = os.listdir(subdir.name)
+                if not files:
+                    continue
 
-            if pool:
-                results.append(pool.apply_async(self._poolDirectory,
-                                 (subdir.name, files, n_label)))
-            else:
-                os.chdir(subdir.name)
-                if self._stream:
-                    dset = self._init_stream_hdf5(subdir.name, len(files))
+                classes[subdir.name] = n_label
 
-                collection, names, types, sizes, shapes, errors, elapsed = self._loadImages(files, dset)
+                pbar.postfix = 'Processing: label: {}'.format(subdir.name)
 
-                if not self._stream:
-                    # Accumulate the collections
-                    collections.append(collection)
-                    # Accumulate the labels
-                    l = len(collection)
-                    labels.append(np.asarray([n_label for _ in range(l)]))
-                    self._count += l
+                if pool:
+                    results.append(
+                        pool.apply_async(
+                            self._poolDirectory,
+                            (subdir.name, files, n_label)
+                        )
+                    )
                 else:
-                    self._count += len(files) - len(errors)
+                    os.chdir(subdir.name)
+                    if self._stream:
+                        dset = self._init_stream_hdf5(subdir.name, len(files))
 
-                # Write collection to HDF5 storage
-                if self._store:
-                    self._write_group_hdf5(subdir.name, collection, n_label, elapsed,
-                                           names, types, sizes, shapes, dset)
+                    collection, names, types, sizes, shapes, errors, elapsed = self._loadImages(files, dset)
 
-                # maintain total time to process
-                total_elapsed += elapsed
-                os.chdir('..')
+                    if not self._stream:
+                        # Accumulate the collections
+                        collections.append(collection)
+                        # Accumulate the labels
+                        l = len(collection)
+                        labels.append(np.asarray([n_label for _ in range(l)]))
+                        self._count += l
+                    else:
+                        self._count += len(files) - len(errors)
 
-            # increment the mapping of class name to label
-            n_label += 1
+                    # Write collection to HDF5 storage
+                    if self._store:
+                        self._write_group_hdf5(
+                            subdir.name,
+                            collection,
+                            n_label,
+                            elapsed,
+                            names,
+                            types,
+                            sizes,
+                            shapes,
+                            dset
+                        )
+
+                    # maintain total time to process
+                    total_elapsed += elapsed
+                    os.chdir('..')
+
+                # increment the mapping of class name to label
+                n_label += 1
 
         os.chdir(cwd)
 
@@ -198,7 +215,7 @@ class BareMetal(object):
                 labels.append(np.asarray([n_label for _ in range(l)]))
                 self._count += l
                 total_elapsed += int(params[6])
-            
+
         if not self._stream:
             return collections, labels, classes, errors, total_elapsed
 
@@ -223,8 +240,17 @@ class BareMetal(object):
 
         # Write collection to HDF5 storage
         if self._store:
-            self._write_group_hdf5(subdir, collection, n_label, elapsed,
-                                   names, types, sizes, shapes, dset)
+            self._write_group_hdf5(
+                subdir,
+                collection,
+                n_label,
+                elapsed,
+                names,
+                types,
+                sizes,
+                shapes,
+                dset
+            )
 
         os.chdir("../")
         return collection, names, types, sizes, shapes, errors, elapsed, label
@@ -239,29 +265,34 @@ class BareMetal(object):
         errors = []
         collections, labels, classes, counts, names, types, sizes, shapes, dset, d_index = self._init_labels()
 
-        for index, image in enumerate(self._dataset):
-            label = self._labels[index]
+        with tqdm(self._dataset, postfix='Getting ready...', disable=self._disable) as pbar:
+            for index, image in enumerate(pbar):
+                label = self._labels[index]
 
-            # load image from remote location
-            image, shape, size, name, _type, error = self._loadImageMemory(image)
+                pbar.postfix = 'Processing: {}'.format(label)
 
-            if image is not None:
-                if self._stream:
-                    d_index[label] = self._pixel_transform_stream(image,
-                                                                  dset[label],
-                                                                  d_index[label])
+                # load image from remote location
+                image, shape, size, name, _type, error = self._loadImageMemory(image)
+
+                if image is not None:
+                    if self._stream:
+                        d_index[label] = self._pixel_transform_stream(
+                            image,
+                            dset[label],
+                            d_index[label]
+                        )
+                    else:
+                        # append each in-memory image into a list
+                        collections[label].append(image)
+
+                    # append the metadata for each image into a list
+                    names[label].append(bytes(name, 'utf-8'))
+                    types[label].append(bytes(_type, 'utf-8'))
+                    sizes[label].append(size)
+                    shapes[label].append(shape)
                 else:
-                    # append each in-memory image into a list
-                    collections[label].append(image)
-
-                # append the metadata for each image into a list
-                names[label].append(bytes(name, 'utf-8'))
-                types[label].append(bytes(_type, 'utf-8'))
-                sizes[label].append(size)
-                shapes[label].append(shape)
-            else:
-                errors.append(error)
-                counts[label] -= 1
+                    errors.append(error)
+                    counts[label] -= 1
 
         # perform final transformations of pixels in the collection
         _labels = []
@@ -287,8 +318,17 @@ class BareMetal(object):
                     label = list(classes.keys())[list(classes.values()).index(n_label)]
                 else:
                     label = n_label
-                self._write_group_hdf5(str(label), collection, n_label, elapsed, names[label],
-                                       types[label], sizes[label], shapes[label], dset[label])
+                self._write_group_hdf5(
+                    str(label),
+                    collection,
+                    n_label,
+                    elapsed,
+                    names[label],
+                    types[label],
+                    sizes[label],
+                    shapes[label],
+                    dset[label]
+                )
 
         # subtract final count of images the number that did not process
         self._count -= len(errors)
@@ -304,6 +344,7 @@ class BareMetal(object):
 
         start_time = time.time()
 
+        verbosity_nparray = False
         if isinstance(self._dataset[0], str):
             if self._dataset[0].startswith('http:') or self._dataset[0].startswith('https:'):
                 function = self._loadImageRemote
@@ -311,33 +352,44 @@ class BareMetal(object):
                 function = self._loadImageDisk
         elif isinstance(self._dataset[0], np.ndarray):
             function = self._loadImageMemory
+            verbosity_nparray = True
 
         errors = []
         collections, labels, classes, counts, names, types, sizes, shapes, dset, d_index = self._init_labels()
 
-        for index, image in enumerate(self._dataset):
-            label = self._labels[index]
+        with tqdm(self._dataset, postfix='Getting ready...', disable=self._disable) as pbar:
+            for index, image in enumerate(pbar):
+                label = self._labels[index]
 
-            # load image from remote location
-            image, shape, size, name, _type, error = function(image)
-
-            if image is not None:
-                if self._stream:
-                    d_index[label] = self._pixel_transform_stream(image,
-                                                                  dset[label],
-                                                                  d_index[label])
+                if verbosity_nparray:
+                    print_image = index
                 else:
-                    # append each in-memory image into a list
-                    collections[label].append(image)
+                    print_image = image
 
-                # append the metadata for each image into a list
-                names[label].append(bytes(name, 'utf-8'))
-                types[label].append(bytes(_type, 'utf-8'))
-                sizes[label].append(size)
-                shapes[label].append(shape)
-            else:
-                errors.append(error)
-                counts[label] -= 1
+                pbar.postfix = 'Processing: image: {} label: {}'.format(print_image, label)
+
+                # load image from remote location
+                image, shape, size, name, _type, error = function(image)
+
+                if image is not None:
+                    if self._stream:
+                        d_index[label] = self._pixel_transform_stream(
+                            image,
+                            dset[label],
+                            d_index[label]
+                        )
+                    else:
+                        # append each in-memory image into a list
+                        collections[label].append(image)
+
+                    # append the metadata for each image into a list
+                    names[label].append(bytes(name, 'utf-8'))
+                    types[label].append(bytes(_type, 'utf-8'))
+                    sizes[label].append(size)
+                    shapes[label].append(shape)
+                else:
+                    errors.append(error)
+                    counts[label] -= 1
 
         # perform final transformations of pixels in the collection
         _labels = []
@@ -363,8 +415,17 @@ class BareMetal(object):
                     label = list(classes.keys())[list(classes.values()).index(n_label)]
                 else:
                     label = n_label
-                self._write_group_hdf5(str(label), collection, n_label, elapsed, names[label],
-                                       types[label], sizes[label], shapes[label], dset[label])
+                self._write_group_hdf5(
+                    str(label),
+                    collection,
+                    n_label,
+                    elapsed,
+                    names[label],
+                    types[label],
+                    sizes[label],
+                    shapes[label],
+                    dset[label]
+                )
 
         # subtract final count of images the number that did not process
         self._count -= len(errors)
@@ -461,54 +522,60 @@ class BareMetal(object):
             next(reader)
 
         first_row = True
-        for row in reader:
+        with tqdm(reader, postfix='Getting ready...', disable=self._disable) as pbar:
+            for row in pbar:
 
-            try:
-                image = row[self._image_col]
-                label = row[self._label_col]
-            except Exception as e:
-                errors.append(e)
-                counts[label] -= 1
-                continue
-
-            if first_row:
-                first_row = False
                 try:
-                    # load image from memory
-                    ast.literal_eval(image)
-                    is_memory = True
-                    function = self._loadImageMemory
-                except:
-                    # load image from remote location
-                    if image.startswith('http:') or image.startswith('https:'):
-                        function = self._loadImageRemote
+                    image = row[self._image_col]
+                    label = row[self._label_col]
+                except Exception as e:
+                    errors.append(e)
+                    counts[label] -= 1
+                    continue
+
+                pbar.postfix = 'Processing: image: {} label: {}'.format(image, label)
+
+                if first_row:
+                    first_row = False
+                    try:
+                        # load image from memory
+                        ast.literal_eval(image)
+                        is_memory = True
+                        function = self._loadImageMemory
+                    except:
+                        # load image from remote location
+                        if image.startswith('http:') or image.startswith('https:'):
+                            function = self._loadImageRemote
+                        else:
+                            # load image from local disk
+                            function = self._loadImageDisk
+
+                if is_memory:
+                    image = ast.literal_eval(image)
+                    image = np.asarray([np.asarray(img).astype(self._dtype) for img in image])
+
+                image, shape, size, name, _type, error = function(image)
+
+                # append each in-memory image into a list
+                if image is not None:
+                    if self._stream:
+                        d_index[label] = self._pixel_transform_stream(
+                            image,
+                            dset[label],
+                            d_index[label]
+                        )
                     else:
-                        # load image from local disk
-                        function = self._loadImageDisk
-
-            if is_memory:
-                image = ast.literal_eval(image)
-                image = np.asarray([np.asarray(img).astype(self._dtype) for img in image])
-
-            image, shape, size, name, _type, error = function(image)
-
-            # append each in-memory image into a list
-            if image is not None:
-                if self._stream:
-                    d_index[label] = self._pixel_transform_stream(image,
-                                                                  dset[label],
-                                                                  d_index[label])
+                        # append each in-memory image into a list
+                        collections[label].append(image)
+                    # append the metadata for each image into a list
+                    names[label].append(bytes(name, 'utf-8'))
+                    types[label].append(bytes(_type, 'utf-8'))
+                    sizes[label].append(size)
+                    shapes[label].append(shape)
                 else:
-                    # append each in-memory image into a list
-                    collections[label].append(image)
-                # append the metadata for each image into a list
-                names[label].append(bytes(name, 'utf-8'))
-                types[label].append(bytes(_type, 'utf-8'))
-                sizes[label].append(size)
-                shapes[label].append(shape)
-            else:
-                errors.append(error)
-                counts[label] -= 1
+                    errors.append(error)
+                    counts[label] -= 1
+
         if not self._remote:
             csvf.close()
 
@@ -536,8 +603,17 @@ class BareMetal(object):
                     label = list(classes.keys())[list(classes.values()).index(n_label)]
                 else:
                     label = n_label
-                self._write_group_hdf5(str(label), collection, n_label, elapsed, names[label],
-                                       types[label], sizes[label], shapes[label], dset[label])
+                self._write_group_hdf5(
+                    str(label),
+                    collection,
+                    n_label,
+                    elapsed,
+                    names[label],
+                    types[label],
+                    sizes[label],
+                    shapes[label],
+                    dset[label]
+                )
 
         # subtract final count of images the number that did not process
         self._count -= len(errors)
@@ -549,6 +625,12 @@ class BareMetal(object):
     def _loadJSON(self):
         """ Read a dataset from a JSON file
             :return          : preprocessed data, corresponding labels, and errors
+
+            format
+            [
+                { image_key: image_path, label_key: label },
+                { image_key: image_path, label_key: label },
+            ]
         """
 
         # Argument Checks
@@ -574,12 +656,6 @@ class BareMetal(object):
         errors = []
         is_memory = False
 
-        """ format
-        [ { image_key: image_path, label_key: label },
-            { image_key: image_path, label_key: label },
-        ]
-        """
-
         if not self._remote:
             jsonf = open(self._dataset)
             try:
@@ -591,7 +667,6 @@ class BareMetal(object):
                 data = json.loads(item)
 
         # Prepass
-
         first = True
         self._count = 0
         n_label = 0
@@ -642,34 +717,39 @@ class BareMetal(object):
                 dset[label] = None
             d_index[label] = 0
 
-        for entry in data:
+        with tqdm(data, postfix='Getting ready...', disable=self._disable) as pbar:
+            for entry in pbar:
 
-            image = entry[self._image_key]
-            label = entry[self._label_key]
+                image = entry[self._image_key]
+                label = entry[self._label_key]
 
-            if is_memory:
-                image = ast.literal_eval(image)
-                image = np.asarray([np.asarray(img).astype(self._dtype) for img in image])
+                pbar.postfix = 'Processing: image: {} label: {}'.format(image, label)
 
-            image, shape, size, name, _type, error = function(image)
+                if is_memory:
+                    image = ast.literal_eval(image)
+                    image = np.asarray([np.asarray(img).astype(self._dtype) for img in image])
 
-            # append each in-memory image into a list
-            if image is not None:
-                if self._stream:
-                    d_index[label] = self._pixel_transform_stream(image,
-                                                                  dset[label],
-                                                                  d_index[label])
+                image, shape, size, name, _type, error = function(image)
+
+                # append each in-memory image into a list
+                if image is not None:
+                    if self._stream:
+                        d_index[label] = self._pixel_transform_stream(
+                            image,
+                            dset[label],
+                            d_index[label]
+                        )
+                    else:
+                        # append each in-memory image into a list
+                        collections[label].append(image)
+                    # append the metadata for each image into a list
+                    names[label].append(bytes(name, 'utf-8'))
+                    types[label].append(bytes(_type, 'utf-8'))
+                    sizes[label].append(size)
+                    shapes[label].append(shape)
                 else:
-                    # append each in-memory image into a list
-                    collections[label].append(image)
-                # append the metadata for each image into a list
-                names[label].append(bytes(name, 'utf-8'))
-                types[label].append(bytes(_type, 'utf-8'))
-                sizes[label].append(size)
-                shapes[label].append(shape)
-            else:
-                errors.append(error)
-                counts[label] -= 1
+                    errors.append(error)
+                    counts[label] -= 1
 
         if not self._remote:
             jsonf.close()
@@ -698,8 +778,17 @@ class BareMetal(object):
                     label = list(classes.keys())[list(classes.values()).index(n_label)]
                 else:
                     label = n_label
-                self._write_group_hdf5(str(label), collection, n_label, elapsed, names[label],
-                                       types[label], sizes[label], shapes[label], dset[label])
+                self._write_group_hdf5(
+                    str(label),
+                    collection,
+                    n_label,
+                    elapsed,
+                    names[label],
+                    types[label],
+                    sizes[label],
+                    shapes[label],
+                    dset[label]
+                )
 
         # subtract final count of images the number that did not process
         self._count -= len(errors)
@@ -730,6 +819,7 @@ class BareMetal(object):
 
         # TODO is it necesary evaluate files when this funtion is just used
         # for _loadDirectory()?
+        verbosity_nparray = False
         if isinstance(files[0], str):
             if files[0].startswith('http:') or files[0].startswith('https:'):
                 function = self._loadImageRemote
@@ -737,23 +827,33 @@ class BareMetal(object):
                 function = self._loadImageDisk
         elif isinstance(files[0], np.ndarray):
             function = self._loadImageMemory
+            verbosity_nparray = True
 
-        for item in files:
-            image, shape, size, name, _type, error = function(item)
+        with tqdm(files, postfix='Getting ready...', disable=self._disable) as pbar:
+            for index, item in enumerate(pbar):
 
-            if image is not None:
-                if self._stream:
-                    d_index = self._pixel_transform_stream(image, dset, d_index)
+                if verbosity_nparray:
+                    print_image = index
                 else:
-                    # append each in-memory image into a list
-                    collection.append(image)
-                # append the metadata for each image into a list
-                names.append(bytes(name, 'utf-8'))
-                types.append(bytes(_type, 'utf-8'))
-                sizes.append(size)
-                shapes.append(shape)
-            else:
-                errors.append(error)
+                    print_image = item
+
+                pbar.postfix = 'Processing: image: {}'.format(print_image)
+
+                image, shape, size, name, _type, error = function(item)
+
+                if image is not None:
+                    if self._stream:
+                        d_index = self._pixel_transform_stream(image, dset, d_index)
+                    else:
+                        # append each in-memory image into a list
+                        collection.append(image)
+                    # append the metadata for each image into a list
+                    names.append(bytes(name, 'utf-8'))
+                    types.append(bytes(_type, 'utf-8'))
+                    sizes.append(size)
+                    shapes.append(shape)
+                else:
+                    errors.append(error)
 
         if not self._stream and collection:
             collection = self._pixel_transform(collection)
@@ -895,12 +995,22 @@ class BareMetal(object):
         try:
             if self._flatten:
                 # flatten into 1D vector and resize
-                collection = [cv2.resize(image, self._resize,
-                                         interpolation=cv2.INTER_AREA).flatten() for image in collection]
+                collection = [
+                    cv2.resize(
+                        image,
+                        self._resize,
+                        interpolation=cv2.INTER_AREA
+                    ).flatten() for image in collection
+                ]
             else:
                 # resize each image to the target size (e.g., 50x50)
-                collection = [cv2.resize(image, self._resize,
-                                         interpolation=cv2.INTER_AREA) for image in collection]
+                collection = [
+                    cv2.resize(
+                        image,
+                        self._resize,
+                        interpolation=cv2.INTER_AREA
+                    ) for image in collection
+                ]
         except:
             return None
 
@@ -922,14 +1032,22 @@ class BareMetal(object):
             :param index: int
             :return     : None
         """
-        
+
         try:
             if self._flatten:
                 # flatten into 1D vector
-                image = cv2.resize(image, self._resize, interpolation=cv2.INTER_AREA).flatten()
+                image = cv2.resize(
+                    image,
+                    self._resize,
+                    interpolation=cv2.INTER_AREA
+                ).flatten()
             else:
                 # resize each image to the target size (e.g., 50x50)
-                image = cv2.resize(image, self._resize, interpolation=cv2.INTER_AREA)
+                image = cv2.resize(
+                    image,
+                    self._resize,
+                    interpolation=cv2.INTER_AREA
+                )
         except:
             return None
 
@@ -970,10 +1088,10 @@ class BareMetal(object):
                     image_or_collection = (image_or_collection - np.mean(image_or_collection)) / np.std(image_or_collection)
 
         return image_or_collection
-        
+
     def _create_hdf5(self):
         """ Create the HDF5 file and add toplevel metadata """
-        
+
         if self._name:
             self._hf = h5py.File(os.path.join(self._dir, self._name + '.h5'), 'w')
         else:
@@ -995,11 +1113,11 @@ class BareMetal(object):
             self._hf.attrs['channel'] = str(['R', 'G', 'B'])
         else:
             self._hf.attrs['channel'] = str(['K'])
-            
+
     def _end_hdf5(self):
         ''' finish storing to HDF5 and update remaining metadata '''
         self._hf.attrs['count'] = self._count
-        self._hf.attrs['time']  = self._time
+        self._hf.attrs['time'] = self._time
         self._hf.attrs['shape'] = self._shape
         self._hf.attrs['class'] = str(self._classes)
         self._hf.attrs['color'] = self._colorspace
@@ -1191,7 +1309,7 @@ class BareMetal(object):
         """ rotate the image """
 
         degree = random.randint(self._rotate[0], self._rotate[1])
-        
+
         # operation not supported in float16
         if self._dtype == np.float16:
             image = image.astype(np.float32)
@@ -1204,7 +1322,7 @@ class BareMetal(object):
             # resize takes only height x width
             shape = (image.shape[0], image.shape[1])
             rotated = cv2.resize(rotated, shape, interpolation=cv2.INTER_AREA)
-            
+
         if self._dtype == np.float16:
             return rotated.astype(np.float16)
         return rotated
@@ -1223,11 +1341,11 @@ class BareMetal(object):
         # operation not supported as float16
         if self._dtype == np.float16:
             image = image.astype(np.float32)
-            
+
         if self._horizontal:
             flip = cv2.flip(image, 1) # flip image horizontally
         if self._vertical:
-            flip = cv2.flip(image, 0) # flip image 
+            flip = cv2.flip(image, 0) # flip image
         if self._dtype == np.float16:
             return flip.astype(np.float16)
         return flip
@@ -1237,11 +1355,13 @@ class BareMetal(object):
         # operation not supported as float16
         if self._dtype == np.float16:
             image = image.astype(np.float32)
-            
+
         old_height, old_width = image.shape[:2]
-        image = cv2.resize(image,
-                           (int(self._zoom*old_width), int(self._zoom*old_height)),
-                           interpolation=cv2.INTER_CUBIC)
+        image = cv2.resize(
+            image,
+            (int(self._zoom*old_width), int(self._zoom*old_height)),
+            interpolation=cv2.INTER_CUBIC
+        )
         new_height, new_width = image.shape[:2]
 
         y = int(new_height/2)
@@ -1266,10 +1386,12 @@ class BareMetal(object):
         # operation not supported as float16
         if self._dtype == np.float16:
             image = image.astype(np.float32)
-            
-        brightness_contrast = cv2.convertScaleAbs(image,
-                                                  alpha=self._contrast,
-                                                  beta=self._brightness)
+
+        brightness_contrast = cv2.convertScaleAbs(
+            image,
+            alpha=self._contrast,
+            beta=self._brightness
+        )
         if self._dtype == np.float16:
             return brightness_contrast.astype(np.float16)
         return brightness_contrast
@@ -1356,15 +1478,17 @@ class Images(BareMetal):
         self._shape = (0,)
         self._count = 0
         self._16bpp = False
-        self._hf    = None
-        self._mp    = 1         # parallel processing threads
+        self._hf = None
+        self._verbose = False
+        self._disable = True
+        self._mp = 1            # parallel processing threads
 
         self._split = 0.8       # percentage of split between train / test
         self._seed = 0          # seed for random shuffle of data
         self._train = None      # indexes for training set
         self._trainsz = 0       # size of training set
         self._test = None       # indexes for test set
-        self._val  = None       # indexes for validation set
+        self._val = None       # indexes for validation set
         self._next = 0          # next item in training set
         self._nlabels = None    # number of labels in the collection
         self._minisz = 0        # (mini) batch size
@@ -1441,6 +1565,15 @@ class Images(BareMetal):
                             self._mp = int(val)
                         except:
                             raise AttributeError("Integer expected for mp")
+                    elif setting.startswith("verbose="):
+                        try:
+                            self._verbose = eval(setting.split('=')[1])
+                            if self._verbose:
+                                self._disable = False
+                        except:
+                            raise AttributeError("Boolean expected for verbose")
+                        if not isinstance(self._verbose, bool):
+                            raise AttributeError("Boolean expected for verbose")
                     elif setting in ['gray', 'grayscale']:
                         self._colorspace = GRAYSCALE
                     elif setting in ['flat', 'flatten']:
@@ -1533,7 +1666,9 @@ class Images(BareMetal):
                             try:
                                 self._contrast = float(option[1])
                                 if self._contrast < 1.0 or self._contrast > 3.0:
-                                    raise AttributeError("Contrast range must be between 1.0 and 3.0")
+                                    raise AttributeError(
+                                        "Contrast range must be between 1.0 and 3.0"
+                                    )
                             except:
                                 raise AttributeError("Contrast range not a float")
                         if option[0] == 'brightness':
@@ -1542,7 +1677,9 @@ class Images(BareMetal):
                             try:
                                 self._brightness = ast.literal_eval(option[1])
                                 if self._brightness < 0 or self._brightness > 100:
-                                    raise AttributeError("Brightness range must be between 0 and 100")
+                                    raise AttributeError(
+                                        "Brightness range must be between 0 and 100"
+                                    )
                             except:
                                 raise AttributeError("Brightness range not an integer or float")
                         self._augment.append(self._brightnesscontrastImage)
@@ -1679,9 +1816,9 @@ class Images(BareMetal):
             if not isinstance(_dir, str):
                 raise TypeError("String expected for directory name")
             self.dir = _dir
-            
+
         self._create_hdf5()
-        
+
         for n_label in range(len(self._data)):
             collection = self._data[n_label]
             for key, value in self._classes.items():
@@ -1691,8 +1828,18 @@ class Images(BareMetal):
             types = None
             sizes = None
             shapes = None
-            self._write_group_hdf5(name, collection, n_label, 0, names, types, sizes, shapes, None)
-        
+            self._write_group_hdf5(
+                name,
+                collection,
+                n_label,
+                0,
+                names,
+                types,
+                sizes,
+                shapes,
+                None
+            )
+
         self._end_hdf5()
 
     ### Properties ###
@@ -1871,10 +2018,14 @@ class Images(BareMetal):
                         match = True
                         ix = image._classes[i_label]
                         jx = self._classes[j_label]
-                        self._data[jx] = np.concatenate((self._data[jx], image._data[ix]),
-                                                        axis=0)
-                        self._labels[jx] = np.concatenate((self._labels[jx], image._labels[ix]),
-                                                          axis=0)
+                        self._data[jx] = np.concatenate(
+                            (self._data[jx], image._data[ix]),
+                            axis=0
+                        )
+                        self._labels[jx] = np.concatenate(
+                            (self._labels[jx], image._labels[ix]),
+                            axis=0
+                        )
                         break
                 if not match:
                     ix = image._classes[i_label]
@@ -1905,8 +2056,8 @@ class Images(BareMetal):
         Y_train = []
         X_test = []
         Y_test = []
-        X_val  = []
-        Y_val  = []
+        X_val = []
+        Y_val = []
 
         # use the shuffled indices to assemble the train data
         for ix, index in self._train:
@@ -1925,7 +2076,7 @@ class Images(BareMetal):
             for ix, index in self._val:
                 X_val.append(self._data[ix][index])
                 Y_val.append(self._labels[ix][0])
-            
+
         # calculate the number of labels in the training set
         if self._nlabels == None:
             if len(Y_test) > 0:
@@ -1955,19 +2106,45 @@ class Images(BareMetal):
             # labels already one-hot encoded
             if isinstance(Y_train[0], np.ndarray):
                 if val_validator:
-                    return X_train, X_val, X_test, np.asarray(Y_train), np.asarray(Y_val), np.asarray(Y_test)
+                    return (
+                        X_train,
+                        X_val,
+                        X_test,
+                        np.asarray(Y_train),
+                        np.asarray(Y_val),
+                        np.asarray(Y_test)
+                    )
                 else:
                     return X_train, X_test, np.asarray(Y_train), np.asarray(Y_test)
             # one-hot encode the labels
             else:
                 if val_validator:
-                    return X_train, X_val, X_test, self._one_hot(np.asarray(Y_train), self._nlabels), self._one_hot(np.asarray(Y_val), self._nlabels), self._one_hot(np.asarray(Y_test), self._nlabels)
+                    return (
+                        X_train,
+                        X_val,
+                        X_test,
+                        self._one_hot(np.asarray(Y_train), self._nlabels),
+                        self._one_hot(np.asarray(Y_val), self._nlabels),
+                        self._one_hot(np.asarray(Y_test), self._nlabels)
+                    )
                 else:
-                    return X_train, X_test, self._one_hot(np.asarray(Y_train), self._nlabels), self._one_hot(np.asarray(Y_test), self._nlabels)
+                    return (
+                        X_train,
+                        X_test,
+                        self._one_hot(np.asarray(Y_train), self._nlabels),
+                        self._one_hot(np.asarray(Y_test), self._nlabels)
+                    )
         else:
             # Calculate the number of labels as a sequence starting from 0
             if val_validator:
-                return X_train, X_val, None, self._one_hot(np.asarray(Y_train), self._nlabels), self._one_hot(np.asarray(Y_val), self._nlabels), None
+                return (
+                    X_train,
+                    X_val,
+                    None,
+                    self._one_hot(np.asarray(Y_train), self._nlabels),
+                    self._one_hot(np.asarray(Y_val), self._nlabels),
+                    None
+                )
             else:
                 return X_train, None, self._one_hot(np.asarray(Y_train), self._nlabels), None
 
@@ -2024,17 +2201,17 @@ class Images(BareMetal):
 
             # calculate the pivot point for the split
             pivot = max(int(self._split * l), 1)
-            
+
             # if validation, calculate pivot for validation split
             if val_percent > 0:
                 v_pivot = int(val_percent * pivot)
                 # split train and validation
                 self._train += indices[:v_pivot]
-                self._val   += indices[v_pivot:pivot]
+                self._val += indices[v_pivot:pivot]
             # split training only
             else:
                 self._train += indices[:pivot]
-                
+
             # split test
             self._test += indices[pivot:]
 
@@ -2068,8 +2245,8 @@ class Images(BareMetal):
         # mini-batch was not set, implicitly set it
         if self._minisz == 0:
             self.minibatch = 32
-              
-        # Mini-batch, return a batch on each iteration 
+
+        # Mini-batch, return a batch on each iteration
         while True:
 
             # reshuffle the training data after an entire pass
@@ -2096,9 +2273,9 @@ class Images(BareMetal):
                     image = self._augmentation(data)
                     x_batch.append(self._verifyNormalization(image))
                     y_batch.append(label)
-            
-            self._next += self._minisz        
-            yield np.asarray(x_batch), self._one_hot(np.asarray(y_batch), self._nlabels)     
+
+            self._next += self._minisz
+            yield np.asarray(x_batch), self._one_hot(np.asarray(y_batch), self._nlabels)
 
     @minibatch.setter
     def minibatch(self, batch_size):
@@ -2115,7 +2292,7 @@ class Images(BareMetal):
 
         if batch_size < 2 or batch_size >= self._trainsz:
             raise ValueError("Mini batch size is out of range")
-            
+
         # half the batch size when augmenting
         if self._augment:
             batch_size //= 2
@@ -2159,7 +2336,7 @@ class Images(BareMetal):
                         image = self._augmentation(data)
                         x_batch.append(self._verifyNormalization(image))
                         y_batch.append(label)
-                        
+
             yield np.asarray(x_batch), self._one_hot(np.asarray(y_batch), self._nlabels)
 
     @stratify.setter
@@ -2221,8 +2398,8 @@ class Images(BareMetal):
             # make a one-hot encoding for the labels
             self._labels[ix] = ix
 
-        #self._labels = self._one_hot(np.asarray(self._labels), self._nlabels)   
-        
+        #self._labels = self._one_hot(np.asarray(self._labels), self._nlabels)
+
         # open HDF5 for streaming when feeding
         if self._stream and self._hf is None:
             self._hf = h5py.File(self._dir + self._name + '.h5', 'r')
@@ -2248,7 +2425,7 @@ class Images(BareMetal):
             self._nlabels = np.max(Y_test) + 1
 
         # convert from list to numpy array
-        X_test  = np.asarray(X_test)
+        X_test = np.asarray(X_test)
         # data was not normalized prior, normalize now during feeding
         # TODO: There is no way to set the float data type
         if self.dtype == np.uint8:
@@ -2386,7 +2563,13 @@ class Images(BareMetal):
         for collection in self._data:
             images = []
             for image in collection:
-                images.append(cv2.resize(image, self._resize, interpolation=cv2.INTER_AREA))
+                images.append(
+                    cv2.resize(
+                        image,
+                        self._resize,
+                        interpolation=cv2.INTER_AREA
+                    )
+                )
             collections.append(np.asarray(images))
         self._data = collections
 
@@ -2404,7 +2587,12 @@ class Images(BareMetal):
             for collection in self._data:
                 images = []
                 for image in collection:
-                    images.append(cv2.cvtColor(image, cv2.COLOR_BGR2GRAY))
+                    images.append(
+                        cv2.cvtColor(
+                            image,
+                            cv2.COLOR_BGR2GRAY
+                        )
+                    )
                 collections.append(np.asarray(images))
             self._data = collections
 
