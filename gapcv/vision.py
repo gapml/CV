@@ -835,7 +835,7 @@ class BareMetal(object):
                 if verbosity_nparray:
                     print_image = index
                 else:
-                    print_image = image
+                    print_image = item
 
                 pbar.postfix = 'Processing: image: {}'.format(print_image)
 
