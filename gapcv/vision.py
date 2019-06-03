@@ -1485,7 +1485,7 @@ class Images(BareMetal):
         self._train = None      # indexes for training set
         self._trainsz = 0       # size of training set
         self._test = None       # indexes for test set
-        self._val = None       # indexes for validation set
+        self._val = None        # indexes for validation set
         self._next = 0          # next item in training set
         self._nlabels = None    # number of labels in the collection
         self._minisz = 0        # (mini) batch size
