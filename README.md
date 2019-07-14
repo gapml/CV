@@ -146,10 +146,10 @@ various ways of using the `Images` class.
 
 The initializer has no required (positional) parameters. All the parameters are optional (keyword) parameters. The most frequently used parameters are:
 
-        Images( name, dataset, labels, config ) 
+        Images( name, images, labels, config ) 
         
             name   : the name of the dataset (e.g., 'cats_n_dogs')
-            dataset: the dataset of images
+            images: the dataset of images
             labels : the labels
             config : configuration settings
 
@@ -178,7 +178,7 @@ class (label), such as *cats*. Within the subdirectory are one or more images wh
 The following instantiation of the `Images` class object will load the images from local disk into in-memory according to the default transformation settings.  Within memory, the set of transformed images will be grouped into two classes: cats, and dogs.      
 
 ```python
-images = Images(dataset='cats_n_dogs')
+images = Images(images='cats_n_dogs')
 ```
 
 Once loaded, you can get information on the transformed data as properties of the `Images` class. Below are a few frequently used properties.
@@ -204,13 +204,13 @@ Alternatively, local on-disk images may be specified as a list of paths, with co
 paths to images, and the `labels` parameter is a list of corresponding labels.
 
 ```python
-images = Images(name='cats_and_dogs', dataset=['cats/1.jpg', 'cats/2.jpg', ... 'dogs/1.jpg'], labels=[0, 0, ... 1])
+images = Images(name='cats_and_dogs', images=['cats/1.jpg', 'cats/2.jpg', ... 'dogs/1.jpg'], labels=[0, 0, ... 1])
 ```
 
 Alternately, the image paths may be specified as remote locations using URL paths. In this case, a HTTP request will be made to fetch the contents of the image from the remote site.
 
 ```python
-images = Images(name='cats_and_dogs', dataset=['http://mysite.com/cats/1.jpg', 'http://mysite.com/cats/2.jpg', ... ], labels=[0, 0, ...])
+images = Images(name='cats_and_dogs', images=['http://mysite.com/cats/1.jpg', 'http://mysite.com/cats/2.jpg', ... ], labels=[0, 0, ...])
 ```
 
 *Memory*
@@ -222,8 +222,8 @@ from keras.datasets import cifar10
 
 (x_train, y_train), (x_test, y_test) = cifar10.load_data()
 
-train = Images('cifar10', dataset=x_train, labels=y_train)
-test  = Images('cifar10', dataset=x_test,  labels=y_test)
+train = Images('cifar10', images=x_train, labels=y_train)
+test  = Images('cifar10', images=x_test,  labels=y_test)
 ```
 
 *CSV*
@@ -255,13 +255,13 @@ For CSV, the `config` parameter is specified when instantiating the `Images` cla
         label_col   # the column index (starting at 0) of the label field.
         
 ```python
-images = Images(dataset='cats_n_dogs.csv', config=['header', 'image_col=0', 'label_col=1'])
+images = Images(images='cats_n_dogs.csv', config=['header', 'image_col=0', 'label_col=1'])
 ```
 
 For EU style (semi-colon) use the `sep` setting to specify the separator is a semi-colon:
 
 ```python
-images = Images(dataset='cats_n_dogs.csv', config=['header', 'image_col=0', 'label_col=1', 'sep=;'])
+images = Images(images='cats_n_dogs.csv', config=['header', 'image_col=0', 'label_col=1', 'sep=;'])
 ```
 
 *JSON*
@@ -296,7 +296,7 @@ For JSON, the `config` parameter is specified when instantiating the `Images` cl
         label_key   # the key name of the label field.
         
 ```python
-images = Images(dataset='cats_n_dogs.json', config=['image_key=image', 'label_key=label'])
+images = Images(images='cats_n_dogs.json', config=['image_key=image', 'label_key=label'])
 ```
 
 *Transformations*
@@ -534,10 +534,10 @@ Existing collections in persistent storage can be combined into a single new col
 if both collections are a single class with both having the respective value 0 for the class, in the combined version, one class will be 0 and the other 1.
 
 ```python
-cats = Images(name='cats', dataset=..., ...)
+cats = Images(name='cats', images=..., ...)
 print(cats.class)   # will output: {'cats': 0}
 
-dogs = Images(name='dogs', dataset=..., ...)
+dogs = Images(name='dogs', images=..., ...)
 print(dogs.class)   # will output: {'dogs': 0}
 
 cats += dogs
