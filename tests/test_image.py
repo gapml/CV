@@ -746,9 +746,9 @@ class MyTest(unittest.TestCase):
         self.assertEqual(images.labels[0][0], 0)
 
         # flattened to unflattened
-        a = cv2.imread('files/1.jpg', cv2.IMREAD_GRAYSCALE)
-        b = cv2.resize(a, (50, 50), interpolation=cv2.INTER_AREA).flatten()
-        images = Images('foo', [b], 1, config=['resize=(50,50)'])
+        img_a = cv2.imread('files/1.jpg', cv2.IMREAD_GRAYSCALE)
+        img_b = cv2.resize(img_a, (50, 50), interpolation=cv2.INTER_AREA).flatten()
+        images = Images('foo', [img_b], 1, config=['resize=(50,50)'])
         self.assertEqual(images.fail, 0)
         self.assertEqual(images.errors, [])
         self.assertEqual(images.count, 1)
@@ -759,8 +759,8 @@ class MyTest(unittest.TestCase):
         self.assertEqual(images.labels[0][0], 0)
 
         # multiple flattened images
-        c = np.asarray([b, b, b])
-        images = Images('foo', c, 1, config=['resize=(50,50)'])
+        img_c = np.asarray([img_b, img_b, img_b])
+        images = Images('foo', img_c, 1, config=['resize=(50,50)'])
         self.assertEqual(images.fail, 0)
         self.assertEqual(images.errors, [])
         self.assertEqual(images.count, 3)
@@ -772,8 +772,8 @@ class MyTest(unittest.TestCase):
         self.assertEqual(images.labels[0][0], 0)
         self.assertEqual(images.classes, {'1': 0})
 
-        d = np.asarray([b for _ in range(1000)])
-        images = Images('foo', d, 1, config=['resize=(50,50)'])
+        img_d = np.asarray([img_b for _ in range(1000)])
+        images = Images('foo', img_d, 1, config=['resize=(50,50)'])
         self.assertEqual(images.fail, 0)
         self.assertEqual(images.errors, [])
         self.assertEqual(images.count, 1000)
@@ -788,8 +788,8 @@ class MyTest(unittest.TestCase):
         self.assertEqual(images.images[0][0].shape, (50, 50))
 
         # multiple flattened images - flatten
-        c = np.asarray([b, b, b])
-        images = Images('foo', c, 1, config=['resize=(30,50)', 'flat'])
+        img_c = np.asarray([img_b, img_b, img_b])
+        images = Images('foo', img_c, 1, config=['resize=(30,50)', 'flat'])
         self.assertEqual(images.fail, 0)
         self.assertEqual(images.errors, [])
         self.assertEqual(images.count, 3)
@@ -803,8 +803,8 @@ class MyTest(unittest.TestCase):
         self.assertEqual(images.images[0][0].shape, (1500,))
 
         # multiple flattened images - list is one value
-        c = np.asarray([b, b, b])
-        images = Images('foo', c, [0, 0, 0], config=['resize=(30,50)'])
+        img_c = np.asarray([img_b, img_b, img_b])
+        images = Images('foo', img_c, [0, 0, 0], config=['resize=(30,50)'])
         self.assertEqual(images.fail, 0)
         self.assertEqual(images.errors, [])
         self.assertEqual(images.count, 3)
@@ -818,8 +818,8 @@ class MyTest(unittest.TestCase):
         self.assertEqual(images.images[0][0].shape, (30, 50))
 
         # multiple flattened images - list different values
-        c = np.asarray([b, b, b, b, b])
-        images = Images('foo', c, [0, 1, 0, 1, 1], config=['resize=(30,50)'])
+        img_c = np.asarray([img_b, img_b, img_b, img_b, img_b])
+        images = Images('foo', img_c, [0, 1, 0, 1, 1], config=['resize=(30,50)'])
         self.assertEqual(images.fail, 0)
         self.assertEqual(images.errors, [])
         self.assertEqual(images.count, 5)
@@ -836,8 +836,8 @@ class MyTest(unittest.TestCase):
         self.assertEqual(images.images[0][0].shape, (30, 50))
 
         # gray
-        c = np.asarray([a, a, a, a, a])
-        images = Images('foo', c, [0, 1, 0, 1, 1], config=['resize=(30,50)'])
+        img_c = np.asarray([img_a, img_a, img_a, img_a, img_a])
+        images = Images('foo', img_c, [0, 1, 0, 1, 1], config=['resize=(30,50)'])
         self.assertEqual(images.fail, 0)
         self.assertEqual(images.errors, [])
         self.assertEqual(images.count, 5)
@@ -846,12 +846,12 @@ class MyTest(unittest.TestCase):
         self.assertEqual(len(images.labels), 2)
         self.assertEqual(images.classes, {'0': 0, '1': 1})
         self.assertEqual(images.images[0][0].shape, (30, 50, 3))
-        images = Images('foo', c, [0, 1, 0, 1, 1], config=['resize=(30,50)', 'flat'])
+        images = Images('foo', img_c, [0, 1, 0, 1, 1], config=['resize=(30,50)', 'flat'])
         self.assertEqual(len(images.images), 2)
         self.assertEqual(len(images.labels), 2)
         self.assertEqual(images.classes, {'0': 0, '1': 1})
         self.assertEqual(images.images[0][0].shape, (4500,))
-        images = Images('foo', c, [0, 1, 0, 1, 1], config=['resize=(30,50)', 'flat', 'gray'])
+        images = Images('foo', img_c, [0, 1, 0, 1, 1], config=['resize=(30,50)', 'flat', 'gray'])
         self.assertEqual(len(images.images), 2)
         self.assertEqual(len(images.labels), 2)
         self.assertEqual(images.classes, {'0': 0, '1': 1})
@@ -860,9 +860,9 @@ class MyTest(unittest.TestCase):
     def test_025(self):
         """ Images - memory - 2D - no store """
 
-        a = cv2.imread('files/1.jpg', cv2.IMREAD_COLOR)
-        c = np.asarray([a, a, a, a, a])
-        images = Images('foo', c, [0, 1, 0, 1, 1], config=['resize=(30,50)'])
+        img_a = cv2.imread('files/1.jpg', cv2.IMREAD_COLOR)
+        img_c = np.asarray([img_a, img_a, img_a, img_a, img_a])
+        images = Images('foo', img_c, [0, 1, 0, 1, 1], config=['resize=(30,50)'])
         self.assertEqual(images.fail, 0)
         self.assertEqual(images.errors, [])
         self.assertEqual(images.count, 5)
@@ -872,13 +872,13 @@ class MyTest(unittest.TestCase):
         self.assertEqual(images.classes, {'0': 0, '1': 1})
         self.assertEqual(images.images[0][0].shape, (30, 50, 3))
 
-        images = Images('foo', c, [0, 1, 0, 1, 1], config=['resize=(30,50)', 'flat'])
+        images = Images('foo', img_c, [0, 1, 0, 1, 1], config=['resize=(30,50)', 'flat'])
         self.assertEqual(len(images.images), 2)
         self.assertEqual(len(images.labels), 2)
         self.assertEqual(images.classes, {'0': 0, '1': 1})
         self.assertEqual(images.images[0][0].shape, (4500,))
 
-        images = Images('foo', c, [0, 1, 0, 1, 1], config=['resize=(30,50)', 'flat', 'gray'])
+        images = Images('foo', img_c, [0, 1, 0, 1, 1], config=['resize=(30,50)', 'flat', 'gray'])
         self.assertEqual(len(images.images), 2)
         self.assertEqual(len(images.labels), 2)
         self.assertEqual(images.classes, {'0': 0, '1': 1})
@@ -887,10 +887,10 @@ class MyTest(unittest.TestCase):
     def test_026(self):
         """ Images - memory - 3D - no store """
 
-        a = cv2.imread('files/1.jpg', cv2.IMREAD_COLOR)
-        b = np.asarray([['a']])
+        img_a = cv2.imread('files/1.jpg', cv2.IMREAD_COLOR)
+        img_b = np.asarray([['a']])
 
-        memory = np.asarray([a])
+        memory = np.asarray([img_a])
         images = Images('foo', memory, 1, config=['resize=(30,50)'])
         self.assertEqual(images.fail, 0)
         self.assertEqual(images.errors, [])
@@ -902,7 +902,7 @@ class MyTest(unittest.TestCase):
         self.assertEqual(images.images[0][0].shape, (30, 50, 3))
 
         # load bad image from memory
-        memory = np.asarray([b])
+        memory = np.asarray([img_b])
         images = Images('foo', memory, 1, config=['resize=(30,50)'])
         self.assertEqual(images.fail, 1)
         self.assertEqual(len(images.errors), 1)
@@ -922,7 +922,7 @@ class MyTest(unittest.TestCase):
         self.assertEqual(images.classes, {'1': 0})
 
         # load several images two with errors
-        memory = np.asarray([None, a, b])
+        memory = np.asarray([None, img_a, img_b])
         images = Images('foo', memory, 1, config=['resize=(30,50)'])
         self.assertEqual(images.fail, 2)
         self.assertEqual(len(images.errors), 2)
@@ -937,9 +937,9 @@ class MyTest(unittest.TestCase):
         """ Images - memory - store """
 
         # one class
-        a = cv2.imread('files/1.jpg', cv2.IMREAD_COLOR)
-        c = np.asarray([a, a, a, a, a])
-        images = Images('foo', c, 0, config=['resize=(30,50)', 'store'])
+        img_a = cv2.imread('files/1.jpg', cv2.IMREAD_COLOR)
+        img_c = np.asarray([img_a, img_a, img_a, img_a, img_a])
+        images = Images('foo', img_c, 0, config=['resize=(30,50)', 'store'])
         self.assertEqual(images.fail, 0)
         self.assertEqual(images.errors, [])
         self.assertEqual(images.count, 5)
@@ -964,7 +964,7 @@ class MyTest(unittest.TestCase):
         self.assertEqual(images.labels[0][0], 0)
 
         # multi-class
-        images = Images('foo', c, [0, 1, 0, 1, 1], config=['resize=(30,50)', 'store'])
+        images = Images('foo', img_c, [0, 1, 0, 1, 1], config=['resize=(30,50)', 'store'])
         self.assertEqual(images.fail, 0)
         self.assertEqual(images.errors, [])
         self.assertEqual(images.count, 5)
@@ -995,9 +995,9 @@ class MyTest(unittest.TestCase):
         """ Images - memory - stream """
 
         # one class, stream
-        a = cv2.imread('files/1.jpg', cv2.IMREAD_COLOR)
-        c = np.asarray([a])
-        images = Images('foo', c, 0, config=['resize=(30,50)', 'stream'])
+        img_a = cv2.imread('files/1.jpg', cv2.IMREAD_COLOR)
+        img_c = np.asarray([img_a])
+        images = Images('foo', img_c, 0, config=['resize=(30,50)', 'stream'])
         self.assertEqual(images.fail, 0)
         self.assertEqual(images.errors, [])
         self.assertEqual(images.count, 1)
@@ -1018,9 +1018,9 @@ class MyTest(unittest.TestCase):
         self.assertEqual(images.labels[0][0], 0)
 
         # one class, gray, stream
-        a = cv2.imread('files/1.jpg', cv2.IMREAD_GRAYSCALE)
-        c = np.asarray([a, a, a, a])
-        images = Images('foo', c, 0, config=['resize=(30,50)', 'stream', 'gray'])
+        img_a = cv2.imread('files/1.jpg', cv2.IMREAD_GRAYSCALE)
+        img_c = np.asarray([img_a, img_a, img_a, img_a])
+        images = Images('foo', img_c, 0, config=['resize=(30,50)', 'stream', 'gray'])
         self.assertEqual(images.fail, 0)
         self.assertEqual(images.errors, [])
         self.assertEqual(images.count, 4)
@@ -1041,8 +1041,8 @@ class MyTest(unittest.TestCase):
         self.assertEqual(images.labels[0][0], 0)
 
         # multi class, stream
-        c = np.asarray([a, a, a, a, a])
-        images = Images('foo', c, [0, 1, 1, 0, 1], config=['resize=(30,50)', 'stream'])
+        img_c = np.asarray([img_a, img_a, img_a, img_a, img_a])
+        images = Images('foo', img_c, [0, 1, 1, 0, 1], config=['resize=(30,50)', 'stream'])
         self.assertEqual(images.fail, 0)
         self.assertEqual(images.errors, [])
         self.assertEqual(images.count, 5)
@@ -1072,9 +1072,9 @@ class MyTest(unittest.TestCase):
         """ Images - memory - labels as strings """
 
         # single class, label is string
-        a = cv2.imread('files/1.jpg', cv2.IMREAD_COLOR)
-        c = np.asarray([a])
-        images = Images('foo', c, 'cat', config=['resize=(30,50)'])
+        img_a = cv2.imread('files/1.jpg', cv2.IMREAD_COLOR)
+        img_c = np.asarray([img_a])
+        images = Images('foo', img_c, 'cat', config=['resize=(30,50)'])
         self.assertEqual(images.fail, 0)
         self.assertEqual(images.errors, [])
         self.assertEqual(images.count, 1)
@@ -1085,8 +1085,8 @@ class MyTest(unittest.TestCase):
         self.assertEqual(images.labels[0][0], 0)
 
         # single class, label is string, store
-        c = np.asarray([a, a, a, a])
-        images = Images('foo', c, 'cat', config=['resize=(30,50)', 'store'])
+        img_c = np.asarray([img_a, img_a, img_a, img_a])
+        images = Images('foo', img_c, 'cat', config=['resize=(30,50)', 'store'])
         self.assertEqual(images.fail, 0)
         self.assertEqual(images.errors, [])
         self.assertEqual(images.count, 4)
@@ -1109,8 +1109,8 @@ class MyTest(unittest.TestCase):
         self.assertEqual(images.labels[0][0], 0)
 
         # single class, label is string, stream
-        c = np.asarray([a, a, a, a])
-        images = Images('foo', c, 'cat', config=['resize=(30,50)', 'stream'])
+        img_c = np.asarray([img_a, img_a, img_a, img_a])
+        images = Images('foo', img_c, 'cat', config=['resize=(30,50)', 'stream'])
         self.assertEqual(images.fail, 0)
         self.assertEqual(images.errors, [])
         self.assertEqual(images.count, 4)
@@ -1135,9 +1135,9 @@ class MyTest(unittest.TestCase):
         """ Images - memory - labels as [strings] """
 
         # single class, label is [string]
-        a = cv2.imread('files/1.jpg', cv2.IMREAD_COLOR)
-        c = np.asarray([a])
-        images = Images('foo', c, ['cat'], config=['resize=(30,50)'])
+        img_a = cv2.imread('files/1.jpg', cv2.IMREAD_COLOR)
+        img_c = np.asarray([img_a])
+        images = Images('foo', img_c, ['cat'], config=['resize=(30,50)'])
         self.assertEqual(images.fail, 0)
         self.assertEqual(images.errors, [])
         self.assertEqual(images.count, 1)
@@ -1148,8 +1148,8 @@ class MyTest(unittest.TestCase):
         self.assertEqual(images.labels[0][0], 0)
 
         # single class, label is [string], store
-        c = np.asarray([a])
-        images = Images('foo', c, ['cat'], config=['resize=(30,50)', 'store'])
+        img_c = np.asarray([img_a])
+        images = Images('foo', img_c, ['cat'], config=['resize=(30,50)', 'store'])
         self.assertEqual(images.fail, 0)
         self.assertEqual(images.errors, [])
         self.assertEqual(images.count, 1)
@@ -1172,8 +1172,8 @@ class MyTest(unittest.TestCase):
         self.assertEqual(images.labels[0][0], 0)
 
         # single class, label is [string], stream
-        c = np.asarray([a])
-        images = Images('foo', c, ['cat'], config=['resize=(30,50)', 'stream'])
+        img_c = np.asarray([img_a])
+        images = Images('foo', img_c, ['cat'], config=['resize=(30,50)', 'stream'])
         self.assertEqual(images.fail, 0)
         self.assertEqual(images.errors, [])
         self.assertEqual(images.count, 1)
@@ -1194,9 +1194,9 @@ class MyTest(unittest.TestCase):
         self.assertEqual(images.labels[0][0], 0)
 
         # multi class, label is [string]
-        a = cv2.imread('files/1.jpg', cv2.IMREAD_COLOR)
-        c = np.asarray([a, a, a, a, a])
-        images = Images('foo', c, ['cat', 'dog', 'cat', 'cat', 'dog'], config=['resize=(30,50)'])
+        img_a = cv2.imread('files/1.jpg', cv2.IMREAD_COLOR)
+        img_c = np.asarray([img_a, img_a, img_a, img_a, img_a])
+        images = Images('foo', img_c, ['cat', 'dog', 'cat', 'cat', 'dog'], config=['resize=(30,50)'])
         self.assertEqual(images.fail, 0)
         self.assertEqual(images.errors, [])
         self.assertEqual(images.count, 5)
@@ -1221,9 +1221,9 @@ class MyTest(unittest.TestCase):
                 self.assertEqual(len(images.images[0]), 3)
 
         # multi class, label is [string], store
-        a = cv2.imread('files/1.jpg', cv2.IMREAD_COLOR)
-        c = np.asarray([a, a, a, a, a])
-        images = Images('foo', c, ['cat', 'dog', 'cat', 'cat', 'dog'],
+        img_a = cv2.imread('files/1.jpg', cv2.IMREAD_COLOR)
+        img_c = np.asarray([img_a, img_a, img_a, img_a, img_a])
+        images = Images('foo', img_c, ['cat', 'dog', 'cat', 'cat', 'dog'],
                         config=['resize=(30,50)', 'store'])
         self.assertEqual(images.fail, 0)
         self.assertEqual(images.errors, [])
@@ -1275,9 +1275,9 @@ class MyTest(unittest.TestCase):
                 self.assertEqual(len(images.images[0]), 3)
 
         # multi class, label is [string], stream
-        a = cv2.imread('files/1.jpg', cv2.IMREAD_COLOR)
-        c = np.asarray([a, a, a, a, a])
-        images = Images('foo', c, ['cat', 'dog', 'cat', 'cat', 'dog'],
+        img_a = cv2.imread('files/1.jpg', cv2.IMREAD_COLOR)
+        img_c = np.asarray([img_a, img_a, img_a, img_a, img_a])
+        images = Images('foo', img_c, ['cat', 'dog', 'cat', 'cat', 'dog'],
                         config=['resize=(30,50)', 'stream'])
         self.assertEqual(images.fail, 0)
         self.assertEqual(images.errors, [])
@@ -1726,10 +1726,10 @@ class MyTest(unittest.TestCase):
 
     def test_035(self):
         """ Images - list - memory """
-        a = cv2.imread('files/1.jpg', cv2.IMREAD_COLOR)
+        img_a = cv2.imread('files/1.jpg', cv2.IMREAD_COLOR)
 
         # single class
-        images = Images('foo', [a, a], 1)
+        images = Images('foo', [img_a, img_a], 1)
         self.assertEqual(images.name, 'foo')
         self.assertEqual(images.fail, 0)
         self.assertEqual(len(images.errors), 0)
@@ -1744,7 +1744,7 @@ class MyTest(unittest.TestCase):
         self.assertEqual(images.images[0].shape, (2, 128, 128, 3))
 
         # single class, store
-        images = Images('foo', [a, a], 1, config=['store', 'resize=40,50'])
+        images = Images('foo', [img_a, img_a], 1, config=['store', 'resize=40,50'])
         self.assertEqual(images.name, 'foo')
         self.assertEqual(images.fail, 0)
         self.assertEqual(len(images.errors), 0)
@@ -1775,7 +1775,7 @@ class MyTest(unittest.TestCase):
         self.assertEqual(images.images[0].shape, (2, 40, 50, 3))
 
         # single class, stream
-        images = Images('foo', [a, a], 1, config=['stream', 'resize=40,50', 'gray'])
+        images = Images('foo', [img_a, img_a], 1, config=['stream', 'resize=40,50', 'gray'])
         self.assertEqual(images.name, 'foo')
         self.assertEqual(images.fail, 0)
         self.assertEqual(len(images.errors), 0)
@@ -1803,7 +1803,7 @@ class MyTest(unittest.TestCase):
         self.assertEqual(images.images[0].shape, (2, 40, 50))
 
         # multi-class
-        images = Images('foo', [a, a, a], [0, 1, 1])
+        images = Images('foo', [img_a, img_a, img_a], [0, 1, 1])
         self.assertEqual(images.name, 'foo')
         self.assertEqual(images.fail, 0)
         self.assertEqual(len(images.errors), 0)
@@ -1822,7 +1822,7 @@ class MyTest(unittest.TestCase):
         self.assertEqual(images.images[1].shape, (2, 128, 128, 3))
 
         # multi-class, store
-        images = Images('foo', [a, a, a], [0, 1, 1], config=['store'])
+        images = Images('foo', [img_a, img_a, img_a], [0, 1, 1], config=['store'])
         self.assertEqual(images.name, 'foo')
         self.assertEqual(images.fail, 0)
         self.assertEqual(len(images.errors), 0)
@@ -1861,7 +1861,7 @@ class MyTest(unittest.TestCase):
         self.assertEqual(images.images[1].shape, (2, 128, 128, 3))
 
         # multi-class, stream
-        images = Images('foo', [a, a, a], [0, 1, 1], config=['stream', 'flat', 'resize=50,50'])
+        images = Images('foo', [img_a, img_a, img_a], [0, 1, 1], config=['stream', 'flat', 'resize=50,50'])
         self.assertEqual(images.name, 'foo')
         self.assertEqual(images.fail, 0)
         self.assertEqual(len(images.errors), 0)
@@ -1896,10 +1896,10 @@ class MyTest(unittest.TestCase):
 
     def test_036(self):
         """ Images - list - list as [string] """
-        a = cv2.imread('files/1.jpg', cv2.IMREAD_COLOR)
+        img_a = cv2.imread('files/1.jpg', cv2.IMREAD_COLOR)
 
         # single class
-        images = Images('foo', [a, a], 'cat')
+        images = Images('foo', [img_a, img_a], 'cat')
         self.assertEqual(images.name, 'foo')
         self.assertEqual(images.fail, 0)
         self.assertEqual(len(images.errors), 0)
@@ -1914,7 +1914,7 @@ class MyTest(unittest.TestCase):
         self.assertEqual(images.images[0].shape, (2, 128, 128, 3))
 
         # single class, store
-        images = Images('foo', [a, a], 'cat', config=['store', 'resize=40,50'])
+        images = Images('foo', [img_a, img_a], 'cat', config=['store', 'resize=40,50'])
         self.assertEqual(images.name, 'foo')
         self.assertEqual(images.fail, 0)
         self.assertEqual(len(images.errors), 0)
@@ -1945,7 +1945,7 @@ class MyTest(unittest.TestCase):
         self.assertEqual(images.images[0].shape, (2, 40, 50, 3))
 
         # single class, stream
-        images = Images('foo', [a, a], 'cat', config=['stream', 'resize=40,50', 'gray'])
+        images = Images('foo', [img_a, img_a], 'cat', config=['stream', 'resize=40,50', 'gray'])
         self.assertEqual(images.name, 'foo')
         self.assertEqual(images.fail, 0)
         self.assertEqual(len(images.errors), 0)
@@ -1973,7 +1973,7 @@ class MyTest(unittest.TestCase):
         self.assertEqual(images.images[0].shape, (2, 40, 50))
 
         # multi-class
-        images = Images('foo', [a, a, a], ['cat', 'dog', 'dog'])
+        images = Images('foo', [img_a, img_a, img_a], ['cat', 'dog', 'dog'])
         self.assertEqual(images.name, 'foo')
         self.assertEqual(images.fail, 0)
         self.assertEqual(len(images.errors), 0)
@@ -2000,7 +2000,7 @@ class MyTest(unittest.TestCase):
         self.assertEqual(images.labels[0][0], 0)
 
         # multi-class, store
-        images = Images('foo', [a, a, a], ['cat', 'dog', 'dog'], config=['store'])
+        images = Images('foo', [img_a, img_a, img_a], ['cat', 'dog', 'dog'], config=['store'])
         self.assertEqual(images.name, 'foo')
         self.assertEqual(images.fail, 0)
         self.assertEqual(len(images.errors), 0)
@@ -2070,7 +2070,7 @@ class MyTest(unittest.TestCase):
                 self.assertEqual(images.images[1].shape, (2, 128, 128, 3))
 
         # multi-class, stream
-        images = Images('foo', [a, a, a], ['cat', 'dog', 'dog'],
+        images = Images('foo', [img_a, img_a, img_a], ['cat', 'dog', 'dog'],
                         config=['stream', 'flat', 'resize=50,50'])
         self.assertEqual(images.name, 'foo')
         self.assertEqual(images.fail, 0)
@@ -4620,14 +4620,14 @@ class MyTest(unittest.TestCase):
         """ Images - config setting: normalize """
 
         # 8bpp
-        a = cv2.imread('files/1.jpg')
-        images = Images('foo', [a], 0, config=['gray', 'flat', 'norm=pos'])
+        img_a = cv2.imread('files/1.jpg')
+        images = Images('foo', [img_a], 0, config=['gray', 'flat', 'norm=pos'])
         self.assertEqual("%.3f" % images.images[0][0][0], "0.420")
 
-        images = Images('foo', [a], 0, config=['gray', 'flat', 'norm=zero'])
+        images = Images('foo', [img_a], 0, config=['gray', 'flat', 'norm=zero'])
         self.assertEqual("%.3f" % images.images[0][0][0], "-0.161")
 
-        images = Images('foo', [a], 0, config=['gray', 'flat', 'norm=std'])
+        images = Images('foo', [img_a], 0, config=['gray', 'flat', 'norm=std'])
         self.assertEqual("%.3f" % images.images[0][0][0], "-0.062")
 
         # 16bpp
@@ -5838,9 +5838,9 @@ class MyTest(unittest.TestCase):
         """ Images - memory - load/stream """
 
         # one class
-        a = cv2.imread('files/1.jpg', cv2.IMREAD_COLOR)
-        c = np.asarray([a, a, a, a, a])
-        images = Images('foo', c, 0, config=['resize=(30,50)', 'store'])
+        img_a = cv2.imread('files/1.jpg', cv2.IMREAD_COLOR)
+        img_c = np.asarray([img_a, img_a, img_a, img_a, img_a])
+        images = Images('foo', img_c, 0, config=['resize=(30,50)', 'store'])
         self.assertEqual(images.fail, 0)
         self.assertEqual(images.errors, [])
         self.assertEqual(images.count, 5)
@@ -5866,7 +5866,7 @@ class MyTest(unittest.TestCase):
         images._hf.close()
 
         # multi-class
-        images = Images('foo', c, [0, 1, 0, 1, 1], config=['resize=(30,50)', 'store'])
+        images = Images('foo', img_c, [0, 1, 0, 1, 1], config=['resize=(30,50)', 'store'])
         self.assertEqual(images.fail, 0)
         self.assertEqual(images.errors, [])
         self.assertEqual(images.count, 5)
@@ -5896,9 +5896,9 @@ class MyTest(unittest.TestCase):
 
     def test_103(self):
         """ Images - split - stream """
-        a = cv2.imread('files/1.jpg', cv2.IMREAD_COLOR)
-        c = np.asarray([a, a, a, a, a])
-        images = Images('foo', c, [0, 1, 0, 1, 1], config=['resize=(30,50)', 'stream'])
+        img_a = cv2.imread('files/1.jpg', cv2.IMREAD_COLOR)
+        img_c = np.asarray([img_a, img_a, img_a, img_a, img_a])
+        images = Images('foo', img_c, [0, 1, 0, 1, 1], config=['resize=(30,50)', 'stream'])
         images.split = 0.5
         with pytest.raises(AttributeError):
             x_train, x_test, y_train, y_test = images.split
@@ -6348,10 +6348,10 @@ class MyTest(unittest.TestCase):
 
     def test_111(self):
         ''' memory labels - empty '''
-        a = cv2.imread('files/1.jpg', cv2.IMREAD_GRAYSCALE)
+        img_a = cv2.imread('files/1.jpg', cv2.IMREAD_GRAYSCALE)
 
         # list
-        i = np.asarray([a])
+        i = np.asarray([img_a])
         with pytest.raises(AttributeError):
             images = Images('foo', i, [], config=['resize=(50,50)'])
 
@@ -6364,8 +6364,8 @@ class MyTest(unittest.TestCase):
         ''' memory numpy - different int types for labels '''
 
         # uint8
-        a = cv2.imread('files/1.jpg', cv2.IMREAD_GRAYSCALE)
-        i = np.asarray([a])
+        img_a = cv2.imread('files/1.jpg', cv2.IMREAD_GRAYSCALE)
+        i = np.asarray([img_a])
         l = np.asarray([0]).astype(np.uint8)
         images = Images('foo', i, l, config=['resize=(50,50)'])
         self.assertEqual(images.fail, 0)
@@ -6378,8 +6378,8 @@ class MyTest(unittest.TestCase):
         self.assertEqual(images.labels[0][0], 0)
 
         # uint16
-        a = cv2.imread('files/1.jpg', cv2.IMREAD_GRAYSCALE)
-        i = np.asarray([a])
+        img_a = cv2.imread('files/1.jpg', cv2.IMREAD_GRAYSCALE)
+        i = np.asarray([img_a])
         l = np.asarray([0]).astype(np.uint16)
         images = Images('foo', i, l, config=['resize=(50,50)'])
         self.assertEqual(images.fail, 0)
@@ -6392,8 +6392,8 @@ class MyTest(unittest.TestCase):
         self.assertEqual(images.labels[0][0], 0)
 
         # uint32
-        a = cv2.imread('files/1.jpg', cv2.IMREAD_GRAYSCALE)
-        i = np.asarray([a])
+        img_a = cv2.imread('files/1.jpg', cv2.IMREAD_GRAYSCALE)
+        i = np.asarray([img_a])
         l = np.asarray([0]).astype(np.uint32)
         images = Images('foo', i, l, config=['resize=(50,50)'])
         self.assertEqual(images.fail, 0)
@@ -6406,8 +6406,8 @@ class MyTest(unittest.TestCase):
         self.assertEqual(images.labels[0][0], 0)
 
         # int8
-        a = cv2.imread('files/1.jpg', cv2.IMREAD_GRAYSCALE)
-        i = np.asarray([a])
+        img_a = cv2.imread('files/1.jpg', cv2.IMREAD_GRAYSCALE)
+        i = np.asarray([img_a])
         l = np.asarray([0]).astype(np.int8)
         images = Images('foo', i, l, config=['resize=(50,50)'])
         self.assertEqual(images.fail, 0)
@@ -6420,8 +6420,8 @@ class MyTest(unittest.TestCase):
         self.assertEqual(images.labels[0][0], 0)
 
         # int16
-        a = cv2.imread('files/1.jpg', cv2.IMREAD_GRAYSCALE)
-        i = np.asarray([a])
+        img_a = cv2.imread('files/1.jpg', cv2.IMREAD_GRAYSCALE)
+        i = np.asarray([img_a])
         l = np.asarray([0]).astype(np.uint16)
         images = Images('foo', i, l, config=['resize=(50,50)'])
         self.assertEqual(images.fail, 0)
@@ -6434,8 +6434,8 @@ class MyTest(unittest.TestCase):
         self.assertEqual(images.labels[0][0], 0)
 
         # int32
-        a = cv2.imread('files/1.jpg', cv2.IMREAD_GRAYSCALE)
-        i = np.asarray([a])
+        img_a = cv2.imread('files/1.jpg', cv2.IMREAD_GRAYSCALE)
+        i = np.asarray([img_a])
         l = np.asarray([0]).astype(np.int32)
         images = Images('foo', i, l, config=['resize=(50,50)'])
         self.assertEqual(images.fail, 0)
@@ -6450,10 +6450,10 @@ class MyTest(unittest.TestCase):
     def test_113(self):
         ''' test '''
         # in-memory
-        a = cv2.imread('files/1.jpg')
+        img_a = cv2.imread('files/1.jpg')
         images = Images(
             'foo',
-            [a, a, a, a, a, a, a, a],
+            [img_a, img_a, img_a, img_a, img_a, img_a, img_a, img_a],
             [0, 0, 0, 0, 1, 1, 1, 1],
             config=['resize=(50,50)']
         )
@@ -6464,7 +6464,7 @@ class MyTest(unittest.TestCase):
         # stream
         images = Images(
             'foo',
-            [a, a, a, a, a, a, a, a],
+            [img_a, img_a, img_a, img_a, img_a, img_a, img_a, img_a],
             [0, 0, 0, 0, 1, 1, 1, 1],
             config=['resize=(50,50)', 'store']
         )
@@ -6477,10 +6477,10 @@ class MyTest(unittest.TestCase):
 
     def test_114(self):
         ''' minibatch fix '''
-        a = cv2.imread('files/1.jpg')
+        img_a = cv2.imread('files/1.jpg')
         images = Images(
             'foo',
-            [a, a, a, a, a, a, a, a, a, a],
+            [img_a, img_a, img_a, img_a, img_a, img_a, img_a, img_a, img_a, img_a],
             [0, 0, 0, 0, 0, 1, 1, 1, 1, 1],
             config=['resize=(50,50)']
         )
@@ -6496,10 +6496,10 @@ class MyTest(unittest.TestCase):
 
     def test_115(self):
         ''' stratify fix '''
-        a = cv2.imread('files/1.jpg')
+        img_a = cv2.imread('files/1.jpg')
         images = Images(
             'foo',
-            [a, a, a, a, a, a, a, a, a, a],
+            [img_a, img_a, img_a, img_a, img_a, img_a, img_a, img_a, img_a, img_a],
             [0, 0, 0, 0, 0, 1, 1, 1, 1, 1],
             config=['resize=(50,50)']
         )
