@@ -153,6 +153,8 @@ The initializer has no required (positional) parameters. All the parameters are 
             labels : the labels
             config : configuration settings
 
+To activate verbosity use `config=['verbose']` parameter.
+
 ### Preparing Datasets
 
 The first step is to transform the images in an image dataset into machine learning ready data. How the images are transformed is dependent on the image source and the configuration settings. By default, all images are transformed to:
@@ -175,7 +177,7 @@ class (label), such as *cats*. Within the subdirectory are one or more images wh
                 /                  \
             c1.jpg ...          d1.jpg ...
             
-The following instantiation of the `Images` class object will load the images from local disk into in-memory according to the default transformation settings.  Within memory, the set of transformed images will be grouped into two classes: cats, and dogs.      
+The following instantiation of the `Images` class object will load the images from local disk into in-memory according to the default transformation settings. Within memory, the set of transformed images will be grouped into two classes: cats, and dogs.      
 
 ```python
 images = Images(images='cats_n_dogs')
