@@ -11,3 +11,4 @@ htmlcov
 .coverage
 deleteme*
 .ipynb_checkpoints/
+tester.py
