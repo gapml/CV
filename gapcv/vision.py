@@ -45,6 +45,25 @@ class BareMetal(object):
     """ Data Preprocessing of Images
     """
 
+    ## Utils
+    def _final_transformation_of_pixels(self, collections, counts, labels, option=True):
+        # perform final transformations of pixels in the collection
+        _labels = []
+        _collections = []
+        for key in collections:
+            # empty collection
+            if not counts[key]:
+                continue
+            if not self._stream and collections[key]:
+                _collections.append(self._pixel_transform(collections[key]))
+            else:
+                _collections.append(np.asarray([]))
+            if option:
+                _labels.append(np.asarray(labels[key][:counts[key]]))
+            else:
+                _labels.append(np.asarray([labels[key] for _ in range(counts[key])]))
+        return _labels, _collections
+
     def _loadDataset(self):
         """ Load a Dataset
             :return          : collections, labels, classes, errors, elapsed time
@@ -78,32 +97,32 @@ class BareMetal(object):
                 elapsed = 0
         # load from CSV file
         elif self._dataset.endswith('.csv'):
-            if self._dataset.startswith('http://') or self._dataset.startswith('https://'):
+            if self._dataset.startswith(('http://', 'https://')):
                 response = requests.get(self._dataset, timeout=10, stream=True)
                 if response.status_code == 200:
                     self._response_decoded = response.iter_lines(decode_unicode=True)
                     self._remote = True
                 else:
-                    raise OSError("CSV file not found at url location: " + self._dataset)
+                    raise OSError("CSV file not found at url location: {}".format(self._dataset))
             elif not os.path.exists(self._dataset):
-                raise OSError("CSV file does not exist: " + self._dataset)
+                raise OSError("CSV file does not exist: {}".format(self._dataset))
             collections, labels, classes, errors, elapsed = self._loadCSV()
         # load from json file
         elif self._dataset.endswith('.json'):
-            if self._dataset.startswith('http://') or self._dataset.startswith('https://'):
+            if self._dataset.startswith(('http://', 'https://')):
                 response = requests.get(self._dataset, timeout=10, stream=True)
                 if response.status_code == 200:
                     self._response_decoded = response.iter_lines(decode_unicode=True)
                     self._remote = True
                 else:
-                    raise OSError("JSON file not found at url location: " + self._dataset)
+                    raise OSError("JSON file not found at url location: {}".format(self._dataset))
             elif not os.path.exists(self._dataset):
-                raise OSError("JSON file does not exist: " + self._dataset)
+                raise OSError("JSON file does not exist: {}".format(self._dataset))
             collections, labels, classes, errors, elapsed = self._loadJSON()
         # load from directory
         else:
             if not os.path.isdir(self._dataset):
-                raise OSError("Directory does not exist: " + self._dataset)
+                raise OSError("Directory does not exist: {}".format(self._dataset))
             collections, labels, classes, errors, elapsed = self._loadDirectory()
 
         if self._store:
@@ -295,17 +314,11 @@ class BareMetal(object):
                     counts[label] -= 1
 
         # perform final transformations of pixels in the collection
-        _labels = []
-        _collections = []
-        for key in collections:
-            # empty collection
-            if not counts[key]:
-                continue
-            if not self._stream and collections[key]:
-                _collections.append(self._pixel_transform(collections[key]))
-            else:
-                _collections.append(np.asarray([]))
-            _labels.append(np.asarray(labels[key][:counts[key]]))
+        _labels, _collections = self._final_transformation_of_pixels(
+            collections,
+            counts,
+            labels
+        )
 
         elapsed = time.time() - start_time
 
@@ -346,7 +359,7 @@ class BareMetal(object):
 
         verbosity_nparray = False
         if isinstance(self._dataset[0], str):
-            if self._dataset[0].startswith('http:') or self._dataset[0].startswith('https:'):
+            if self._dataset[0].startswith(('http:', 'https:')):
                 function = self._loadImageRemote
             else:
                 function = self._loadImageDisk
@@ -392,17 +405,11 @@ class BareMetal(object):
                     counts[label] -= 1
 
         # perform final transformations of pixels in the collection
-        _labels = []
-        _collections = []
-        for key in collections:
-            # empty collection
-            if not counts[key]:
-                continue
-            if not self._stream and collections[key]:
-                _collections.append(self._pixel_transform(collections[key]))
-            else:
-                _collections.append(np.asarray([]))
-            _labels.append(np.asarray(labels[key][:counts[key]]))
+        _labels, _collections = self._final_transformation_of_pixels(
+            collections,
+            counts,
+            labels
+        )
 
         elapsed = time.time() - start_time
 
@@ -544,7 +551,7 @@ class BareMetal(object):
                         function = self._loadImageMemory
                     except:
                         # load image from remote location
-                        if image.startswith('http:') or image.startswith('https:'):
+                        if image.startswith(('http:', 'https:')):
                             function = self._loadImageRemote
                         else:
                             # load image from local disk
@@ -580,17 +587,12 @@ class BareMetal(object):
             csvf.close()
 
         # perform final transformations of pixels in the collection
-        _labels = []
-        _collections = []
-        for key in collections:
-            # empty collection
-            if not counts[key]:
-                continue
-            if not self._stream and collections[key]:
-                _collections.append(self._pixel_transform(collections[key]))
-            else:
-                _collections.append(np.asarray([]))
-            _labels.append(np.asarray([labels[key] for _ in range(counts[key])]))
+        _labels, _collections = self._final_transformation_of_pixels(
+            collections,
+            counts,
+            labels,
+            option=False
+        )
 
         elapsed = time.time() - start_time
 
@@ -688,7 +690,7 @@ class BareMetal(object):
                     function = self._loadImageMemory
                 except:
                     # load image from remote location
-                    if image.startswith('http:') or image.startswith('https:'):
+                    if image.startswith(('http:', 'https:')):
                         function = self._loadImageRemote
                     else:
                         # load image from local disk
@@ -755,17 +757,12 @@ class BareMetal(object):
             jsonf.close()
 
         # perform final transformations of pixels in the collection
-        _labels = []
-        _collections = []
-        for key in collections:
-            # empty collection
-            if not counts[key]:
-                continue
-            if not self._stream and collections[key]:
-                _collections.append(self._pixel_transform(collections[key]))
-            else:
-                _collections.append(np.asarray([]))
-            _labels.append(np.asarray([labels[key] for _ in range(counts[key])]))
+        _labels, _collections = self._final_transformation_of_pixels(
+            collections,
+            counts,
+            labels,
+            option=False
+        )
 
         elapsed = time.time() - start_time
 
@@ -821,7 +818,7 @@ class BareMetal(object):
         # for _loadDirectory()?
         verbosity_nparray = False
         if isinstance(files[0], str):
-            if files[0].startswith('http:') or files[0].startswith('https:'):
+            if files[0].startswith(('http:', 'https:')):
                 function = self._loadImageRemote
             else:
                 function = self._loadImageDisk
@@ -876,14 +873,14 @@ class BareMetal(object):
             return None, None, None, '', '', e
 
         try:
-            if _type in ['gif', 'jp2', 'jpx', 'j2k']:
+            if _type in ('gif', 'jp2', 'jpx', 'j2k'):
                 image = PILImage.open(file)
                 if self._colorspace == GRAYSCALE:
                     image = image.convert('L')
                 else:
                     image = image.convert('RGB')
                 image = np.array(image)
-            elif _type in ['jpg', 'jpeg', 'png', 'bmp', 'tif', 'tiff']:
+            elif _type in ('jpg', 'jpeg', 'png', 'bmp', 'tif', 'tiff'):
                 # keep 16bpp formats as 16bpp
                 if self._16bpp:
                     image = cv2.imread(file, cv2.IMREAD_UNCHANGED)
@@ -903,7 +900,7 @@ class BareMetal(object):
                 else:
                     image = cv2.imread(file, self._colorspace)
             else:
-                return None, None, None, '', '', "Not a supported type: " + _type
+                return None, None, None, '', '', "Not a supported type: {}".format(_type)
 
             # retain the original shape
             shape = image.shape
@@ -1069,7 +1066,7 @@ class BareMetal(object):
             :return                   : normalized collection or image
         """
         # Do not normalize if requesting to keep data in original integer bits per pixel (bpp)
-        if self._dtype not in [np.uint8, np.int8, np.uint16, np.int16]:
+        if self._dtype not in (np.uint8, np.int8, np.uint16, np.int16):
             # original pixel data is 8 bits per pixel
             if bpp == 8:
                 if self._norm == NORMAL_POS:
@@ -1229,7 +1226,7 @@ class BareMetal(object):
 
         # initialize the collections
         self._count = len(self._dataset)
-        if isinstance(self._labels, list) or isinstance(self._labels, np.ndarray):
+        if isinstance(self._labels, (list, np.ndarray)):
             if len(self._labels) != self._count:
                 raise AttributeError("Number of labels does not match number of images")
 
@@ -1318,7 +1315,7 @@ class BareMetal(object):
         rotated = imutils.rotate_bound(image, degree)
 
         # resize back to expected dimensions
-        if degree not in [0, 90, 180, 270, -90, -180, -270]:
+        if degree not in (0, 90, 180, 270, -90, -180, -270):
             # resize takes only height x width
             shape = (image.shape[0], image.shape[1])
             rotated = cv2.resize(rotated, shape, interpolation=cv2.INTER_AREA)
@@ -1329,7 +1326,7 @@ class BareMetal(object):
 
     def _edgeImage(self, image):
         """ edge """
-        if self.dtype in [np.uint8, np.uint16]:
+        if self.dtype in (np.uint8, np.uint16):
             gray = cv2.GaussianBlur(image, (3, 3), 0)
             edged = cv2.Canny(gray, 20, 100)
         else:
@@ -1375,7 +1372,7 @@ class BareMetal(object):
 
     def _denoiseImage(self, image):
         """ denoise """
-        if self.dtype in [np.uint8, np.uint16]:
+        if self.dtype in (np.uint8, np.uint16):
             denoise = cv2.fastNlMeansDenoisingColored(image, None, 10, 10, 7, 21)
         else:
             denoise = image
@@ -1422,7 +1419,7 @@ class Images(BareMetal):
         self.name = name
 
         if labels is None:
-            if isinstance(images, list) or isinstance(images, np.ndarray):
+            if isinstance(images, (list, np.ndarray)):
                 raise TypeError("Labels expected when images are a list or numpy array")
         else:
             if isinstance(labels, np.ndarray):
@@ -1433,7 +1430,7 @@ class Images(BareMetal):
             elif isinstance(labels, list):
                 if len(labels) == 0:
                     raise AttributeError("List must be > 0 for labels")
-                if not isinstance(labels[0], int) and not isinstance(labels[0], str):
+                if not isinstance(labels[0], (int, str)):
                     raise TypeError("List values must be integers or strings for labels")
             elif isinstance(labels, int):
                 pass
@@ -1488,7 +1485,7 @@ class Images(BareMetal):
         self._train = None      # indexes for training set
         self._trainsz = 0       # size of training set
         self._test = None       # indexes for test set
-        self._val = None       # indexes for validation set
+        self._val = None        # indexes for validation set
         self._next = 0          # next item in training set
         self._nlabels = None    # number of labels in the collection
         self._minisz = 0        # (mini) batch size
@@ -1513,7 +1510,7 @@ class Images(BareMetal):
                                 raise AttributeError("Height and width must be > 0 for resize")
                         except:
                             raise AttributeError("Tuple(int,int) expected for resize")
-                    elif setting.startswith("norm=") or setting.startswith("normalization="):
+                    elif setting.startswith(("norm=", "normalization=")):
                         param = setting.split('=')[1]
                         if param == 'pos':
                             self._norm = NORMAL_POS
@@ -1565,18 +1562,11 @@ class Images(BareMetal):
                             self._mp = int(val)
                         except:
                             raise AttributeError("Integer expected for mp")
-                    elif setting.startswith("verbose="):
-                        try:
-                            self._verbose = eval(setting.split('=')[1])
-                            if self._verbose:
-                                self._disable = False
-                        except:
-                            raise AttributeError("Boolean expected for verbose")
-                        if not isinstance(self._verbose, bool):
-                            raise AttributeError("Boolean expected for verbose")
-                    elif setting in ['gray', 'grayscale']:
+                    elif setting == "verbose":
+                        self._disable = False
+                    elif setting in ('gray', 'grayscale'):
                         self._colorspace = GRAYSCALE
-                    elif setting in ['flat', 'flatten']:
+                    elif setting in ('flat', 'flatten'):
                         self._flatten = True
                     elif setting == 'uint8':
                         self._dtype = np.uint8
@@ -1599,7 +1589,7 @@ class Images(BareMetal):
                     elif setting == '16bpp':
                         self._16bpp = True
                     else:
-                        raise AttributeError("Config setting not recognized:" + setting)
+                        raise AttributeError("Config setting not recognized: {}".format(setting))
 
         ### Image Augmentation - Argument Validation ###
 
@@ -1614,17 +1604,17 @@ class Images(BareMetal):
         self._toggle = True
 
         if augment is not None:
-            if isinstance(augment, list) == False:
+            if not isinstance(augment, list):
                 raise TypeError("List expected for augment settings")
             else:
                 for setting in augment:
                     if setting.startswith('flip='):
                         self._flip = setting.split('=')[1]
-                        if not self._flip or self._flip not in ['horizontal', 'vertical', 'both']:
+                        if not self._flip or self._flip not in ('horizontal', 'vertical', 'both'):
                             raise AttributeError("horizontal, vertical, or both expected for flip")
-                        if self._flip in ['horizontal', 'both']:
+                        if self._flip in ('horizontal', 'both'):
                             self._horizontal = True
-                        if self._flip in ['vertical', 'both']:
+                        if self._flip in ('vertical', 'both'):
                             self._vertical = True
                         self._augment.append(self._flipImage)
                     elif setting.startswith('zoom='):
@@ -1658,7 +1648,7 @@ class Images(BareMetal):
                         if max >= 360:
                             raise AttributeError("Degree range must be between -360 and 360")
                         self._augment.append(self._rotateImage)
-                    elif setting.startswith('brightness=') or setting.startswith('contrast='):
+                    elif setting.startswith(('brightness=', 'contrast=')):
                         option = setting.split('=')
                         if option[0] == 'contrast':
                             if not option[1]:
@@ -1676,7 +1666,7 @@ class Images(BareMetal):
                                 raise AttributeError("Missing value for brightness")
                             try:
                                 self._brightness = ast.literal_eval(option[1])
-                                if self._brightness < 0 or self._brightness > 100:
+                                if self._brightness < 0 or self._brightness > 100: # 0 < self._brightness > 100:
                                     raise AttributeError(
                                         "Brightness range must be between 0 and 100"
                                     )
