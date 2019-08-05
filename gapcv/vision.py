@@ -1562,15 +1562,8 @@ class Images(BareMetal):
                             self._mp = int(val)
                         except:
                             raise AttributeError("Integer expected for mp")
-                    elif setting.startswith("verbose="):
-                        try:
-                            self._verbose = eval(setting.split('=')[1])
-                            if self._verbose:
-                                self._disable = False
-                        except:
-                            raise AttributeError("Boolean expected for verbose")
-                        if not isinstance(self._verbose, bool):
-                            raise AttributeError("Boolean expected for verbose")
+                    elif setting == "verbose":
+                        self._disable = False
                     elif setting in ('gray', 'grayscale'):
                         self._colorspace = GRAYSCALE
                     elif setting in ('flat', 'flatten'):
