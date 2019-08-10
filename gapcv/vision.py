@@ -165,7 +165,7 @@ class BareMetal(object):
         with tqdm(subdirs, postfix='Getting ready...', disable=self._disable) as pbar:
             for subdir in pbar:
                 # skip entries that are not subdirectories or hidden directories (start with dot)
-                if not subdir.is_dir() or subdir.name[0] == '.' or subdir.name.startswith('_'):
+                if not subdir.is_dir() or subdir.name.startswith(('.', '_')):
                     continue
                 files = os.listdir(subdir.name)
                 if not files:
@@ -2335,10 +2335,8 @@ class Images(BareMetal):
         if isinstance(batch_size, int):
             batch_size = tuple([batch_size])
 
-        if not isinstance(batch_size, tuple):
+        if not isinstance(batch_size, tuple) or len(batch_size) > 3:
             raise AttributeError("Stratify setter must be batch_size, percent[,seed]")
-        if len(batch_size) > 3:
-            raise AttributeError("Stratify setter must be batch size, percent[,seed]")
 
         self._minisz = batch_size[0]
         if not isinstance(self._minisz, int):
