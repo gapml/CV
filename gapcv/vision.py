@@ -103,9 +103,9 @@ class BareMetal(object):
                     self._response_decoded = response.iter_lines(decode_unicode=True)
                     self._remote = True
                 else:
-                    raise OSError("CSV file not found at url location: {}".format(self._dataset))
+                    raise OSError('CSV file not found at url location: {}'.format(self._dataset))
             elif not os.path.exists(self._dataset):
-                raise OSError("CSV file does not exist: {}".format(self._dataset))
+                raise OSError('CSV file does not exist: {}'.format(self._dataset))
             collections, labels, classes, errors, elapsed = self._loadCSV()
         # load from json file
         elif self._dataset.endswith('.json'):
@@ -115,14 +115,14 @@ class BareMetal(object):
                     self._response_decoded = response.iter_lines(decode_unicode=True)
                     self._remote = True
                 else:
-                    raise OSError("JSON file not found at url location: {}".format(self._dataset))
+                    raise OSError('JSON file not found at url location: {}'.format(self._dataset))
             elif not os.path.exists(self._dataset):
-                raise OSError("JSON file does not exist: {}".format(self._dataset))
+                raise OSError('JSON file does not exist: {}'.format(self._dataset))
             collections, labels, classes, errors, elapsed = self._loadJSON()
         # load from directory
         else:
             if not os.path.isdir(self._dataset):
-                raise OSError("Directory does not exist: {}".format(self._dataset))
+                raise OSError('Directory does not exist: {}'.format(self._dataset))
             collections, labels, classes, errors, elapsed = self._loadDirectory()
 
         if self._store:
@@ -271,7 +271,7 @@ class BareMetal(object):
                 dset
             )
 
-        os.chdir("../")
+        os.chdir('../')
         return collection, names, types, sizes, shapes, errors, elapsed, label
 
     def _loadMemory(self):
@@ -677,11 +677,11 @@ class BareMetal(object):
                 try:
                     entry[self._label_key]
                 except:
-                    raise IndexError("Label key not found in JSON file")
+                    raise IndexError('Label key not found in JSON file')
                 try:
                     image = entry[self._image_key]
                 except:
-                    raise IndexError("Image key not found in JSON file")
+                    raise IndexError('Image key not found in JSON file')
 
                 try:
                     # load image from memory
@@ -900,7 +900,7 @@ class BareMetal(object):
                 else:
                     image = cv2.imread(file, self._colorspace)
             else:
-                return None, None, None, '', '', "Not a supported type: {}".format(_type)
+                return None, None, None, '', '', 'Not a supported type: {}'.format(_type)
 
             # retain the original shape
             shape = image.shape
@@ -1191,7 +1191,7 @@ class BareMetal(object):
             group = self._hf.create_group(group)
 
             # Create dataset attributes
-            dset = group.create_dataset("data", data=collection)
+            dset = group.create_dataset('data', data=collection)
             dset.attrs['count'] = len(collection)
         else:
             dset.attrs['count'] = len(sizes)
@@ -1228,7 +1228,7 @@ class BareMetal(object):
         self._count = len(self._dataset)
         if isinstance(self._labels, (list, np.ndarray)):
             if len(self._labels) != self._count:
-                raise AttributeError("Number of labels does not match number of images")
+                raise AttributeError('Number of labels does not match number of images')
 
             for label in self._labels:
                 if label in counts:
@@ -1278,13 +1278,18 @@ class BareMetal(object):
     # UNUSED method
     def _processImage(self, image, resize, flatten=False):
         """ Lowest level processing of an raw pixel data. [UNUSED]
-            :param image  : raw pixel data as 2D (grayscale) or 3D (color) matrix.
-            :type  image  : numpy matrix
-            :param resize : scale (downsample or upsample) image to a specifid height, width.
-            :type  resize : tuple(height, width)
-            :param flatten: wether to flatten the image into a 1D vector or not.
-            :type  flatten: bool
-            :return       : a processed image as a numpy matrix (or vector if flattened).
+
+        Arguments:
+            image {numpy matrix} -- raw pixel data as 2D (grayscale) or 3D (color) matrix.
+            resize {tuple(height, width)} -- scale (downsample or upsample) 
+                                             image to a specifid height, width.
+
+        Keyword Arguments:
+            flatten {bool} -- whether to flatten the image into a 1D vector or not.
+                              (default: {False})
+
+        Returns:
+            numpy matrix -- a processed image (or vector if flattened).
         """
 
         # resize each image to the target size (e.g., 50x50) and flatten into 1D vector
@@ -1297,13 +1302,28 @@ class BareMetal(object):
     ### Image Augmentation ###
 
     def _augmentation(self, image):
-        # select a random augmentation
+        """ select a random augmentation
+
+        Arguments:
+            image {numpy matrix} -- raw pixel data as 2D (grayscale) or 3D (color) matrix.
+
+        Returns:
+            function -- selected random augmentation
+        """
+
         function = random.choice(self._augment)
 
         return function(image)
 
     def _rotateImage(self, image):
-        """ rotate the image """
+        """ rotate the image
+
+        Arguments:
+            image {numpy matrix} -- raw pixel data as 2D (grayscale) or 3D (color) matrix.
+
+        Returns:
+            numpy matrix -- image rotated
+        """
 
         degree = random.randint(self._rotate[0], self._rotate[1])
 
@@ -1325,7 +1345,15 @@ class BareMetal(object):
         return rotated
 
     def _edgeImage(self, image):
-        """ edge """
+        """ edge the image
+
+        Arguments:
+            image {numpy matrix} -- raw pixel data as 2D (grayscale) or 3D (color) matrix.
+
+        Returns:
+            numpy matrix -- image edged
+        """
+
         if self.dtype in (np.uint8, np.uint16):
             gray = cv2.GaussianBlur(image, (3, 3), 0)
             edged = cv2.Canny(gray, 20, 100)
@@ -1334,7 +1362,15 @@ class BareMetal(object):
         return edged
 
     def _flipImage(self, image):
-        """ flip """
+        """ flip the image
+
+        Arguments:
+            image {numpy matrix} -- raw pixel data as 2D (grayscale) or 3D (color) matrix.
+
+        Returns:
+            numpy matrix -- image flipped
+        """
+
         # operation not supported as float16
         if self._dtype == np.float16:
             image = image.astype(np.float32)
@@ -1348,7 +1384,15 @@ class BareMetal(object):
         return flip
 
     def _zoomImage(self, image):
-        """ zoom """
+        """ zoom the image
+
+        Arguments:
+            image {numpy matrix} -- raw pixel data as 2D (grayscale) or 3D (color) matrix.
+
+        Returns:
+            numpy matrix -- image zoomed
+        """
+    
         # operation not supported as float16
         if self._dtype == np.float16:
             image = image.astype(np.float32)
@@ -1371,7 +1415,15 @@ class BareMetal(object):
         return zoom_img
 
     def _denoiseImage(self, image):
-        """ denoise """
+        """ denoise the image
+
+        Arguments:
+            image {numpy matrix} -- raw pixel data as 2D (grayscale) or 3D (color) matrix.
+
+        Returns:
+            numpy matrix -- image denoiseed
+        """
+    
         if self.dtype in (np.uint8, np.uint16):
             denoise = cv2.fastNlMeansDenoisingColored(image, None, 10, 10, 7, 21)
         else:
@@ -1379,7 +1431,15 @@ class BareMetal(object):
         return denoise
 
     def _brightnesscontrastImage(self, image):
-        """ brightness & contrast """
+        """ brightness & contrast the image
+
+        Arguments:
+            image {numpy matrix} -- raw pixel data as 2D (grayscale) or 3D (color) matrix.
+
+        Returns:
+            numpy matrix -- image contrasted
+        """
+    
         # operation not supported as float16
         if self._dtype == np.float16:
             image = image.astype(np.float32)
@@ -1397,21 +1457,34 @@ class Images(BareMetal):
     """ Base (super) for classifying a group of images """
     def __init__(self, name='unnamed', images=None, labels=None, _dir='./',
                  ehandler=None, config=None, augment=None):
+
+                 """ 
+                 :param name    : 
+                 :type  name    : str
+                 :param images  : 
+                 :type  images  : 
+                 :param labels  : 
+                 :type  labels  : 
+                 :param _dir    : 
+                 :type  _dir    : str
+                 :param ehandler: 
+                 :type  ehandler: 
+                 :param config  : 
+                 :type  config  : 
+                 :param augment : 
+                 :type  augment : 
+             """
         """ Constructor
-            :param name    : name of the dataset
-            :type  name    : str
-            :param images  : location of images
-            :type  images  : str or numpy array
-            :param labels  : the image labels
-            :type  labels  : list or int
-            :param _dir    : directory to store HDF5 file
-            :type  _dir    : str
-            :param ehandler: callback for asynchronous processing
-            :type  ehandler: callback function
-            :param config  : configuration settings
-            :type  config  : list
-            :param augment : augmentation settings
-            :type  augment : list
+        
+        Keyword Arguments:
+            name {str} -- name of the dataset (default: {'unnamed'})
+            images {str or numpy array} -- location of images (default: {None})
+            labels {list or int} -- the image labels (default: {None})
+            _dir {str} -- directory to store HDF5 file (default: {'./'})
+            ehandler {callback function} -- callback for asynchronous
+                                            processing (default: {None})
+            config {list} -- configuration settings (default: {None})
+            augment {list} -- augmentation settings (default: {None})
         """
 
         ### Argument Validation ###
@@ -1420,24 +1493,24 @@ class Images(BareMetal):
 
         if labels is None:
             if isinstance(images, (list, np.ndarray)):
-                raise TypeError("Labels expected when images are a list or numpy array")
+                raise TypeError('Labels expected when images are a list or numpy array')
         else:
             if isinstance(labels, np.ndarray):
                 if len(labels) == 0:
-                    raise AttributeError("Array must be > 0 for labels")
-                if labels.dtype not in ['int8', 'int16', 'int32', 'uint8', 'uint16', 'uint32']:
-                    raise TypeError("Array values must be integers for labels")
+                    raise AttributeError('Array must be > 0 for labels')
+                if labels.dtype not in ('int8', 'int16', 'int32', 'uint8', 'uint16', 'uint32'):
+                    raise TypeError('Array values must be integers for labels')
             elif isinstance(labels, list):
                 if len(labels) == 0:
-                    raise AttributeError("List must be > 0 for labels")
+                    raise AttributeError('List must be > 0 for labels')
                 if not isinstance(labels[0], (int, str)):
-                    raise TypeError("List values must be integers or strings for labels")
+                    raise TypeError('List values must be integers or strings for labels')
             elif isinstance(labels, int):
                 pass
             elif isinstance(labels, str):
                 pass
             else:
-                raise TypeError("List, Numpy, integer or string expected for labels")
+                raise TypeError('List, Numpy, integer or string expected for labels')
         self._labels = labels
 
         self.dir = _dir
@@ -1445,9 +1518,9 @@ class Images(BareMetal):
         if ehandler:
             if isinstance(ehandler, tuple):
                 if not callable(ehandler[0]):
-                    raise TypeError("Function expected for ehandler")
+                    raise TypeError('Function expected for ehandler')
             elif not callable(ehandler):
-                raise TypeError("Function expected for ehandler")
+                raise TypeError('Function expected for ehandler')
 
         self._data = None
         self._groups = []
@@ -1494,10 +1567,10 @@ class Images(BareMetal):
 
         if config is not None:
             if isinstance(config, list) == False:
-                raise TypeError("List expected for config settings")
+                raise TypeError('List expected for config settings')
             else:
                 for setting in config:
-                    if setting.startswith("resize="):
+                    if setting.startswith('resize='):
                         param = setting.split('=')[1]
                         try:
                             toks = param.split(',')
@@ -1507,10 +1580,10 @@ class Images(BareMetal):
                             # openCV resizes as (width, height)
                             self._resize = (int(toks[1]), int(toks[0]))
                             if self._resize[0] <= 0 or self._resize[1] <= 0:
-                                raise AttributeError("Height and width must be > 0 for resize")
+                                raise AttributeError('Height and width must be > 0 for resize')
                         except:
-                            raise AttributeError("Tuple(int,int) expected for resize")
-                    elif setting.startswith(("norm=", "normalization=")):
+                            raise AttributeError('Tuple(int,int) expected for resize')
+                    elif setting.startswith(('norm=', 'normalization=')):
                         param = setting.split('=')[1]
                         if param == 'pos':
                             self._norm = NORMAL_POS
@@ -1519,49 +1592,49 @@ class Images(BareMetal):
                         elif param == 'std':
                             self._norm = NORMAL_STD
                         else:
-                            raise AttributeError("pos, zero or std expected for norm(alization)")
-                    elif setting.startswith("image_col="):
+                            raise AttributeError('pos, zero or std expected for norm(alization)')
+                    elif setting.startswith('image_col='):
                         try:
                             self._image_col = int(setting.split('=')[1])
                             if self._image_col < 0:
-                                raise AttributeError("Value must be >= 0 for image_col")
+                                raise AttributeError('Value must be >= 0 for image_col')
                         except:
-                            raise AttributeError("Integer expected for image_col")
-                    elif setting.startswith("label_col="):
+                            raise AttributeError('Integer expected for image_col')
+                    elif setting.startswith('label_col='):
                         try:
                             self._label_col = int(setting.split('=')[1])
                             if self._label_col < 0:
-                                raise AttributeError("Value must be >= 0 for label_col")
+                                raise AttributeError('Value must be >= 0 for label_col')
                         except:
-                            raise AttributeError("Integer expected for label_col")
-                    elif setting.startswith("sep="):
+                            raise AttributeError('Integer expected for label_col')
+                    elif setting.startswith('sep='):
                         self._col_sep = setting.split('=')[1]
                         if not self._col_sep:
-                            raise AttributeError("Character sequence expected for sep")
-                    elif setting.startswith("image_key="):
+                            raise AttributeError('Character sequence expected for sep')
+                    elif setting.startswith('image_key='):
                         self._image_key = setting.split('=')[1]
                         if not self._image_key:
-                            raise AttributeError("String expected for image_key")
-                    elif setting.startswith("label_key="):
+                            raise AttributeError('String expected for image_key')
+                    elif setting.startswith('label_key='):
                         self._label_key = setting.split('=')[1]
                         if not self._label_key:
-                            raise AttributeError("String expected for label_key")
-                    elif setting.startswith("author="):
+                            raise AttributeError('String expected for label_key')
+                    elif setting.startswith('author='):
                         self._author = setting.split('=')[1]
-                    elif setting.startswith("desc="):
+                    elif setting.startswith('desc='):
                         self._desc = setting.split('=')[1]
-                    elif setting.startswith("src="):
+                    elif setting.startswith('src='):
                         self._src = setting.split('=')[1]
-                    elif setting.startswith("license="):
+                    elif setting.startswith('license='):
                         self._license = setting.split('=')[1]
-                    elif setting.startswith("mp="):
+                    elif setting.startswith('mp='):
                         val = setting.split('=')[1]
                         if not val:
-                            raise AttributeError("Integer expected for mp")
+                            raise AttributeError('Integer expected for mp')
                         try:
                             self._mp = int(val)
                         except:
-                            raise AttributeError("Integer expected for mp")
+                            raise AttributeError('Integer expected for mp')
                     elif setting == "verbose":
                         self._disable = False
                     elif setting in ('gray', 'grayscale'):
@@ -1589,7 +1662,7 @@ class Images(BareMetal):
                     elif setting == '16bpp':
                         self._16bpp = True
                     else:
-                        raise AttributeError("Config setting not recognized: {}".format(setting))
+                        raise AttributeError('Config setting not recognized: {}'.format(setting))
 
         ### Image Augmentation - Argument Validation ###
 
@@ -1605,13 +1678,13 @@ class Images(BareMetal):
 
         if augment is not None:
             if not isinstance(augment, list):
-                raise TypeError("List expected for augment settings")
+                raise TypeError('List expected for augment settings')
             else:
                 for setting in augment:
                     if setting.startswith('flip='):
                         self._flip = setting.split('=')[1]
                         if not self._flip or self._flip not in ('horizontal', 'vertical', 'both'):
-                            raise AttributeError("horizontal, vertical, or both expected for flip")
+                            raise AttributeError('horizontal, vertical, or both expected for flip')
                         if self._flip in ('horizontal', 'both'):
                             self._horizontal = True
                         if self._flip in ('vertical', 'both'):
@@ -1620,39 +1693,37 @@ class Images(BareMetal):
                     elif setting.startswith('zoom='):
                         self._zoom = setting.split('=')[1]
                         if not self._zoom:
-                            raise AttributeError("integer or float >= 0 expected for zoom")
+                            raise AttributeError('integer or float >= 0 expected for zoom')
                         try:
                             self._zoom = ast.literal_eval(self._zoom)
                             if self._zoom < 0:
-                                raise AttributeError("Value must be >= 0 for zoom")
+                                raise AttributeError('Value must be >= 0 for zoom')
                         except:
-                            raise AttributeError("integer or float >= 0 expected for zoom")
+                            raise AttributeError('integer or float >= 0 expected for zoom')
                         self._zoom += 1
                         self._augment.append(self._zoomImage)
                     elif setting.startswith('rotate='):
                         args = setting.split('=')[1]
                         if not args:
-                            raise AttributeError("Missing value for rotate")
+                            raise AttributeError('Missing value for rotate')
                         range = args.split(',')
                         if len(range) != 2:
-                            raise AttributeError("Degree range expected for rotate")
+                            raise AttributeError('Degree range expected for rotate')
                         try:
                             min = int(range[0])
                             self._rotate.append(min)
                             max = int(range[1])
                             self._rotate.append(max)
                         except:
-                            raise AttributeError("Degree range not an integer")
-                        if min <= -360:
-                            raise AttributeError("Degree range must be between -360 and 360")
-                        if max >= 360:
-                            raise AttributeError("Degree range must be between -360 and 360")
+                            raise AttributeError('Degree range not an integer')
+                        if min <= -360 or max >= 360:
+                            raise AttributeError('Degree range must be between -360 and 360')
                         self._augment.append(self._rotateImage)
                     elif setting.startswith(('brightness=', 'contrast=')):
                         option = setting.split('=')
                         if option[0] == 'contrast':
                             if not option[1]:
-                                raise AttributeError("Missing value for contrast")
+                                raise AttributeError('Missing value for contrast')
                             try:
                                 self._contrast = float(option[1])
                                 if self._contrast < 1.0 or self._contrast > 3.0:
@@ -1660,25 +1731,25 @@ class Images(BareMetal):
                                         "Contrast range must be between 1.0 and 3.0"
                                     )
                             except:
-                                raise AttributeError("Contrast range not a float")
+                                raise AttributeError('Contrast range not a float')
                         if option[0] == 'brightness':
                             if not option[1]:
-                                raise AttributeError("Missing value for brightness")
+                                raise AttributeError('Missing value for brightness')
                             try:
                                 self._brightness = ast.literal_eval(option[1])
-                                if self._brightness < 0 or self._brightness > 100: # 0 < self._brightness > 100:
+                                if self._brightness < 0 or self._brightness > 100:
                                     raise AttributeError(
                                         "Brightness range must be between 0 and 100"
                                     )
                             except:
-                                raise AttributeError("Brightness range not an integer or float")
+                                raise AttributeError('Brightness range not an integer or float')
                         self._augment.append(self._brightnesscontrastImage)
                     elif setting == 'edge':
                         self._augment.append(self._edgeImage)
                     elif setting == 'denoise':
                         self._augment.append(self._denoiseImage)
                     else:
-                        raise AttributeError("Augment setting not recognized: {}".format(setting))
+                        raise AttributeError('Augment setting not recognized: {}'.format(setting))
 
         # Make Empty Images collection
         if images is None:
@@ -1725,12 +1796,12 @@ class Images(BareMetal):
         if name is None:
             raise ValueError("Name parameter cannot be None")
         if not isinstance(name, str):
-            raise TypeError("String expected for collection name")
+            raise TypeError('String expected for collection name')
         self._name = name
 
         if _dir is not None:
             if not isinstance(_dir, str):
-                raise TypeError("String expected for directory name")
+                raise TypeError('String expected for directory name')
             self.dir = _dir
 
         # unnecessary self._dir gets the value './' when images = Images()
@@ -1773,18 +1844,18 @@ class Images(BareMetal):
             self._resize = self._shape
 
             # Groups
-            for group in self._hf: # keys()
+            for group in self._hf:
                 dset = self._hf[group]
                 try:
-                    count = dset["data"].attrs['count']
+                    count = dset['data'].attrs['count']
                 except:
                     # empty dataset
                     continue
                 # will stream from HDF5 instead of memory when feeding
                 if not self._stream:
-                    data = dset["data"][:count]
+                    data = dset['data'][:count]
                     self._data.append(data)
-                label = dset["data"].attrs['label']
+                label = dset['data'].attrs['label']
                 self._labels.append(np.asarray([label for _ in range(count)]))
                 self._groups.append(group)
 
@@ -1799,12 +1870,12 @@ class Images(BareMetal):
         if name is None:
             raise ValueError("Name parameter cannot be None")
         if not isinstance(name, str):
-            raise TypeError("String expected for collection name")
+            raise TypeError('String expected for collection name')
         self._name = name
 
         if _dir is not None:
             if not isinstance(_dir, str):
-                raise TypeError("String expected for directory name")
+                raise TypeError('String expected for directory name')
             self.dir = _dir
 
         self._create_hdf5()
@@ -1843,7 +1914,7 @@ class Images(BareMetal):
     def name(self, name):
         """ Setter for the dataset (collection) name """
         if name and isinstance(name, str) == False:
-            raise TypeError("String expected for collection name")
+            raise TypeError('String expected for collection name')
         self._name = name
 
     @property
@@ -1872,7 +1943,7 @@ class Images(BareMetal):
         # value must be a string
         if _dir is not None:
             if isinstance(_dir, str) == False:
-                raise TypeError("String expected for image storage path")
+                raise TypeError('String expected for image storage path')
             if _dir.endswith("/") == False:
                 _dir += "/"
             self._dir = _dir
@@ -1880,7 +1951,7 @@ class Images(BareMetal):
         try:
             os.makedirs(self._dir, exist_ok=True)
         except:
-            raise TypeError("String expected for image storage path")
+            raise TypeError('String expected for image storage path')
 
     @property
     def time(self):
@@ -1961,9 +2032,9 @@ class Images(BareMetal):
     def __getitem__(self, ix):
         """ Override the index operator - return the collection at the corresponding index """
         if not isinstance(ix, int):
-            raise TypeError("Index must be an integer")
+            raise TypeError('Index must be an integer')
         if ix > len(self):
-            raise IndexError("Index out of range for Images")
+            raise IndexError('Index out of range for Images')
         return self._data[ix]
 
     def __iadd__(self, image):
@@ -1978,11 +2049,11 @@ class Images(BareMetal):
         elif isinstance(image, Images):
             # Validity Checks
             if self._shape != image._shape:
-                raise AttributeError("Collections must be of the same shape to add")
+                raise AttributeError('Collections must be of the same shape to add')
             if self._dtype != image._dtype:
-                raise AttributeError("Collections must be of the sample pixel data type to add")
+                raise AttributeError('Collections must be of the sample pixel data type to add')
             if self._colorspace != image._colorspace:
-                raise AttributeError("Collections must be of the same color space to add")
+                raise AttributeError('Collections must be of the same color space to add')
 
             # merge the counts
             self._count += image._count
@@ -2024,7 +2095,7 @@ class Images(BareMetal):
                     self._data.append(image._data[ix])
                     self._labels.append(np.asarray([n_label for _ in range(len(image._data[ix]))]))
         else:
-            raise TypeError("Image(s) expected for image")
+            raise TypeError('Image(s) expected for image')
 
         return self
 
@@ -2035,7 +2106,7 @@ class Images(BareMetal):
         """ Getter for return a split training set """
 
         if self._stream:
-            raise AttributeError("Split incompatible in stream mode")
+            raise AttributeError('Split incompatible in stream mode')
 
         # Training set not already split, so split it
         if self._train is None:
@@ -2148,29 +2219,29 @@ class Images(BareMetal):
         """
         if isinstance(percent, tuple):
             if len(percent) != 2:
-                raise AttributeError("Split setter must be percent, seed")
+                raise AttributeError('Split setter must be percent, seed')
             self._seed = percent[1]
             if not isinstance(self._seed, int):
-                raise TypeError("Seed parameter must be an integer")
+                raise TypeError('Seed parameter must be an integer')
             percent = percent[0]
 
         val_percent = 0
         if isinstance(percent, list):
             if len(percent) != 2:
-                raise AttributeError("Percent must either be for test or test and eval")
+                raise AttributeError('Percent must either be for test or test and eval')
             val_percent = percent[1]
             percent = percent[0]
             if not isinstance(val_percent, float):
-                raise TypeError("Valuation Percent must be float")
+                raise TypeError('Valuation Percent must be float')
         if not isinstance(percent, float) and percent != 0:
-            raise TypeError("Float expected for percent")
+            raise TypeError('Float expected for percent')
         if percent < 0 or percent >= 1:
             raise ValueError("Percent parameter must be between 0 and 1")
         if val_percent < 0 or val_percent >= 1:
             raise ValueError("Valuation percent parameter must be between 0 and 1")
 
         if self._labels is None:
-            raise AttributeError("No image data")
+            raise AttributeError('No image data')
 
         # open HDF5 for streaming when feeding
         if self._stream and self._hf is None:
@@ -2251,7 +2322,7 @@ class Images(BareMetal):
                 label = self._labels[ix][iy]
                 # streaming
                 if self._stream:
-                    data = self._hf[self._groups[ix]]["data"][iy]
+                    data = self._hf[self._groups[ix]]['data'][iy]
                 # in-memory
                 else:
                     data = self._data[ix][iy]
@@ -2271,7 +2342,7 @@ class Images(BareMetal):
     def minibatch(self, batch_size):
         """ Generator for creating mini-batches """
         if not isinstance(batch_size, int):
-            raise TypeError("Integer expected for mini batch size")
+            raise TypeError('Integer expected for mini batch size')
 
         if batch_size <= 0:
             raise ValueError("Batch size must be > 0")
@@ -2313,7 +2384,7 @@ class Images(BareMetal):
                     label = self._labels[ix]
                     # streaming
                     if self._stream:
-                        data = self._hf[self._groups[ix]]["data"][iy]
+                        data = self._hf[self._groups[ix]]['data'][iy]
                     # in-memory
                     else:
                         data = self._data[ix][iy]
@@ -2336,33 +2407,33 @@ class Images(BareMetal):
             batch_size = tuple([batch_size])
 
         if not isinstance(batch_size, tuple) or len(batch_size) > 3:
-            raise AttributeError("Stratify setter must be batch_size, percent[,seed]")
+            raise AttributeError('Stratify setter must be batch_size, percent[,seed]')
 
         self._minisz = batch_size[0]
         if not isinstance(self._minisz, int):
-            raise TypeError("Integer expected for mini batch size")
+            raise TypeError('Integer expected for mini batch size')
         if self._minisz <= 0:
             raise ValueError("Batch size must be > 0")
 
         if len(batch_size) > 1:
             percent = batch_size[1]
             if not isinstance(percent, float) and percent != 0:
-                raise TypeError("Float expected for percent")
+                raise TypeError('Float expected for percent')
             if percent < 0 or percent >= 1:
-                raise ValueError("Percent parameter must be between 0 and 1")
+                raise ValueError('Percent parameter must be between 0 and 1')
         else:
             percent = (1 - self._split)
 
         if len(batch_size) > 2:
             self._seed = batch_size[2]
             if not isinstance(self._seed, int):
-                raise TypeError("Seed parameter must be an integer")
+                raise TypeError('Seed parameter must be an integer')
 
         if self._labels is None:
-            raise AttributeError("No image data")
+            raise AttributeError('No image data')
 
         if self._minisz < len(self._labels):
-            raise ValueError("Batch size too small")
+            raise ValueError('Batch size too small')
 
         self._split = (1 - percent)
 
@@ -2403,7 +2474,7 @@ class Images(BareMetal):
         Y_test = []
         for ix, index in self._test:
             if self._stream:
-                X_test.append(self._hf[self._groups[ix]]["data"][index])
+                X_test.append(self._hf[self._groups[ix]]['data'][index])
             else:
                 X_test.append(self._data[ix][index])
             Y_test.append(self._labels[ix][0])
@@ -2455,7 +2526,7 @@ class Images(BareMetal):
         # pre-normalize: normalize as being feed
         label = self._labels[ix]
         if self._stream:
-            image = self._hf[self._groups[ix]]["data"][iy]
+            image = self._hf[self._groups[ix]]['data'][iy]
         else:
             image = self._data[ix][iy]
         if self.dtype == np.uint8:
@@ -2487,7 +2558,7 @@ class Images(BareMetal):
     def flatten(self, flatten):
         """ (Un)Flatten the Image Data """
         if not isinstance(flatten, bool):
-            raise TypeError("Boolean expected for flatten")
+            raise TypeError('Boolean expected for flatten')
         if not self:
             return
         if flatten == True:
@@ -2527,13 +2598,13 @@ class Images(BareMetal):
 
         # Argument Validation
         if not isinstance(resize, tuple):
-            raise TypeError("Tuple expected for resize")
+            raise TypeError('Tuple expected for resize')
         if len(resize) != 2:
-            raise AttributeError("Tuple for resize must be in form (height, width)")
+            raise AttributeError('Tuple for resize must be in form (height, width)')
         if not isinstance(resize[0], int) or not isinstance(resize[1], int):
-            raise TypeError("Integer expected for height and width in resize")
+            raise TypeError('Integer expected for height and width in resize')
         if resize[0] <= 0 or resize[1] <= 0:
-            raise ValueError("height and width must > 0 in resize")
+            raise ValueError('height and width must > 0 in resize')
 
         # There are no images
         if not self:
