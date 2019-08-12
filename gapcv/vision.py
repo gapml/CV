@@ -64,7 +64,7 @@ class BareMetal(object):
                 _labels.append(np.asarray([labels[key] for _ in range(counts[key])]))
         return _labels, _collections
 
-    def _loadDataset(self):
+    def _load_dataset(self):
         """ Load a Dataset
             :return          : collections, labels, classes, errors, elapsed time
         """
@@ -78,16 +78,16 @@ class BareMetal(object):
 
         # dataset is in memory
         if isinstance(self._dataset, np.ndarray):
-            collections, labels, classes, errors, elapsed = self._loadMemory()
+            collections, labels, classes, errors, elapsed = self._load_memory()
         elif isinstance(self._dataset, list):
             # non-empty dataset
             if self._dataset:
                 # dataset is in memory
                 if isinstance(self._dataset[0], np.ndarray):
-                    collections, labels, classes, errors, elapsed = self._loadMemory()
+                    collections, labels, classes, errors, elapsed = self._load_memory()
                 # load from in-memory list
                 else:
-                    collections, labels, classes, errors, elapsed = self._loadList()
+                    collections, labels, classes, errors, elapsed = self._load_list()
             else:
                 collections = []
                 labels = []
@@ -105,7 +105,7 @@ class BareMetal(object):
                     raise OSError('CSV file not found at url location: {}'.format(self._dataset))
             elif not os.path.exists(self._dataset):
                 raise OSError('CSV file does not exist: {}'.format(self._dataset))
-            collections, labels, classes, errors, elapsed = self._loadCSV()
+            collections, labels, classes, errors, elapsed = self._load_CSV()
         # load from json file
         elif self._dataset.endswith('.json'):
             if self._dataset.startswith(('http://', 'https://')):
@@ -117,7 +117,7 @@ class BareMetal(object):
                     raise OSError('JSON file not found at url location: {}'.format(self._dataset))
             elif not os.path.exists(self._dataset):
                 raise OSError('JSON file does not exist: {}'.format(self._dataset))
-            collections, labels, classes, errors, elapsed = self._loadJSON()
+            collections, labels, classes, errors, elapsed = self._load_JSON()
         # load from directory
         else:
             if not os.path.isdir(self._dataset):
@@ -128,7 +128,7 @@ class BareMetal(object):
                     self._dataset
                 )
             else:
-                collections, labels, classes, errors, elapsed = self._loadDirectory()
+                collections, labels, classes, errors, elapsed = self._load_directory()
 
         if self._store:
             self._classes = classes
@@ -141,7 +141,7 @@ class BareMetal(object):
 
         return collections, labels, classes, errors, elapsed
 
-    def _loadDirectory(self):
+    def _load_directory(self):
         """ Load a Directory based dataset, where the toplevel subdirectories are the classes.
             :return          : preprocessed data, corresponding labels, and errors
         """
@@ -183,7 +183,7 @@ class BareMetal(object):
                 if pool:
                     results.append(
                         pool.apply_async(
-                            self._poolDirectory,
+                            self._pool_directory,
                             (subdir.name, files, n_label)
                         )
                     )
@@ -192,7 +192,7 @@ class BareMetal(object):
                     if self._stream:
                         dset = self._init_stream_hdf5(subdir.name, len(files))
 
-                    collection, names, types, sizes, shapes, errors, elapsed = self._loadImages(files, dset)
+                    collection, names, types, sizes, shapes, errors, elapsed = self._load_images(files, dset)
 
                     if not self._stream:
                         # Accumulate the collections
@@ -261,7 +261,7 @@ class BareMetal(object):
 
         return collection, labels, classes, None, None
 
-    def _poolDirectory(self, subdir, files, n_label):
+    def _pool_directory(self, subdir, files, n_label):
         """ Work in Progress """
 
         dset = None
@@ -269,7 +269,7 @@ class BareMetal(object):
             dset = self._init_stream_hdf5(subdir, len(files))
 
         os.chdir(subdir)
-        collection, names, types, sizes, shapes, errors, elapsed = self._loadImages(files, dset)
+        collection, names, types, sizes, shapes, errors, elapsed = self._load_images(files, dset)
 
         label = None
         if not self._stream:
@@ -294,7 +294,7 @@ class BareMetal(object):
         os.chdir('../')
         return collection, names, types, sizes, shapes, errors, elapsed, label
 
-    def _loadMemory(self):
+    def _load_memory(self):
         """ Read a dataset from in-memory
             :return          : preprocessed data, corresponding labels, and errors
         """
@@ -311,7 +311,7 @@ class BareMetal(object):
                 pbar.postfix = 'Processing: {}'.format(label)
 
                 # load image from remote location
-                image, shape, size, name, _type, error = self._loadImageMemory(image)
+                image, shape, size, name, _type, error = self._load_image_memory(image)
 
                 if image is not None:
                     if self._stream:
@@ -370,7 +370,7 @@ class BareMetal(object):
             return  _collections, _labels, classes, errors, elapsed
         return  None, _labels, classes, errors, elapsed
 
-    def _loadList(self):
+    def _load_list(self):
         """ Read a dataset from in-memory
             :return          : preprocessed data, corresponding labels, and errors
         """
@@ -380,11 +380,11 @@ class BareMetal(object):
         verbosity_nparray = False
         if isinstance(self._dataset[0], str):
             if self._dataset[0].startswith(('http:', 'https:')):
-                function = self._loadImageRemote
+                function = self._load_image_remote
             else:
-                function = self._loadImageDisk
+                function = self._load_image_disk
         elif isinstance(self._dataset[0], np.ndarray):
-            function = self._loadImageMemory
+            function = self._load_image_memory
             verbosity_nparray = True
 
         errors = []
@@ -461,7 +461,7 @@ class BareMetal(object):
             return  _collections, _labels, classes, errors, elapsed
         return  None, _labels, classes, errors, elapsed
 
-    def _loadCSV(self):
+    def _load_CSV(self):
         """ Read a dataset from a CSV file
             :return          : preprocessed data, corresponding labels, and errors
         """
@@ -568,14 +568,14 @@ class BareMetal(object):
                         # load image from memory
                         ast.literal_eval(image)
                         is_memory = True
-                        function = self._loadImageMemory
+                        function = self._load_image_memory
                     except:
                         # load image from remote location
                         if image.startswith(('http:', 'https:')):
-                            function = self._loadImageRemote
+                            function = self._load_image_remote
                         else:
                             # load image from local disk
-                            function = self._loadImageDisk
+                            function = self._load_image_disk
 
                 if is_memory:
                     image = ast.literal_eval(image)
@@ -644,7 +644,7 @@ class BareMetal(object):
             return  _collections, _labels, classes, errors, elapsed
         return  None, _labels, classes, errors, elapsed
 
-    def _loadJSON(self):
+    def _load_JSON(self):
         """ Read a dataset from a JSON file
             :return          : preprocessed data, corresponding labels, and errors
 
@@ -707,14 +707,14 @@ class BareMetal(object):
                     # load image from memory
                     ast.literal_eval(image)
                     is_memory = True
-                    function = self._loadImageMemory
+                    function = self._load_image_memory
                 except:
                     # load image from remote location
                     if image.startswith(('http:', 'https:')):
-                        function = self._loadImageRemote
+                        function = self._load_image_remote
                     else:
                         # load image from local disk
-                        function = self._loadImageDisk
+                        function = self._load_image_disk
                 first = False
 
             label = entry[self._label_key]
@@ -814,7 +814,7 @@ class BareMetal(object):
             return  _collections, _labels, classes, errors, elapsed
         return  None, _labels, classes, errors, elapsed
 
-    def _loadImages(self, files, dset):
+    def _load_images(self, files, dset):
         """ Load a collection of images
 
         Arguments:
@@ -840,15 +840,15 @@ class BareMetal(object):
         d_index = 0
 
         # TODO is it necesary evaluate files when this funtion is just used
-        # for _loadDirectory()?
+        # for _load_directory()?
         verbosity_nparray = False
         if isinstance(files[0], str):
             if files[0].startswith(('http:', 'https:')):
-                function = self._loadImageRemote
+                function = self._load_image_remote
             else:
-                function = self._loadImageDisk
+                function = self._load_image_disk
         elif isinstance(files[0], np.ndarray):
-            function = self._loadImageMemory
+            function = self._load_image_memory
             verbosity_nparray = True
 
         with tqdm(files, postfix='Getting ready...', disable=self._disable) as pbar:
@@ -882,7 +882,7 @@ class BareMetal(object):
 
         return collection, names, types, sizes, shapes, errors, time.time() - start_time
 
-    def _loadImageDisk(self, file):
+    def _load_image_disk(self, file):
         """ Loads an image from disk
 
         Arguments:
@@ -942,7 +942,7 @@ class BareMetal(object):
         else:
             return image, shape, size, name, _type, None
 
-    def _loadImageRemote(self, url):
+    def _load_image_remote(self, url):
         """ Loads an image from a remote location
             :param: image    : the image as raw pixel data as numpy matrix.
             :type   image    : numpy matrix
@@ -974,7 +974,7 @@ class BareMetal(object):
 
         return image, shape, size, name, _type, None
 
-    def _loadImageMemory(self, image):
+    def _load_image_memory(self, image):
         """ Loads an image from memory
             :param: image     : the image as raw pixel data as numpy matrix.
             :return           : a processed image as a numpy matrix (or vector if flattened).
@@ -1314,7 +1314,7 @@ class BareMetal(object):
         return collections, labels, classes, counts, names, types, sizes, shapes, dset, d_index
 
     # UNUSED method
-    def _processImage(self, image, resize, flatten=False):
+    def _process_image(self, image, resize, flatten=False):
         """ Lowest level processing of an raw pixel data. [UNUSED]
 
         Arguments:
@@ -1353,7 +1353,7 @@ class BareMetal(object):
 
         return function(image)
 
-    def _rotateImage(self, image):
+    def _rotate_image(self, image):
         """ rotate the image
 
         Arguments:
@@ -1382,7 +1382,7 @@ class BareMetal(object):
             return rotated.astype(np.float16)
         return rotated
 
-    def _edgeImage(self, image):
+    def _edge_image(self, image):
         """ edge the image
 
         Arguments:
@@ -1399,7 +1399,7 @@ class BareMetal(object):
             edged = image
         return edged
 
-    def _flipImage(self, image):
+    def _flip_image(self, image):
         """ flip the image
 
         Arguments:
@@ -1421,7 +1421,7 @@ class BareMetal(object):
             return flip.astype(np.float16)
         return flip
 
-    def _zoomImage(self, image):
+    def _zoom_image(self, image):
         """ zoom the image
 
         Arguments:
@@ -1452,7 +1452,7 @@ class BareMetal(object):
             return zoom_img.astype(np.float16)
         return zoom_img
 
-    def _denoiseImage(self, image):
+    def _denoise_image(self, image):
         """ denoise the image
 
         Arguments:
@@ -1468,7 +1468,7 @@ class BareMetal(object):
             denoise = image
         return denoise
 
-    def _brightnesscontrastImage(self, image):
+    def _brightness_contrast_image(self, image):
         """ brightness & contrast the image
 
         Arguments:
@@ -1714,7 +1714,7 @@ class Images(BareMetal):
                             self._horizontal = True
                         if self._flip in ('vertical', 'both'):
                             self._vertical = True
-                        self._augment.append(self._flipImage)
+                        self._augment.append(self._flip_image)
                     elif setting.startswith('zoom='):
                         self._zoom = setting.split('=')[1]
                         if not self._zoom:
@@ -1726,7 +1726,7 @@ class Images(BareMetal):
                         except:
                             raise AttributeError('integer or float >= 0 expected for zoom')
                         self._zoom += 1
-                        self._augment.append(self._zoomImage)
+                        self._augment.append(self._zoom_image)
                     elif setting.startswith('rotate='):
                         args = setting.split('=')[1]
                         if not args:
@@ -1743,7 +1743,7 @@ class Images(BareMetal):
                             raise AttributeError('Degree range not an integer')
                         if min <= -360 or max >= 360:
                             raise AttributeError('Degree range must be between -360 and 360')
-                        self._augment.append(self._rotateImage)
+                        self._augment.append(self._rotate_image)
                     elif setting.startswith(('brightness=', 'contrast=')):
                         option = setting.split('=')
                         if option[0] == 'contrast':
@@ -1768,11 +1768,11 @@ class Images(BareMetal):
                                     )
                             except:
                                 raise AttributeError('Brightness range not an integer or float')
-                        self._augment.append(self._brightnesscontrastImage)
+                        self._augment.append(self._brightness_contrast_image)
                     elif setting == 'edge':
-                        self._augment.append(self._edgeImage)
+                        self._augment.append(self._edge_image)
                     elif setting == 'denoise':
-                        self._augment.append(self._denoiseImage)
+                        self._augment.append(self._denoise_image)
                     else:
                         raise AttributeError('Augment setting not recognized: {}'.format(setting))
 
@@ -1799,7 +1799,7 @@ class Images(BareMetal):
     def _process(self):
         """ Process the Dataset """
         try:
-            self._data, self._labels, self._classes, self._errors, self._time = self._loadDataset()
+            self._data, self._labels, self._classes, self._errors, self._time = self._load_dataset()
         except Exception as e:
             if self._hf:
                 self._hf.close()
@@ -2316,7 +2316,7 @@ class Images(BareMetal):
         Y = np.eye(C)[Y.reshape(-1)].astype(np.uint8)
         return Y
 
-    def _verifyNormalization(self, image):
+    def _verify_normalization(self, image):
         # pre-normalized
         if self.dtype == np.uint8:
             image = (image / 255.0).astype(np.float32)
@@ -2351,13 +2351,13 @@ class Images(BareMetal):
                 # in-memory
                 else:
                     data = self._data[ix][iy]
-                x_batch.append(self._verifyNormalization(data))
+                x_batch.append(self._verify_normalization(data))
                 y_batch.append(label)
 
                 # if augmentation, feed a second augmented version of the image
                 if self._augment:
                     image = self._augmentation(data)
-                    x_batch.append(self._verifyNormalization(image))
+                    x_batch.append(self._verify_normalization(image))
                     y_batch.append(label)
 
             self._next += self._minisz
@@ -2403,7 +2403,7 @@ class Images(BareMetal):
                 label_image.remove(item)
                 if not isinstance(file[0], str):
                     raise ValueError('image path must be a string')
-                image  = self._loadImageDisk(file)
+                image  = self._load_image_disk(file)
                 if self._augment and (i % 2) == 0:
                     ## augment just half of the data set
                     image = self._augmentation(image)
@@ -2438,14 +2438,14 @@ class Images(BareMetal):
                     # in-memory
                     else:
                         data = self._data[ix][iy]
-                    x_batch.append(self._verifyNormalization(data))
+                    x_batch.append(self._verify_normalization(data))
                     y_batch.append(label)
                     n += 1
 
                     # if augmenting, send a second augmented version of the image
                     if self._augment:
                         image = self._augmentation(data)
-                        x_batch.append(self._verifyNormalization(image))
+                        x_batch.append(self._verify_normalization(image))
                         y_batch.append(label)
 
             yield np.asarray(x_batch), self._one_hot(np.asarray(y_batch), self._nlabels)
