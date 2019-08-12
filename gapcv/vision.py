@@ -83,7 +83,6 @@ class BareMetal(object):
             # non-empty dataset
             if self._dataset:
                 # dataset is in memory
-                # TODO Row 331 is not possible to evaluate because it is evaluate here:
                 if isinstance(self._dataset[0], np.ndarray):
                     collections, labels, classes, errors, elapsed = self._loadMemory()
                 # load from in-memory list
@@ -123,7 +122,13 @@ class BareMetal(object):
         else:
             if not os.path.isdir(self._dataset):
                 raise OSError('Directory does not exist: {}'.format(self._dataset))
-            collections, labels, classes, errors, elapsed = self._loadDirectory()
+
+            if self._stream_ff:
+                collections, labels, classes, errors, elapsed = self._load_directory_streaming(
+                    self._dataset
+                )
+            else:
+                collections, labels, classes, errors, elapsed = self._loadDirectory()
 
         if self._store:
             self._classes = classes
@@ -240,6 +245,21 @@ class BareMetal(object):
 
         # stream
         return None, labels, classes, errors, total_elapsed
+
+    def _load_directory_streaming(self, dataset):
+
+        collection = []
+        labels = []
+        classes = {}
+
+        for i, folder in enumerate(os.scandir(dataset)):
+            if folder.is_dir() or not folder.name.startswith(('.', '_')):
+                classes[folder.name] = i
+                for image in os.scandir(folder.path):
+                    collection.append(image.path)
+                    labels.append(i)
+
+        return collection, labels, classes, None, None
 
     def _poolDirectory(self, subdir, files, n_label):
         """ Work in Progress """
@@ -796,14 +816,19 @@ class BareMetal(object):
 
     def _loadImages(self, files, dset):
         """ Load a collection of images
-            :param files: list of file paths of images on-disk, or remote images,
-                          or in-memory images.
-            :type  files: list[strings] or numpy array of matrixes
-            :param dset : HDF5 handle to dataset
-            :type  dset : HDF5 handle
-            :return     : tuple(machine learning ready data, image names, image types,
-                                image shapes, image sizes, processing errors, processing time)
+
+        Arguments:
+            files {list[strings] or numpy array of matrixes} -- list of file paths of images
+                on-disk, or remote images, or in-memory images.
+            dset {HDF5 handle} -- HDF5 handle to dataset
+
+        Returns:
+            tuple -- (
+                machine learning ready data, image names, image types,
+                image shapes, image sizes, processing errors, processing time
+            )
         """
+
         start_time = time.time()
 
         collection = []
@@ -859,10 +884,14 @@ class BareMetal(object):
 
     def _loadImageDisk(self, file):
         """ Loads an image from disk
-            :param file      : a file path to an image.
-            :type  file      : string
-            :return          : a processed image as a numpy matrix (or vector if flattened).
+
+        Arguments:
+            file {str} -- a file path to an image
+
+        Returns:
+            numpy matrix -- a processed image (or vector if flattened)
         """
+
         # retain original file information
         basename = os.path.splitext(os.path.basename(file))
         name = basename[0]
@@ -908,7 +937,10 @@ class BareMetal(object):
         except Exception as e:
             return None, None, None, '', '', e
 
-        return image, shape, size, name, _type, None
+        if self._stream_ff:
+            return image
+        else:
+            return image, shape, size, name, _type, None
 
     def _loadImageRemote(self, url):
         """ Loads an image from a remote location
@@ -984,9 +1016,12 @@ class BareMetal(object):
 
     def _pixel_transform(self, collection):
         """ Perform pixel transformations across collection.
-            :param collection: A collection of partially preprocessed images.
-            :type  collection: list
-            :return          : machine learning ready data
+        
+        Arguments:
+            collection {list} -- A collection of partially preprocessed images
+        
+        Returns:
+            numpy array -- machine learning ready data
         """
 
         try:
@@ -1053,9 +1088,12 @@ class BareMetal(object):
 
         image = self._pixel_normalize(image.astype(self._dtype), bpp)
 
-        # load image array into dataset
-        dset[index, :] = image
-        return index + 1
+        if self._stream_ff:
+            return image
+        else:
+            # load image array into dataset
+            dset[index, :] = image
+            return index + 1
 
     def _pixel_normalize(self, image_or_collection, bpp):
         """ Normalize collection or image
@@ -1453,27 +1491,11 @@ class BareMetal(object):
             return brightness_contrast.astype(np.float16)
         return brightness_contrast
 
+
 class Images(BareMetal):
     """ Base (super) for classifying a group of images """
     def __init__(self, name='unnamed', images=None, labels=None, _dir='./',
                  ehandler=None, config=None, augment=None):
-
-                 """ 
-                 :param name    : 
-                 :type  name    : str
-                 :param images  : 
-                 :type  images  : 
-                 :param labels  : 
-                 :type  labels  : 
-                 :param _dir    : 
-                 :type  _dir    : str
-                 :param ehandler: 
-                 :type  ehandler: 
-                 :param config  : 
-                 :type  config  : 
-                 :param augment : 
-                 :type  augment : 
-             """
         """ Constructor
         
         Keyword Arguments:
@@ -1542,6 +1564,7 @@ class Images(BareMetal):
         self._label_key = None
         self._store = False
         self._stream = False
+        self._stream_ff = False
         self._classes = None
         self._time = 0
         self._errors = []
@@ -1659,6 +1682,8 @@ class Images(BareMetal):
                         self._stream = True
                         # stream implies store
                         self._store = True
+                    elif setting == '_stream_ff':
+                        self._stream_ff = True
                     elif setting == '16bpp':
                         self._16bpp = True
                     else:
@@ -2364,6 +2389,31 @@ class Images(BareMetal):
 
         self._minisz = batch_size
         self._nlabels = len(self._classes)
+
+    @property
+    def stream_from_folder(self, batch=32):
+        label_image = self.label_image
+        while label_image:
+            total_images = len(label_image)
+            if total_images < batch:
+                batch = total_images
+            images_batch = random.sample(label_image, batch)
+            image_preprocessed = []
+            for i, file in enumerate(images_batch, 1):
+                label_image.remove(item)
+                if not isinstance(file[0], str):
+                    raise ValueError('image path must be a string')
+                image  = self._loadImageDisk(file)
+                if self._augment and (i % 2) == 0:
+                    ## augment just half of the data set
+                    image = self._augmentation(image)
+
+                ## resize image
+                image = self._pixel_transform_stream(image)
+
+                image_preprocessed.append(image)
+
+            yield np.asarray(image_preprocessed)
 
     @property
     def stratify(self):
