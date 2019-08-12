@@ -1016,10 +1016,10 @@ class BareMetal(object):
 
     def _pixel_transform(self, collection):
         """ Perform pixel transformations across collection.
-        
+
         Arguments:
             collection {list} -- A collection of partially preprocessed images
-        
+
         Returns:
             numpy array -- machine learning ready data
         """
@@ -1112,7 +1112,9 @@ class BareMetal(object):
                 elif self._norm == NORMAL_ZERO:
                     image_or_collection = image_or_collection / 127.5 - 1
                 elif self._norm == NORMAL_STD:
-                    image_or_collection = (image_or_collection - np.mean(image_or_collection)) / np.std(image_or_collection)
+                    image_or_collection = (
+                        image_or_collection - np.mean(image_or_collection)
+                    ) / np.std(image_or_collection)
             # original pixel data is 16 pixel
             elif bpp == 16:
                 if self._norm == NORMAL_POS:
@@ -1120,7 +1122,9 @@ class BareMetal(object):
                 elif self._norm == NORMAL_ZERO:
                     image_or_collection = image_or_collection / 32767.5 - 1
                 elif self._norm == NORMAL_STD:
-                    image_or_collection = (image_or_collection - np.mean(image_or_collection)) / np.std(image_or_collection)
+                    image_or_collection = (
+                        image_or_collection - np.mean(image_or_collection)
+                    ) / np.std(image_or_collection)
 
         return image_or_collection
 
@@ -1430,7 +1434,7 @@ class BareMetal(object):
         Returns:
             numpy matrix -- image zoomed
         """
-    
+
         # operation not supported as float16
         if self._dtype == np.float16:
             image = image.astype(np.float32)
@@ -1461,7 +1465,7 @@ class BareMetal(object):
         Returns:
             numpy matrix -- image denoiseed
         """
-    
+
         if self.dtype in (np.uint8, np.uint16):
             denoise = cv2.fastNlMeansDenoisingColored(image, None, 10, 10, 7, 21)
         else:
@@ -1477,7 +1481,7 @@ class BareMetal(object):
         Returns:
             numpy matrix -- image contrasted
         """
-    
+
         # operation not supported as float16
         if self._dtype == np.float16:
             image = image.astype(np.float32)
@@ -1497,7 +1501,7 @@ class Images(BareMetal):
     def __init__(self, name='unnamed', images=None, labels=None, _dir='./',
                  ehandler=None, config=None, augment=None):
         """ Constructor
-        
+
         Keyword Arguments:
             name {str} -- name of the dataset (default: {'unnamed'})
             images {str or numpy array} -- location of images (default: {None})
