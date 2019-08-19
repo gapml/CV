@@ -2390,10 +2390,6 @@ class Images(BareMetal):
         if self._augment:
             batch_size //= 2
 
-        # # Create one-hot encoded labels
-        # if self._nlabels is None:
-        #     self._nlabels = len(self._classes)
-
         self._minisz = batch_size
         self._nlabels = len(self._classes)
 
