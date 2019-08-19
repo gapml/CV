@@ -252,12 +252,15 @@ class BareMetal(object):
         labels = []
         classes = {}
 
+        self._image_label = []
+
         for i, folder in enumerate(os.scandir(dataset)):
             if folder.is_dir() or not folder.name.startswith(('.', '_')):
                 classes[folder.name] = i
                 for image in os.scandir(folder.path):
                     collection.append(image.path)
                     labels.append(i)
+                    self._image_label.append((image.path, i))
 
         return collection, labels, classes, None, None
 
@@ -2387,27 +2390,29 @@ class Images(BareMetal):
         if self._augment:
             batch_size //= 2
 
-        # Create one-hot encoded labels
-        if self._nlabels is None:
-            self._nlabels = len(self._classes)
+        # # Create one-hot encoded labels
+        # if self._nlabels is None:
+        #     self._nlabels = len(self._classes)
 
         self._minisz = batch_size
         self._nlabels = len(self._classes)
 
     @property
-    def stream_from_folder(self, batch=32):
-        label_image = self.label_image
-        while label_image:
-            total_images = len(label_image)
-            if total_images < batch:
-                batch = total_images
-            images_batch = random.sample(label_image, batch)
-            image_preprocessed = []
-            for i, file in enumerate(images_batch, 1):
-                label_image.remove(item)
-                if not isinstance(file[0], str):
+    def stream_from_folder(self):
+        image_label = self._image_label
+        while image_label:
+            total_images = len(image_label)
+            if total_images < self._stream_batch:
+                self._stream_batch = total_images
+            images_batch = random.sample(image_label, self._stream_batch)
+            x_batch = []
+            y_batch = []
+            for i, item in enumerate(images_batch, 1):
+                file = item[0]
+                image_label.remove(item)
+                if not isinstance(file, str):
                     raise ValueError('image path must be a string')
-                image  = self._load_image_disk(file)
+                image = self._load_image_disk(file)
                 if self._augment and (i % 2) == 0:
                     ## augment just half of the data set
                     image = self._augmentation(image)
@@ -2415,9 +2420,23 @@ class Images(BareMetal):
                 ## resize image
                 image = self._pixel_transform_stream(image)
 
-                image_preprocessed.append(image)
+                x_batch.append(image)
 
-            yield np.asarray(image_preprocessed)
+            yield np.asarray(x_batch), self._one_hot(np.asarray(y_batch), self._nlabels)
+
+    @stream_from_folder.setter
+    def stream_from_folder(self, batch_size):
+        if not isinstance(batch_size, int):
+            raise TypeError('Integer expected for mini batch size')
+
+        if batch_size <= 0:
+            raise ValueError("Batch size must be > 0")
+
+        if batch_size < 1 or batch_size > self._image_label:
+            raise ValueError("Mini batch size is out of range")
+
+        self._stream_batch = batch_size
+        self._nlabels = len(self._classes)
 
     @property
     def stratify(self):
