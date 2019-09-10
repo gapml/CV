@@ -105,7 +105,7 @@ class BareMetal(object):
                     raise OSError('CSV file not found at url location: {}'.format(self._dataset))
             elif not os.path.exists(self._dataset):
                 raise OSError('CSV file does not exist: {}'.format(self._dataset))
-            collections, labels, classes, errors, elapsed = self._load_CSV()
+            collections, labels, classes, errors, elapsed = self._load_csv()
         # load from json file
         elif self._dataset.endswith('.json'):
             if self._dataset.startswith(('http://', 'https://')):
@@ -117,7 +117,7 @@ class BareMetal(object):
                     raise OSError('JSON file not found at url location: {}'.format(self._dataset))
             elif not os.path.exists(self._dataset):
                 raise OSError('JSON file does not exist: {}'.format(self._dataset))
-            collections, labels, classes, errors, elapsed = self._load_JSON()
+            collections, labels, classes, errors, elapsed = self._load_json()
         # load from directory
         else:
             if not os.path.isdir(self._dataset):
@@ -198,9 +198,9 @@ class BareMetal(object):
                         # Accumulate the collections
                         collections.append(collection)
                         # Accumulate the labels
-                        l = len(collection)
-                        labels.append(np.asarray([n_label for _ in range(l)]))
-                        self._count += l
+                        label_acum = len(collection)
+                        labels.append(np.asarray([n_label for _ in range(label_acum)]))
+                        self._count += label_acum
                     else:
                         self._count += len(files) - len(errors)
 
@@ -235,9 +235,9 @@ class BareMetal(object):
                 collections.append(params[0])
                 errors.append(params[5])
                 n_label = params[7]
-                l = len(params[0])
-                labels.append(np.asarray([n_label for _ in range(l)]))
-                self._count += l
+                label_params = len(params[0])
+                labels.append(np.asarray([n_label for _ in range(label_params)]))
+                self._count += label_params
                 total_elapsed += int(params[6])
 
         if not self._stream:
@@ -277,8 +277,8 @@ class BareMetal(object):
         label = None
         if not self._stream:
             # Accumulate the labels
-            l = len(collection)
-            label = np.asarray([n_label for _ in range(l)])
+            label_acum = len(collection)
+            label = np.asarray([n_label for _ in range(label_acum)])
 
         # Write collection to HDF5 storage
         if self._store:
@@ -375,7 +375,11 @@ class BareMetal(object):
 
     def _load_list(self):
         """ Read a dataset from in-memory
-            :return          : preprocessed data, corresponding labels, and errors
+
+        Returns:
+            list -- preprocessed data,
+            list -- corresponding labels,
+            string -- errors
         """
 
         start_time = time.time()
@@ -464,7 +468,7 @@ class BareMetal(object):
             return  _collections, _labels, classes, errors, elapsed
         return  None, _labels, classes, errors, elapsed
 
-    def _load_CSV(self):
+    def _load_csv(self):
         """ Read a dataset from a CSV file
             :return          : preprocessed data, corresponding labels, and errors
         """
@@ -558,8 +562,8 @@ class BareMetal(object):
                 try:
                     image = row[self._image_col]
                     label = row[self._label_col]
-                except Exception as e:
-                    errors.append(e)
+                except Exception as error:
+                    errors.append(error)
                     counts[label] -= 1
                     continue
 
@@ -647,7 +651,7 @@ class BareMetal(object):
             return  _collections, _labels, classes, errors, elapsed
         return  None, _labels, classes, errors, elapsed
 
-    def _load_JSON(self):
+    def _load_json(self):
         """ Read a dataset from a JSON file
             :return          : preprocessed data, corresponding labels, and errors
 
@@ -901,8 +905,8 @@ class BareMetal(object):
         _type = basename[1][1:].lower()
         try:
             size = os.path.getsize(file)
-        except Exception as e:
-            return None, None, None, '', '', e
+        except Exception as error:
+            return None, None, None, '', '', error
 
         try:
             if _type in ('gif', 'jp2', 'jpx', 'j2k'):
@@ -937,8 +941,8 @@ class BareMetal(object):
             # retain the original shape
             shape = image.shape
 
-        except Exception as e:
-            return None, None, None, '', '', e
+        except Exception as error:
+            return None, None, None, '', '', error
 
         if self._stream_ff:
             return image
@@ -953,8 +957,8 @@ class BareMetal(object):
         """
         try:
             response = requests.get(url, timeout=10)
-        except Exception as e:
-            return None, None, None, '', '', e
+        except Exception as error:
+            return None, None, None, '', '', error
 
         # read in the image data
         data = np.frombuffer(response.content, np.uint8)
@@ -969,8 +973,8 @@ class BareMetal(object):
         # decode the image
         try:
             image = cv2.imdecode(data, self._colorspace)
-        except Exception as e:
-            return None, None, None, '', '', e
+        except Exception as error:
+            return None, None, None, '', '', error
 
         # retain the original shape
         shape = image.shape
@@ -985,8 +989,8 @@ class BareMetal(object):
         # retain the original shape
         try:
             shape = image.shape
-        except Exception as e:
-            return None, None, None, '', '', e
+        except Exception as error:
+            return None, None, None, '', '', error
 
         # retain original image information
         name = ''
@@ -1012,8 +1016,8 @@ class BareMetal(object):
             elif self._colorspace == COLOR:
                 if image.ndim != 3:
                     image = cv2.cvtColor(image, cv2.COLOR_GRAY2RGB)
-        except Exception as e:
-            return None, None, None, '', '', e
+        except Exception as error:
+            return None, None, None, '', '', error
 
         return image, shape, size, name, _type, None
 
@@ -1250,7 +1254,7 @@ class BareMetal(object):
             dset.attrs['type'] = types
             dset.attrs['size'] = sizes
             dset.attrs['shape'] = shapes
-        except:
+        except Exception as error:
             # maybe too large
             pass
 
@@ -1326,7 +1330,7 @@ class BareMetal(object):
 
         Arguments:
             image {numpy matrix} -- raw pixel data as 2D (grayscale) or 3D (color) matrix.
-            resize {tuple(height, width)} -- scale (downsample or upsample) 
+            resize {tuple(height, width)} -- scale (downsample or upsample)
                                              image to a specifid height, width.
 
         Keyword Arguments:
@@ -1450,11 +1454,16 @@ class BareMetal(object):
         )
         new_height, new_width = image.shape[:2]
 
-        y = int(new_height/2)
-        x = int(new_width/2)
-        h = int(old_height/2)
-        w = int(old_width/2)
-        zoom_img = image[y-h:y+h, x-w:x+w]
+        y_new = int(new_height/2)
+        x_new = int(new_width/2)
+        h_old = int(old_height/2)
+        w_old = int(old_width/2)
+
+        zoom_img = image[
+            y_new-h_old:y_new+h_old,
+            x_new-w_old:x_new+w_old
+        ]
+
         if self._dtype == np.float16:
             return zoom_img.astype(np.float16)
         return zoom_img
@@ -1525,12 +1534,12 @@ class Images(BareMetal):
                 raise TypeError('Labels expected when images are a list or numpy array')
         else:
             if isinstance(labels, np.ndarray):
-                if len(labels) == 0:
+                if labels.size == 0:
                     raise AttributeError('Array must be > 0 for labels')
                 if labels.dtype not in ('int8', 'int16', 'int32', 'uint8', 'uint16', 'uint32'):
                     raise TypeError('Array values must be integers for labels')
             elif isinstance(labels, list):
-                if len(labels) == 0:
+                if not labels:
                     raise AttributeError('List must be > 0 for labels')
                 if not isinstance(labels[0], (int, str)):
                     raise TypeError('List values must be integers or strings for labels')
@@ -1596,7 +1605,7 @@ class Images(BareMetal):
         self._remote = False
 
         if config is not None:
-            if isinstance(config, list) == False:
+            if not isinstance(config, list):
                 raise TypeError('List expected for config settings')
             else:
                 for setting in config:
@@ -1738,17 +1747,17 @@ class Images(BareMetal):
                         args = setting.split('=')[1]
                         if not args:
                             raise AttributeError('Missing value for rotate')
-                        range = args.split(',')
-                        if len(range) != 2:
+                        rotate_range = args.split(',')
+                        if len(rotate_range) != 2:
                             raise AttributeError('Degree range expected for rotate')
                         try:
-                            min = int(range[0])
-                            self._rotate.append(min)
-                            max = int(range[1])
-                            self._rotate.append(max)
+                            min_rotate = int(rotate_range[0])
+                            self._rotate.append(min_rotate)
+                            max_rotate = int(rotate_range[1])
+                            self._rotate.append(max_rotate)
                         except:
                             raise AttributeError('Degree range not an integer')
-                        if min <= -360 or max >= 360:
+                        if min_rotate <= -360 or max_rotate >= 360:
                             raise AttributeError('Degree range must be between -360 and 360')
                         self._augment.append(self._rotate_image)
                     elif setting.startswith(('brightness=', 'contrast=')):
@@ -1798,19 +1807,19 @@ class Images(BareMetal):
         else:
             # no parameters
             if not isinstance(self._async, tuple):
-                t = threading.Thread(target=self._async, args=())
+                thread = threading.Thread(target=self._async, args=())
             else:
-                t = threading.Thread(target=self._async, args=(ehandler[1:], ))
-            t.start()
+                thread = threading.Thread(target=self._async, args=(ehandler[1:], ))
+            thread.start()
 
     def _process(self):
         """ Process the Dataset """
         try:
             self._data, self._labels, self._classes, self._errors, self._time = self._load_dataset()
-        except Exception as e:
+        except Exception as error:
             if self._hf:
                 self._hf.close()
-            raise e
+            raise error
 
     def _async(self):
         """ Asynchronous processing of the collection """
@@ -1945,7 +1954,7 @@ class Images(BareMetal):
     @name.setter
     def name(self, name):
         """ Setter for the dataset (collection) name """
-        if name and isinstance(name, str) == False:
+        if name and not isinstance(name, str):
             raise TypeError('String expected for collection name')
         self._name = name
 
@@ -1974,9 +1983,9 @@ class Images(BareMetal):
         """ Setter for image directory """
         # value must be a string
         if _dir is not None:
-            if isinstance(_dir, str) == False:
+            if not isinstance(_dir, str):
                 raise TypeError('String expected for image storage path')
-            if _dir.endswith("/") == False:
+            if not _dir.endswith("/"):
                 _dir += "/"
             self._dir = _dir
         self._dir = _dir
