@@ -182,11 +182,7 @@ class MyTest(unittest.TestCase):
         with pytest.raises(AttributeError):
             images = Images(config=['label_key='])
         images = Images(config=['label_key=B'])
-        images = Images(config=['verbose=False'])
-        with pytest.raises(AttributeError):
-            images = Images(config=['verbose=0'])
-        with pytest.raises(AttributeError):
-            images = Images(config=['verbose=anystring'])
+        images = Images(config=['verbose'])
 
     def test_008(self):
         """ Images Constructor - no images, labels argument """
