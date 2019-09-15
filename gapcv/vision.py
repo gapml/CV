@@ -64,7 +64,7 @@ class BareMetal(object):
                 _labels.append(np.asarray([labels[key] for _ in range(counts[key])]))
         return _labels, _collections
 
-    def _loadDataset(self):
+    def _load_dataset(self):
         """ Load a Dataset
             :return          : collections, labels, classes, errors, elapsed time
         """
@@ -78,17 +78,16 @@ class BareMetal(object):
 
         # dataset is in memory
         if isinstance(self._dataset, np.ndarray):
-            collections, labels, classes, errors, elapsed = self._loadMemory()
+            collections, labels, classes, errors, elapsed = self._load_memory()
         elif isinstance(self._dataset, list):
             # non-empty dataset
             if self._dataset:
                 # dataset is in memory
-                # TODO Row 331 is not possible to evaluate because it is evaluate here:
                 if isinstance(self._dataset[0], np.ndarray):
-                    collections, labels, classes, errors, elapsed = self._loadMemory()
+                    collections, labels, classes, errors, elapsed = self._load_memory()
                 # load from in-memory list
                 else:
-                    collections, labels, classes, errors, elapsed = self._loadList()
+                    collections, labels, classes, errors, elapsed = self._load_list()
             else:
                 collections = []
                 labels = []
@@ -103,10 +102,10 @@ class BareMetal(object):
                     self._response_decoded = response.iter_lines(decode_unicode=True)
                     self._remote = True
                 else:
-                    raise OSError("CSV file not found at url location: {}".format(self._dataset))
+                    raise OSError('CSV file not found at url location: {}'.format(self._dataset))
             elif not os.path.exists(self._dataset):
-                raise OSError("CSV file does not exist: {}".format(self._dataset))
-            collections, labels, classes, errors, elapsed = self._loadCSV()
+                raise OSError('CSV file does not exist: {}'.format(self._dataset))
+            collections, labels, classes, errors, elapsed = self._load_csv()
         # load from json file
         elif self._dataset.endswith('.json'):
             if self._dataset.startswith(('http://', 'https://')):
@@ -115,15 +114,21 @@ class BareMetal(object):
                     self._response_decoded = response.iter_lines(decode_unicode=True)
                     self._remote = True
                 else:
-                    raise OSError("JSON file not found at url location: {}".format(self._dataset))
+                    raise OSError('JSON file not found at url location: {}'.format(self._dataset))
             elif not os.path.exists(self._dataset):
-                raise OSError("JSON file does not exist: {}".format(self._dataset))
-            collections, labels, classes, errors, elapsed = self._loadJSON()
+                raise OSError('JSON file does not exist: {}'.format(self._dataset))
+            collections, labels, classes, errors, elapsed = self._load_json()
         # load from directory
         else:
             if not os.path.isdir(self._dataset):
-                raise OSError("Directory does not exist: {}".format(self._dataset))
-            collections, labels, classes, errors, elapsed = self._loadDirectory()
+                raise OSError('Directory does not exist: {}'.format(self._dataset))
+
+            if self._stream_ff:
+                collections, labels, classes, errors, elapsed = self._load_directory_streaming(
+                    self._dataset
+                )
+            else:
+                collections, labels, classes, errors, elapsed = self._load_directory()
 
         if self._store:
             self._classes = classes
@@ -136,7 +141,7 @@ class BareMetal(object):
 
         return collections, labels, classes, errors, elapsed
 
-    def _loadDirectory(self):
+    def _load_directory(self):
         """ Load a Directory based dataset, where the toplevel subdirectories are the classes.
             :return          : preprocessed data, corresponding labels, and errors
         """
@@ -165,7 +170,7 @@ class BareMetal(object):
         with tqdm(subdirs, postfix='Getting ready...', disable=self._disable) as pbar:
             for subdir in pbar:
                 # skip entries that are not subdirectories or hidden directories (start with dot)
-                if not subdir.is_dir() or subdir.name[0] == '.' or subdir.name.startswith('_'):
+                if not subdir.is_dir() or subdir.name.startswith(('.', '_')):
                     continue
                 files = os.listdir(subdir.name)
                 if not files:
@@ -178,7 +183,7 @@ class BareMetal(object):
                 if pool:
                     results.append(
                         pool.apply_async(
-                            self._poolDirectory,
+                            self._pool_directory,
                             (subdir.name, files, n_label)
                         )
                     )
@@ -187,15 +192,15 @@ class BareMetal(object):
                     if self._stream:
                         dset = self._init_stream_hdf5(subdir.name, len(files))
 
-                    collection, names, types, sizes, shapes, errors, elapsed = self._loadImages(files, dset)
+                    collection, names, types, sizes, shapes, errors, elapsed = self._load_images(files, dset)
 
                     if not self._stream:
                         # Accumulate the collections
                         collections.append(collection)
                         # Accumulate the labels
-                        l = len(collection)
-                        labels.append(np.asarray([n_label for _ in range(l)]))
-                        self._count += l
+                        label_acum = len(collection)
+                        labels.append(np.asarray([n_label for _ in range(label_acum)]))
+                        self._count += label_acum
                     else:
                         self._count += len(files) - len(errors)
 
@@ -230,9 +235,9 @@ class BareMetal(object):
                 collections.append(params[0])
                 errors.append(params[5])
                 n_label = params[7]
-                l = len(params[0])
-                labels.append(np.asarray([n_label for _ in range(l)]))
-                self._count += l
+                label_params = len(params[0])
+                labels.append(np.asarray([n_label for _ in range(label_params)]))
+                self._count += label_params
                 total_elapsed += int(params[6])
 
         if not self._stream:
@@ -241,7 +246,25 @@ class BareMetal(object):
         # stream
         return None, labels, classes, errors, total_elapsed
 
-    def _poolDirectory(self, subdir, files, n_label):
+    def _load_directory_streaming(self, dataset):
+
+        collection = []
+        labels = []
+        classes = {}
+
+        self._image_label = []
+
+        for i, folder in enumerate(os.scandir(dataset)):
+            if folder.is_dir() or not folder.name.startswith(('.', '_')):
+                classes[folder.name] = i
+                for image in os.scandir(folder.path):
+                    collection.append(image.path)
+                    labels.append(i)
+                    self._image_label.append((image.path, i))
+
+        return collection, labels, classes, None, None
+
+    def _pool_directory(self, subdir, files, n_label):
         """ Work in Progress """
 
         dset = None
@@ -249,13 +272,13 @@ class BareMetal(object):
             dset = self._init_stream_hdf5(subdir, len(files))
 
         os.chdir(subdir)
-        collection, names, types, sizes, shapes, errors, elapsed = self._loadImages(files, dset)
+        collection, names, types, sizes, shapes, errors, elapsed = self._load_images(files, dset)
 
         label = None
         if not self._stream:
             # Accumulate the labels
-            l = len(collection)
-            label = np.asarray([n_label for _ in range(l)])
+            label_acum = len(collection)
+            label = np.asarray([n_label for _ in range(label_acum)])
 
         # Write collection to HDF5 storage
         if self._store:
@@ -271,10 +294,10 @@ class BareMetal(object):
                 dset
             )
 
-        os.chdir("../")
+        os.chdir('../')
         return collection, names, types, sizes, shapes, errors, elapsed, label
 
-    def _loadMemory(self):
+    def _load_memory(self):
         """ Read a dataset from in-memory
             :return          : preprocessed data, corresponding labels, and errors
         """
@@ -291,7 +314,7 @@ class BareMetal(object):
                 pbar.postfix = 'Processing: {}'.format(label)
 
                 # load image from remote location
-                image, shape, size, name, _type, error = self._loadImageMemory(image)
+                image, shape, size, name, _type, error = self._load_image_memory(image)
 
                 if image is not None:
                     if self._stream:
@@ -350,9 +373,13 @@ class BareMetal(object):
             return  _collections, _labels, classes, errors, elapsed
         return  None, _labels, classes, errors, elapsed
 
-    def _loadList(self):
+    def _load_list(self):
         """ Read a dataset from in-memory
-            :return          : preprocessed data, corresponding labels, and errors
+
+        Returns:
+            list -- preprocessed data,
+            list -- corresponding labels,
+            string -- errors
         """
 
         start_time = time.time()
@@ -360,11 +387,11 @@ class BareMetal(object):
         verbosity_nparray = False
         if isinstance(self._dataset[0], str):
             if self._dataset[0].startswith(('http:', 'https:')):
-                function = self._loadImageRemote
+                function = self._load_image_remote
             else:
-                function = self._loadImageDisk
+                function = self._load_image_disk
         elif isinstance(self._dataset[0], np.ndarray):
-            function = self._loadImageMemory
+            function = self._load_image_memory
             verbosity_nparray = True
 
         errors = []
@@ -441,7 +468,7 @@ class BareMetal(object):
             return  _collections, _labels, classes, errors, elapsed
         return  None, _labels, classes, errors, elapsed
 
-    def _loadCSV(self):
+    def _load_csv(self):
         """ Read a dataset from a CSV file
             :return          : preprocessed data, corresponding labels, and errors
         """
@@ -535,8 +562,8 @@ class BareMetal(object):
                 try:
                     image = row[self._image_col]
                     label = row[self._label_col]
-                except Exception as e:
-                    errors.append(e)
+                except Exception as error:
+                    errors.append(error)
                     counts[label] -= 1
                     continue
 
@@ -548,14 +575,14 @@ class BareMetal(object):
                         # load image from memory
                         ast.literal_eval(image)
                         is_memory = True
-                        function = self._loadImageMemory
+                        function = self._load_image_memory
                     except:
                         # load image from remote location
                         if image.startswith(('http:', 'https:')):
-                            function = self._loadImageRemote
+                            function = self._load_image_remote
                         else:
                             # load image from local disk
-                            function = self._loadImageDisk
+                            function = self._load_image_disk
 
                 if is_memory:
                     image = ast.literal_eval(image)
@@ -624,7 +651,7 @@ class BareMetal(object):
             return  _collections, _labels, classes, errors, elapsed
         return  None, _labels, classes, errors, elapsed
 
-    def _loadJSON(self):
+    def _load_json(self):
         """ Read a dataset from a JSON file
             :return          : preprocessed data, corresponding labels, and errors
 
@@ -677,24 +704,24 @@ class BareMetal(object):
                 try:
                     entry[self._label_key]
                 except:
-                    raise IndexError("Label key not found in JSON file")
+                    raise IndexError('Label key not found in JSON file')
                 try:
                     image = entry[self._image_key]
                 except:
-                    raise IndexError("Image key not found in JSON file")
+                    raise IndexError('Image key not found in JSON file')
 
                 try:
                     # load image from memory
                     ast.literal_eval(image)
                     is_memory = True
-                    function = self._loadImageMemory
+                    function = self._load_image_memory
                 except:
                     # load image from remote location
                     if image.startswith(('http:', 'https:')):
-                        function = self._loadImageRemote
+                        function = self._load_image_remote
                     else:
                         # load image from local disk
-                        function = self._loadImageDisk
+                        function = self._load_image_disk
                 first = False
 
             label = entry[self._label_key]
@@ -794,16 +821,21 @@ class BareMetal(object):
             return  _collections, _labels, classes, errors, elapsed
         return  None, _labels, classes, errors, elapsed
 
-    def _loadImages(self, files, dset):
+    def _load_images(self, files, dset):
         """ Load a collection of images
-            :param files: list of file paths of images on-disk, or remote images,
-                          or in-memory images.
-            :type  files: list[strings] or numpy array of matrixes
-            :param dset : HDF5 handle to dataset
-            :type  dset : HDF5 handle
-            :return     : tuple(machine learning ready data, image names, image types,
-                                image shapes, image sizes, processing errors, processing time)
+
+        Arguments:
+            files {list[strings] or numpy array of matrixes} -- list of file paths of images
+                on-disk, or remote images, or in-memory images.
+            dset {HDF5 handle} -- HDF5 handle to dataset
+
+        Returns:
+            tuple -- (
+                machine learning ready data, image names, image types,
+                image shapes, image sizes, processing errors, processing time
+            )
         """
+
         start_time = time.time()
 
         collection = []
@@ -815,15 +847,15 @@ class BareMetal(object):
         d_index = 0
 
         # TODO is it necesary evaluate files when this funtion is just used
-        # for _loadDirectory()?
+        # for _load_directory()?
         verbosity_nparray = False
         if isinstance(files[0], str):
             if files[0].startswith(('http:', 'https:')):
-                function = self._loadImageRemote
+                function = self._load_image_remote
             else:
-                function = self._loadImageDisk
+                function = self._load_image_disk
         elif isinstance(files[0], np.ndarray):
-            function = self._loadImageMemory
+            function = self._load_image_memory
             verbosity_nparray = True
 
         with tqdm(files, postfix='Getting ready...', disable=self._disable) as pbar:
@@ -857,20 +889,24 @@ class BareMetal(object):
 
         return collection, names, types, sizes, shapes, errors, time.time() - start_time
 
-    def _loadImageDisk(self, file):
+    def _load_image_disk(self, file):
         """ Loads an image from disk
-            :param file      : a file path to an image.
-            :type  file      : string
-            :return          : a processed image as a numpy matrix (or vector if flattened).
+
+        Arguments:
+            file {str} -- a file path to an image
+
+        Returns:
+            numpy matrix -- a processed image (or vector if flattened)
         """
+
         # retain original file information
         basename = os.path.splitext(os.path.basename(file))
         name = basename[0]
         _type = basename[1][1:].lower()
         try:
             size = os.path.getsize(file)
-        except Exception as e:
-            return None, None, None, '', '', e
+        except Exception as error:
+            return None, None, None, '', '', error
 
         try:
             if _type in ('gif', 'jp2', 'jpx', 'j2k'):
@@ -900,17 +936,20 @@ class BareMetal(object):
                 else:
                     image = cv2.imread(file, self._colorspace)
             else:
-                return None, None, None, '', '', "Not a supported type: {}".format(_type)
+                return None, None, None, '', '', 'Not a supported type: {}'.format(_type)
 
             # retain the original shape
             shape = image.shape
 
-        except Exception as e:
-            return None, None, None, '', '', e
+        except Exception as error:
+            return None, None, None, '', '', error
 
-        return image, shape, size, name, _type, None
+        if self._stream_ff:
+            return image
+        else:
+            return image, shape, size, name, _type, None
 
-    def _loadImageRemote(self, url):
+    def _load_image_remote(self, url):
         """ Loads an image from a remote location
             :param: image    : the image as raw pixel data as numpy matrix.
             :type   image    : numpy matrix
@@ -918,8 +957,8 @@ class BareMetal(object):
         """
         try:
             response = requests.get(url, timeout=10)
-        except Exception as e:
-            return None, None, None, '', '', e
+        except Exception as error:
+            return None, None, None, '', '', error
 
         # read in the image data
         data = np.frombuffer(response.content, np.uint8)
@@ -934,15 +973,15 @@ class BareMetal(object):
         # decode the image
         try:
             image = cv2.imdecode(data, self._colorspace)
-        except Exception as e:
-            return None, None, None, '', '', e
+        except Exception as error:
+            return None, None, None, '', '', error
 
         # retain the original shape
         shape = image.shape
 
         return image, shape, size, name, _type, None
 
-    def _loadImageMemory(self, image):
+    def _load_image_memory(self, image):
         """ Loads an image from memory
             :param: image     : the image as raw pixel data as numpy matrix.
             :return           : a processed image as a numpy matrix (or vector if flattened).
@@ -950,8 +989,8 @@ class BareMetal(object):
         # retain the original shape
         try:
             shape = image.shape
-        except Exception as e:
-            return None, None, None, '', '', e
+        except Exception as error:
+            return None, None, None, '', '', error
 
         # retain original image information
         name = ''
@@ -977,16 +1016,19 @@ class BareMetal(object):
             elif self._colorspace == COLOR:
                 if image.ndim != 3:
                     image = cv2.cvtColor(image, cv2.COLOR_GRAY2RGB)
-        except Exception as e:
-            return None, None, None, '', '', e
+        except Exception as error:
+            return None, None, None, '', '', error
 
         return image, shape, size, name, _type, None
 
     def _pixel_transform(self, collection):
         """ Perform pixel transformations across collection.
-            :param collection: A collection of partially preprocessed images.
-            :type  collection: list
-            :return          : machine learning ready data
+
+        Arguments:
+            collection {list} -- A collection of partially preprocessed images
+
+        Returns:
+            numpy array -- machine learning ready data
         """
 
         try:
@@ -1053,9 +1095,12 @@ class BareMetal(object):
 
         image = self._pixel_normalize(image.astype(self._dtype), bpp)
 
-        # load image array into dataset
-        dset[index, :] = image
-        return index + 1
+        if self._stream_ff:
+            return image
+        else:
+            # load image array into dataset
+            dset[index, :] = image
+            return index + 1
 
     def _pixel_normalize(self, image_or_collection, bpp):
         """ Normalize collection or image
@@ -1074,7 +1119,9 @@ class BareMetal(object):
                 elif self._norm == NORMAL_ZERO:
                     image_or_collection = image_or_collection / 127.5 - 1
                 elif self._norm == NORMAL_STD:
-                    image_or_collection = (image_or_collection - np.mean(image_or_collection)) / np.std(image_or_collection)
+                    image_or_collection = (
+                        image_or_collection - np.mean(image_or_collection)
+                    ) / np.std(image_or_collection)
             # original pixel data is 16 pixel
             elif bpp == 16:
                 if self._norm == NORMAL_POS:
@@ -1082,7 +1129,9 @@ class BareMetal(object):
                 elif self._norm == NORMAL_ZERO:
                     image_or_collection = image_or_collection / 32767.5 - 1
                 elif self._norm == NORMAL_STD:
-                    image_or_collection = (image_or_collection - np.mean(image_or_collection)) / np.std(image_or_collection)
+                    image_or_collection = (
+                        image_or_collection - np.mean(image_or_collection)
+                    ) / np.std(image_or_collection)
 
         return image_or_collection
 
@@ -1090,9 +1139,9 @@ class BareMetal(object):
         """ Create the HDF5 file and add toplevel metadata """
 
         if self._name:
-            self._hf = h5py.File(os.path.join(self._dir, self._name + '.h5'), 'w')
+            self._hf = h5py.File('{}\\{}.h5'.format(self._dir, self._name), 'w')
         else:
-            self._hf = h5py.File(os.path.join(self._dir, self._dataset + '.h5'), 'w')
+            self._hf = h5py.File('{}\\{}.h5'.format(self._dir, self._dataset), 'w')
 
         # Dataset Attributes
         if self._name:
@@ -1191,7 +1240,7 @@ class BareMetal(object):
             group = self._hf.create_group(group)
 
             # Create dataset attributes
-            dset = group.create_dataset("data", data=collection)
+            dset = group.create_dataset('data', data=collection)
             dset.attrs['count'] = len(collection)
         else:
             dset.attrs['count'] = len(sizes)
@@ -1205,7 +1254,7 @@ class BareMetal(object):
             dset.attrs['type'] = types
             dset.attrs['size'] = sizes
             dset.attrs['shape'] = shapes
-        except:
+        except Exception as error:
             # maybe too large
             pass
 
@@ -1228,7 +1277,7 @@ class BareMetal(object):
         self._count = len(self._dataset)
         if isinstance(self._labels, (list, np.ndarray)):
             if len(self._labels) != self._count:
-                raise AttributeError("Number of labels does not match number of images")
+                raise AttributeError('Number of labels does not match number of images')
 
             for label in self._labels:
                 if label in counts:
@@ -1276,15 +1325,20 @@ class BareMetal(object):
         return collections, labels, classes, counts, names, types, sizes, shapes, dset, d_index
 
     # UNUSED method
-    def _processImage(self, image, resize, flatten=False):
+    def _process_image(self, image, resize, flatten=False):
         """ Lowest level processing of an raw pixel data. [UNUSED]
-            :param image  : raw pixel data as 2D (grayscale) or 3D (color) matrix.
-            :type  image  : numpy matrix
-            :param resize : scale (downsample or upsample) image to a specifid height, width.
-            :type  resize : tuple(height, width)
-            :param flatten: wether to flatten the image into a 1D vector or not.
-            :type  flatten: bool
-            :return       : a processed image as a numpy matrix (or vector if flattened).
+
+        Arguments:
+            image {numpy matrix} -- raw pixel data as 2D (grayscale) or 3D (color) matrix.
+            resize {tuple(height, width)} -- scale (downsample or upsample)
+                                             image to a specifid height, width.
+
+        Keyword Arguments:
+            flatten {bool} -- whether to flatten the image into a 1D vector or not.
+                              (default: {False})
+
+        Returns:
+            numpy matrix -- a processed image (or vector if flattened).
         """
 
         # resize each image to the target size (e.g., 50x50) and flatten into 1D vector
@@ -1297,13 +1351,28 @@ class BareMetal(object):
     ### Image Augmentation ###
 
     def _augmentation(self, image):
-        # select a random augmentation
+        """ select a random augmentation
+
+        Arguments:
+            image {numpy matrix} -- raw pixel data as 2D (grayscale) or 3D (color) matrix.
+
+        Returns:
+            function -- selected random augmentation
+        """
+
         function = random.choice(self._augment)
 
         return function(image)
 
-    def _rotateImage(self, image):
-        """ rotate the image """
+    def _rotate_image(self, image):
+        """ rotate the image
+
+        Arguments:
+            image {numpy matrix} -- raw pixel data as 2D (grayscale) or 3D (color) matrix.
+
+        Returns:
+            numpy matrix -- image rotated
+        """
 
         degree = random.randint(self._rotate[0], self._rotate[1])
 
@@ -1324,8 +1393,16 @@ class BareMetal(object):
             return rotated.astype(np.float16)
         return rotated
 
-    def _edgeImage(self, image):
-        """ edge """
+    def _edge_image(self, image):
+        """ edge the image
+
+        Arguments:
+            image {numpy matrix} -- raw pixel data as 2D (grayscale) or 3D (color) matrix.
+
+        Returns:
+            numpy matrix -- image edged
+        """
+
         if self.dtype in (np.uint8, np.uint16):
             gray = cv2.GaussianBlur(image, (3, 3), 0)
             edged = cv2.Canny(gray, 20, 100)
@@ -1333,8 +1410,16 @@ class BareMetal(object):
             edged = image
         return edged
 
-    def _flipImage(self, image):
-        """ flip """
+    def _flip_image(self, image):
+        """ flip the image
+
+        Arguments:
+            image {numpy matrix} -- raw pixel data as 2D (grayscale) or 3D (color) matrix.
+
+        Returns:
+            numpy matrix -- image flipped
+        """
+
         # operation not supported as float16
         if self._dtype == np.float16:
             image = image.astype(np.float32)
@@ -1347,8 +1432,16 @@ class BareMetal(object):
             return flip.astype(np.float16)
         return flip
 
-    def _zoomImage(self, image):
-        """ zoom """
+    def _zoom_image(self, image):
+        """ zoom the image
+
+        Arguments:
+            image {numpy matrix} -- raw pixel data as 2D (grayscale) or 3D (color) matrix.
+
+        Returns:
+            numpy matrix -- image zoomed
+        """
+
         # operation not supported as float16
         if self._dtype == np.float16:
             image = image.astype(np.float32)
@@ -1361,25 +1454,46 @@ class BareMetal(object):
         )
         new_height, new_width = image.shape[:2]
 
-        y = int(new_height/2)
-        x = int(new_width/2)
-        h = int(old_height/2)
-        w = int(old_width/2)
-        zoom_img = image[y-h:y+h, x-w:x+w]
+        y_new = int(new_height/2)
+        x_new = int(new_width/2)
+        h_old = int(old_height/2)
+        w_old = int(old_width/2)
+
+        zoom_img = image[
+            y_new-h_old:y_new+h_old,
+            x_new-w_old:x_new+w_old
+        ]
+
         if self._dtype == np.float16:
             return zoom_img.astype(np.float16)
         return zoom_img
 
-    def _denoiseImage(self, image):
-        """ denoise """
+    def _denoise_image(self, image):
+        """ denoise the image
+
+        Arguments:
+            image {numpy matrix} -- raw pixel data as 2D (grayscale) or 3D (color) matrix.
+
+        Returns:
+            numpy matrix -- image denoiseed
+        """
+
         if self.dtype in (np.uint8, np.uint16):
             denoise = cv2.fastNlMeansDenoisingColored(image, None, 10, 10, 7, 21)
         else:
             denoise = image
         return denoise
 
-    def _brightnesscontrastImage(self, image):
-        """ brightness & contrast """
+    def _brightness_contrast_image(self, image):
+        """ brightness & contrast the image
+
+        Arguments:
+            image {numpy matrix} -- raw pixel data as 2D (grayscale) or 3D (color) matrix.
+
+        Returns:
+            numpy matrix -- image contrasted
+        """
+
         # operation not supported as float16
         if self._dtype == np.float16:
             image = image.astype(np.float32)
@@ -1393,25 +1507,22 @@ class BareMetal(object):
             return brightness_contrast.astype(np.float16)
         return brightness_contrast
 
+
 class Images(BareMetal):
     """ Base (super) for classifying a group of images """
     def __init__(self, name='unnamed', images=None, labels=None, _dir='./',
                  ehandler=None, config=None, augment=None):
         """ Constructor
-            :param name    : name of the dataset
-            :type  name    : str
-            :param images  : location of images
-            :type  images  : str or numpy array
-            :param labels  : the image labels
-            :type  labels  : list or int
-            :param _dir    : directory to store HDF5 file
-            :type  _dir    : str
-            :param ehandler: callback for asynchronous processing
-            :type  ehandler: callback function
-            :param config  : configuration settings
-            :type  config  : list
-            :param augment : augmentation settings
-            :type  augment : list
+
+        Keyword Arguments:
+            name {str} -- name of the dataset (default: {'unnamed'})
+            images {str or numpy array} -- location of images (default: {None})
+            labels {list or int} -- the image labels (default: {None})
+            _dir {str} -- directory to store HDF5 file (default: {'./'})
+            ehandler {callback function} -- callback for asynchronous
+                                            processing (default: {None})
+            config {list} -- configuration settings (default: {None})
+            augment {list} -- augmentation settings (default: {None})
         """
 
         ### Argument Validation ###
@@ -1420,24 +1531,24 @@ class Images(BareMetal):
 
         if labels is None:
             if isinstance(images, (list, np.ndarray)):
-                raise TypeError("Labels expected when images are a list or numpy array")
+                raise TypeError('Labels expected when images are a list or numpy array')
         else:
             if isinstance(labels, np.ndarray):
-                if len(labels) == 0:
-                    raise AttributeError("Array must be > 0 for labels")
-                if labels.dtype not in ['int8', 'int16', 'int32', 'uint8', 'uint16', 'uint32']:
-                    raise TypeError("Array values must be integers for labels")
+                if labels.size == 0:
+                    raise AttributeError('Array must be > 0 for labels')
+                if labels.dtype not in ('int8', 'int16', 'int32', 'uint8', 'uint16', 'uint32'):
+                    raise TypeError('Array values must be integers for labels')
             elif isinstance(labels, list):
-                if len(labels) == 0:
-                    raise AttributeError("List must be > 0 for labels")
+                if not labels:
+                    raise AttributeError('List must be > 0 for labels')
                 if not isinstance(labels[0], (int, str)):
-                    raise TypeError("List values must be integers or strings for labels")
+                    raise TypeError('List values must be integers or strings for labels')
             elif isinstance(labels, int):
                 pass
             elif isinstance(labels, str):
                 pass
             else:
-                raise TypeError("List, Numpy, integer or string expected for labels")
+                raise TypeError('List, Numpy, integer or string expected for labels')
         self._labels = labels
 
         self.dir = _dir
@@ -1445,9 +1556,9 @@ class Images(BareMetal):
         if ehandler:
             if isinstance(ehandler, tuple):
                 if not callable(ehandler[0]):
-                    raise TypeError("Function expected for ehandler")
+                    raise TypeError('Function expected for ehandler')
             elif not callable(ehandler):
-                raise TypeError("Function expected for ehandler")
+                raise TypeError('Function expected for ehandler')
 
         self._data = None
         self._groups = []
@@ -1469,6 +1580,7 @@ class Images(BareMetal):
         self._label_key = None
         self._store = False
         self._stream = False
+        self._stream_ff = False
         self._classes = None
         self._time = 0
         self._errors = []
@@ -1493,11 +1605,11 @@ class Images(BareMetal):
         self._remote = False
 
         if config is not None:
-            if isinstance(config, list) == False:
-                raise TypeError("List expected for config settings")
+            if not isinstance(config, list):
+                raise TypeError('List expected for config settings')
             else:
                 for setting in config:
-                    if setting.startswith("resize="):
+                    if setting.startswith('resize='):
                         param = setting.split('=')[1]
                         try:
                             toks = param.split(',')
@@ -1507,10 +1619,10 @@ class Images(BareMetal):
                             # openCV resizes as (width, height)
                             self._resize = (int(toks[1]), int(toks[0]))
                             if self._resize[0] <= 0 or self._resize[1] <= 0:
-                                raise AttributeError("Height and width must be > 0 for resize")
+                                raise AttributeError('Height and width must be > 0 for resize')
                         except:
-                            raise AttributeError("Tuple(int,int) expected for resize")
-                    elif setting.startswith(("norm=", "normalization=")):
+                            raise AttributeError('Tuple(int,int) expected for resize')
+                    elif setting.startswith(('norm=', 'normalization=')):
                         param = setting.split('=')[1]
                         if param == 'pos':
                             self._norm = NORMAL_POS
@@ -1519,49 +1631,49 @@ class Images(BareMetal):
                         elif param == 'std':
                             self._norm = NORMAL_STD
                         else:
-                            raise AttributeError("pos, zero or std expected for norm(alization)")
-                    elif setting.startswith("image_col="):
+                            raise AttributeError('pos, zero or std expected for norm(alization)')
+                    elif setting.startswith('image_col='):
                         try:
                             self._image_col = int(setting.split('=')[1])
                             if self._image_col < 0:
-                                raise AttributeError("Value must be >= 0 for image_col")
+                                raise AttributeError('Value must be >= 0 for image_col')
                         except:
-                            raise AttributeError("Integer expected for image_col")
-                    elif setting.startswith("label_col="):
+                            raise AttributeError('Integer expected for image_col')
+                    elif setting.startswith('label_col='):
                         try:
                             self._label_col = int(setting.split('=')[1])
                             if self._label_col < 0:
-                                raise AttributeError("Value must be >= 0 for label_col")
+                                raise AttributeError('Value must be >= 0 for label_col')
                         except:
-                            raise AttributeError("Integer expected for label_col")
-                    elif setting.startswith("sep="):
+                            raise AttributeError('Integer expected for label_col')
+                    elif setting.startswith('sep='):
                         self._col_sep = setting.split('=')[1]
                         if not self._col_sep:
-                            raise AttributeError("Character sequence expected for sep")
-                    elif setting.startswith("image_key="):
+                            raise AttributeError('Character sequence expected for sep')
+                    elif setting.startswith('image_key='):
                         self._image_key = setting.split('=')[1]
                         if not self._image_key:
-                            raise AttributeError("String expected for image_key")
-                    elif setting.startswith("label_key="):
+                            raise AttributeError('String expected for image_key')
+                    elif setting.startswith('label_key='):
                         self._label_key = setting.split('=')[1]
                         if not self._label_key:
-                            raise AttributeError("String expected for label_key")
-                    elif setting.startswith("author="):
+                            raise AttributeError('String expected for label_key')
+                    elif setting.startswith('author='):
                         self._author = setting.split('=')[1]
-                    elif setting.startswith("desc="):
+                    elif setting.startswith('desc='):
                         self._desc = setting.split('=')[1]
-                    elif setting.startswith("src="):
+                    elif setting.startswith('src='):
                         self._src = setting.split('=')[1]
-                    elif setting.startswith("license="):
+                    elif setting.startswith('license='):
                         self._license = setting.split('=')[1]
-                    elif setting.startswith("mp="):
+                    elif setting.startswith('mp='):
                         val = setting.split('=')[1]
                         if not val:
-                            raise AttributeError("Integer expected for mp")
+                            raise AttributeError('Integer expected for mp')
                         try:
                             self._mp = int(val)
                         except:
-                            raise AttributeError("Integer expected for mp")
+                            raise AttributeError('Integer expected for mp')
                     elif setting == "verbose":
                         self._disable = False
                     elif setting in ('gray', 'grayscale'):
@@ -1586,10 +1698,12 @@ class Images(BareMetal):
                         self._stream = True
                         # stream implies store
                         self._store = True
+                    elif setting == '_stream_ff':
+                        self._stream_ff = True
                     elif setting == '16bpp':
                         self._16bpp = True
                     else:
-                        raise AttributeError("Config setting not recognized: {}".format(setting))
+                        raise AttributeError('Config setting not recognized: {}'.format(setting))
 
         ### Image Augmentation - Argument Validation ###
 
@@ -1605,54 +1719,52 @@ class Images(BareMetal):
 
         if augment is not None:
             if not isinstance(augment, list):
-                raise TypeError("List expected for augment settings")
+                raise TypeError('List expected for augment settings')
             else:
                 for setting in augment:
                     if setting.startswith('flip='):
                         self._flip = setting.split('=')[1]
                         if not self._flip or self._flip not in ('horizontal', 'vertical', 'both'):
-                            raise AttributeError("horizontal, vertical, or both expected for flip")
+                            raise AttributeError('horizontal, vertical, or both expected for flip')
                         if self._flip in ('horizontal', 'both'):
                             self._horizontal = True
                         if self._flip in ('vertical', 'both'):
                             self._vertical = True
-                        self._augment.append(self._flipImage)
+                        self._augment.append(self._flip_image)
                     elif setting.startswith('zoom='):
                         self._zoom = setting.split('=')[1]
                         if not self._zoom:
-                            raise AttributeError("integer or float >= 0 expected for zoom")
+                            raise AttributeError('integer or float >= 0 expected for zoom')
                         try:
                             self._zoom = ast.literal_eval(self._zoom)
                             if self._zoom < 0:
-                                raise AttributeError("Value must be >= 0 for zoom")
+                                raise AttributeError('Value must be >= 0 for zoom')
                         except:
-                            raise AttributeError("integer or float >= 0 expected for zoom")
+                            raise AttributeError('integer or float >= 0 expected for zoom')
                         self._zoom += 1
-                        self._augment.append(self._zoomImage)
+                        self._augment.append(self._zoom_image)
                     elif setting.startswith('rotate='):
                         args = setting.split('=')[1]
                         if not args:
-                            raise AttributeError("Missing value for rotate")
-                        range = args.split(',')
-                        if len(range) != 2:
-                            raise AttributeError("Degree range expected for rotate")
+                            raise AttributeError('Missing value for rotate')
+                        rotate_range = args.split(',')
+                        if len(rotate_range) != 2:
+                            raise AttributeError('Degree range expected for rotate')
                         try:
-                            min = int(range[0])
-                            self._rotate.append(min)
-                            max = int(range[1])
-                            self._rotate.append(max)
+                            min_rotate = int(rotate_range[0])
+                            self._rotate.append(min_rotate)
+                            max_rotate = int(rotate_range[1])
+                            self._rotate.append(max_rotate)
                         except:
-                            raise AttributeError("Degree range not an integer")
-                        if min <= -360:
-                            raise AttributeError("Degree range must be between -360 and 360")
-                        if max >= 360:
-                            raise AttributeError("Degree range must be between -360 and 360")
-                        self._augment.append(self._rotateImage)
+                            raise AttributeError('Degree range not an integer')
+                        if min_rotate <= -360 or max_rotate >= 360:
+                            raise AttributeError('Degree range must be between -360 and 360')
+                        self._augment.append(self._rotate_image)
                     elif setting.startswith(('brightness=', 'contrast=')):
                         option = setting.split('=')
                         if option[0] == 'contrast':
                             if not option[1]:
-                                raise AttributeError("Missing value for contrast")
+                                raise AttributeError('Missing value for contrast')
                             try:
                                 self._contrast = float(option[1])
                                 if self._contrast < 1.0 or self._contrast > 3.0:
@@ -1660,25 +1772,25 @@ class Images(BareMetal):
                                         "Contrast range must be between 1.0 and 3.0"
                                     )
                             except:
-                                raise AttributeError("Contrast range not a float")
+                                raise AttributeError('Contrast range not a float')
                         if option[0] == 'brightness':
                             if not option[1]:
-                                raise AttributeError("Missing value for brightness")
+                                raise AttributeError('Missing value for brightness')
                             try:
                                 self._brightness = ast.literal_eval(option[1])
-                                if self._brightness < 0 or self._brightness > 100: # 0 < self._brightness > 100:
+                                if self._brightness < 0 or self._brightness > 100:
                                     raise AttributeError(
                                         "Brightness range must be between 0 and 100"
                                     )
                             except:
-                                raise AttributeError("Brightness range not an integer or float")
-                        self._augment.append(self._brightnesscontrastImage)
+                                raise AttributeError('Brightness range not an integer or float')
+                        self._augment.append(self._brightness_contrast_image)
                     elif setting == 'edge':
-                        self._augment.append(self._edgeImage)
+                        self._augment.append(self._edge_image)
                     elif setting == 'denoise':
-                        self._augment.append(self._denoiseImage)
+                        self._augment.append(self._denoise_image)
                     else:
-                        raise AttributeError("Augment setting not recognized:" + setting)
+                        raise AttributeError('Augment setting not recognized: {}'.format(setting))
 
         # Make Empty Images collection
         if images is None:
@@ -1695,19 +1807,19 @@ class Images(BareMetal):
         else:
             # no parameters
             if not isinstance(self._async, tuple):
-                t = threading.Thread(target=self._async, args=())
+                thread = threading.Thread(target=self._async, args=())
             else:
-                t = threading.Thread(target=self._async, args=(ehandler[1:], ))
-            t.start()
+                thread = threading.Thread(target=self._async, args=(ehandler[1:], ))
+            thread.start()
 
     def _process(self):
         """ Process the Dataset """
         try:
-            self._data, self._labels, self._classes, self._errors, self._time = self._loadDataset()
-        except Exception as e:
+            self._data, self._labels, self._classes, self._errors, self._time = self._load_dataset()
+        except Exception as error:
             if self._hf:
                 self._hf.close()
-            raise e
+            raise error
 
     def _async(self):
         """ Asynchronous processing of the collection """
@@ -1725,12 +1837,12 @@ class Images(BareMetal):
         if name is None:
             raise ValueError("Name parameter cannot be None")
         if not isinstance(name, str):
-            raise TypeError("String expected for collection name")
+            raise TypeError('String expected for collection name')
         self._name = name
 
         if _dir is not None:
             if not isinstance(_dir, str):
-                raise TypeError("String expected for directory name")
+                raise TypeError('String expected for directory name')
             self.dir = _dir
 
         # unnecessary self._dir gets the value './' when images = Images()
@@ -1742,7 +1854,7 @@ class Images(BareMetal):
         self._data = []
         self._labels = []
         self._groups = []
-        with h5py.File(self._dir + self._name + '.h5', 'r') as self._hf:
+        with h5py.File('{}{}.h5'.format(self._dir, self._name), 'r') as self._hf:
             # Dataset Attributes
             self._name = self._hf.attrs['name']
             self._author = self._hf.attrs['author']
@@ -1773,18 +1885,18 @@ class Images(BareMetal):
             self._resize = self._shape
 
             # Groups
-            for group in self._hf: # keys()
+            for group in self._hf:
                 dset = self._hf[group]
                 try:
-                    count = dset["data"].attrs['count']
+                    count = dset['data'].attrs['count']
                 except:
                     # empty dataset
                     continue
                 # will stream from HDF5 instead of memory when feeding
                 if not self._stream:
-                    data = dset["data"][:count]
+                    data = dset['data'][:count]
                     self._data.append(data)
-                label = dset["data"].attrs['label']
+                label = dset['data'].attrs['label']
                 self._labels.append(np.asarray([label for _ in range(count)]))
                 self._groups.append(group)
 
@@ -1792,19 +1904,19 @@ class Images(BareMetal):
 
         # leave HDF5 open when streaming
         if self._stream:
-            self._hf = h5py.File(self._dir + self._name + '.h5', 'r')
+            self._hf = h5py.File('{}{}.h5'.format(self._dir, self._name), 'r')
 
     def store(self, name='unnamed', _dir=None):
         """ Load a Collection of Images """
         if name is None:
             raise ValueError("Name parameter cannot be None")
         if not isinstance(name, str):
-            raise TypeError("String expected for collection name")
+            raise TypeError('String expected for collection name')
         self._name = name
 
         if _dir is not None:
             if not isinstance(_dir, str):
-                raise TypeError("String expected for directory name")
+                raise TypeError('String expected for directory name')
             self.dir = _dir
 
         self._create_hdf5()
@@ -1842,8 +1954,8 @@ class Images(BareMetal):
     @name.setter
     def name(self, name):
         """ Setter for the dataset (collection) name """
-        if name and isinstance(name, str) == False:
-            raise TypeError("String expected for collection name")
+        if name and not isinstance(name, str):
+            raise TypeError('String expected for collection name')
         self._name = name
 
     @property
@@ -1871,16 +1983,16 @@ class Images(BareMetal):
         """ Setter for image directory """
         # value must be a string
         if _dir is not None:
-            if isinstance(_dir, str) == False:
-                raise TypeError("String expected for image storage path")
-            if _dir.endswith("/") == False:
+            if not isinstance(_dir, str):
+                raise TypeError('String expected for image storage path')
+            if not _dir.endswith("/"):
                 _dir += "/"
             self._dir = _dir
         self._dir = _dir
         try:
             os.makedirs(self._dir, exist_ok=True)
         except:
-            raise TypeError("String expected for image storage path")
+            raise TypeError('String expected for image storage path')
 
     @property
     def time(self):
@@ -1961,9 +2073,9 @@ class Images(BareMetal):
     def __getitem__(self, ix):
         """ Override the index operator - return the collection at the corresponding index """
         if not isinstance(ix, int):
-            raise TypeError("Index must be an integer")
+            raise TypeError('Index must be an integer')
         if ix > len(self):
-            raise IndexError("Index out of range for Images")
+            raise IndexError('Index out of range for Images')
         return self._data[ix]
 
     def __iadd__(self, image):
@@ -1978,11 +2090,11 @@ class Images(BareMetal):
         elif isinstance(image, Images):
             # Validity Checks
             if self._shape != image._shape:
-                raise AttributeError("Collections must be of the same shape to add")
+                raise AttributeError('Collections must be of the same shape to add')
             if self._dtype != image._dtype:
-                raise AttributeError("Collections must be of the sample pixel data type to add")
+                raise AttributeError('Collections must be of the sample pixel data type to add')
             if self._colorspace != image._colorspace:
-                raise AttributeError("Collections must be of the same color space to add")
+                raise AttributeError('Collections must be of the same color space to add')
 
             # merge the counts
             self._count += image._count
@@ -2024,7 +2136,7 @@ class Images(BareMetal):
                     self._data.append(image._data[ix])
                     self._labels.append(np.asarray([n_label for _ in range(len(image._data[ix]))]))
         else:
-            raise TypeError("Image(s) expected for image")
+            raise TypeError('Image(s) expected for image')
 
         return self
 
@@ -2035,7 +2147,7 @@ class Images(BareMetal):
         """ Getter for return a split training set """
 
         if self._stream:
-            raise AttributeError("Split incompatible in stream mode")
+            raise AttributeError('Split incompatible in stream mode')
 
         # Training set not already split, so split it
         if self._train is None:
@@ -2148,33 +2260,33 @@ class Images(BareMetal):
         """
         if isinstance(percent, tuple):
             if len(percent) != 2:
-                raise AttributeError("Split setter must be percent, seed")
+                raise AttributeError('Split setter must be percent, seed')
             self._seed = percent[1]
             if not isinstance(self._seed, int):
-                raise TypeError("Seed parameter must be an integer")
+                raise TypeError('Seed parameter must be an integer')
             percent = percent[0]
 
         val_percent = 0
         if isinstance(percent, list):
             if len(percent) != 2:
-                raise AttributeError("Percent must either be for test or test and eval")
+                raise AttributeError('Percent must either be for test or test and eval')
             val_percent = percent[1]
             percent = percent[0]
             if not isinstance(val_percent, float):
-                raise TypeError("Valuation Percent must be float")
+                raise TypeError('Valuation Percent must be float')
         if not isinstance(percent, float) and percent != 0:
-            raise TypeError("Float expected for percent")
+            raise TypeError('Float expected for percent')
         if percent < 0 or percent >= 1:
             raise ValueError("Percent parameter must be between 0 and 1")
         if val_percent < 0 or val_percent >= 1:
             raise ValueError("Valuation percent parameter must be between 0 and 1")
 
         if self._labels is None:
-            raise AttributeError("No image data")
+            raise AttributeError('No image data')
 
         # open HDF5 for streaming when feeding
         if self._stream and self._hf is None:
-            self._hf = h5py.File(self._dir + self._name + '.h5', 'r')
+            self._hf = h5py.File('{}{}.h5'.format(self._dir, self._name), 'r')
 
         self._split = (1 - percent)
 
@@ -2220,7 +2332,7 @@ class Images(BareMetal):
         Y = np.eye(C)[Y.reshape(-1)].astype(np.uint8)
         return Y
 
-    def _verifyNormalization(self, image):
+    def _verify_normalization(self, image):
         # pre-normalized
         if self.dtype == np.uint8:
             image = (image / 255.0).astype(np.float32)
@@ -2251,17 +2363,17 @@ class Images(BareMetal):
                 label = self._labels[ix][iy]
                 # streaming
                 if self._stream:
-                    data = self._hf[self._groups[ix]]["data"][iy]
+                    data = self._hf[self._groups[ix]]['data'][iy]
                 # in-memory
                 else:
                     data = self._data[ix][iy]
-                x_batch.append(self._verifyNormalization(data))
+                x_batch.append(self._verify_normalization(data))
                 y_batch.append(label)
 
                 # if augmentation, feed a second augmented version of the image
                 if self._augment:
                     image = self._augmentation(data)
-                    x_batch.append(self._verifyNormalization(image))
+                    x_batch.append(self._verify_normalization(image))
                     y_batch.append(label)
 
             self._next += self._minisz
@@ -2271,7 +2383,7 @@ class Images(BareMetal):
     def minibatch(self, batch_size):
         """ Generator for creating mini-batches """
         if not isinstance(batch_size, int):
-            raise TypeError("Integer expected for mini batch size")
+            raise TypeError('Integer expected for mini batch size')
 
         if batch_size <= 0:
             raise ValueError("Batch size must be > 0")
@@ -2287,11 +2399,48 @@ class Images(BareMetal):
         if self._augment:
             batch_size //= 2
 
-        # Create one-hot encoded labels
-        if self._nlabels is None:
-            self._nlabels = len(self._classes)
-
         self._minisz = batch_size
+        self._nlabels = len(self._classes)
+
+    @property
+    def stream_from_folder(self):
+        image_label = self._image_label
+        while image_label:
+            total_images = len(image_label)
+            if total_images < self._stream_batch:
+                self._stream_batch = total_images
+            images_batch = random.sample(image_label, self._stream_batch)
+            x_batch = []
+            y_batch = []
+            for i, item in enumerate(images_batch, 1):
+                file = item[0]
+                image_label.remove(item)
+                if not isinstance(file, str):
+                    raise ValueError('image path must be a string')
+                image = self._load_image_disk(file)
+                if self._augment and (i % 2) == 0:
+                    ## augment just half of the data set
+                    image = self._augmentation(image)
+
+                ## resize image
+                image = self._pixel_transform_stream(image)
+
+                x_batch.append(image)
+
+            yield np.asarray(x_batch), self._one_hot(np.asarray(y_batch), self._nlabels)
+
+    @stream_from_folder.setter
+    def stream_from_folder(self, batch_size):
+        if not isinstance(batch_size, int):
+            raise TypeError('Integer expected for mini batch size')
+
+        if batch_size <= 0:
+            raise ValueError("Batch size must be > 0")
+
+        if batch_size < 1 or batch_size > self._image_label:
+            raise ValueError("Mini batch size is out of range")
+
+        self._stream_batch = batch_size
         self._nlabels = len(self._classes)
 
     @property
@@ -2313,18 +2462,18 @@ class Images(BareMetal):
                     label = self._labels[ix]
                     # streaming
                     if self._stream:
-                        data = self._hf[self._groups[ix]]["data"][iy]
+                        data = self._hf[self._groups[ix]]['data'][iy]
                     # in-memory
                     else:
                         data = self._data[ix][iy]
-                    x_batch.append(self._verifyNormalization(data))
+                    x_batch.append(self._verify_normalization(data))
                     y_batch.append(label)
                     n += 1
 
                     # if augmenting, send a second augmented version of the image
                     if self._augment:
                         image = self._augmentation(data)
-                        x_batch.append(self._verifyNormalization(image))
+                        x_batch.append(self._verify_normalization(image))
                         y_batch.append(label)
 
             yield np.asarray(x_batch), self._one_hot(np.asarray(y_batch), self._nlabels)
@@ -2335,36 +2484,34 @@ class Images(BareMetal):
         if isinstance(batch_size, int):
             batch_size = tuple([batch_size])
 
-        if not isinstance(batch_size, tuple):
-            raise AttributeError("Stratify setter must be batch_size, percent[,seed]")
-        if len(batch_size) > 3:
-            raise AttributeError("Stratify setter must be batch size, percent[,seed]")
+        if not isinstance(batch_size, tuple) or len(batch_size) > 3:
+            raise AttributeError('Stratify setter must be batch_size, percent[,seed]')
 
         self._minisz = batch_size[0]
         if not isinstance(self._minisz, int):
-            raise TypeError("Integer expected for mini batch size")
+            raise TypeError('Integer expected for mini batch size')
         if self._minisz <= 0:
             raise ValueError("Batch size must be > 0")
 
         if len(batch_size) > 1:
             percent = batch_size[1]
             if not isinstance(percent, float) and percent != 0:
-                raise TypeError("Float expected for percent")
+                raise TypeError('Float expected for percent')
             if percent < 0 or percent >= 1:
-                raise ValueError("Percent parameter must be between 0 and 1")
+                raise ValueError('Percent parameter must be between 0 and 1')
         else:
             percent = (1 - self._split)
 
         if len(batch_size) > 2:
             self._seed = batch_size[2]
             if not isinstance(self._seed, int):
-                raise TypeError("Seed parameter must be an integer")
+                raise TypeError('Seed parameter must be an integer')
 
         if self._labels is None:
-            raise AttributeError("No image data")
+            raise AttributeError('No image data')
 
         if self._minisz < len(self._labels):
-            raise ValueError("Batch size too small")
+            raise ValueError('Batch size too small')
 
         self._split = (1 - percent)
 
@@ -2392,7 +2539,7 @@ class Images(BareMetal):
 
         # open HDF5 for streaming when feeding
         if self._stream and self._hf is None:
-            self._hf = h5py.File(self._dir + self._name + '.h5', 'r')
+            self._hf = h5py.File('{}{}.h5'.format(self._dir, self._name), 'r')
 
     @property
     def test(self):
@@ -2405,7 +2552,7 @@ class Images(BareMetal):
         Y_test = []
         for ix, index in self._test:
             if self._stream:
-                X_test.append(self._hf[self._groups[ix]]["data"][index])
+                X_test.append(self._hf[self._groups[ix]]['data'][index])
             else:
                 X_test.append(self._data[ix][index])
             Y_test.append(self._labels[ix][0])
@@ -2457,7 +2604,7 @@ class Images(BareMetal):
         # pre-normalize: normalize as being feed
         label = self._labels[ix]
         if self._stream:
-            image = self._hf[self._groups[ix]]["data"][iy]
+            image = self._hf[self._groups[ix]]['data'][iy]
         else:
             image = self._data[ix][iy]
         if self.dtype == np.uint8:
@@ -2489,7 +2636,7 @@ class Images(BareMetal):
     def flatten(self, flatten):
         """ (Un)Flatten the Image Data """
         if not isinstance(flatten, bool):
-            raise TypeError("Boolean expected for flatten")
+            raise TypeError('Boolean expected for flatten')
         if not self:
             return
         if flatten == True:
@@ -2529,13 +2676,13 @@ class Images(BareMetal):
 
         # Argument Validation
         if not isinstance(resize, tuple):
-            raise TypeError("Tuple expected for resize")
+            raise TypeError('Tuple expected for resize')
         if len(resize) != 2:
-            raise AttributeError("Tuple for resize must be in form (height, width)")
+            raise AttributeError('Tuple for resize must be in form (height, width)')
         if not isinstance(resize[0], int) or not isinstance(resize[1], int):
-            raise TypeError("Integer expected for height and width in resize")
+            raise TypeError('Integer expected for height and width in resize')
         if resize[0] <= 0 or resize[1] <= 0:
-            raise ValueError("height and width must > 0 in resize")
+            raise ValueError('height and width must > 0 in resize')
 
         # There are no images
         if not self:
