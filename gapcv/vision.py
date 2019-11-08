@@ -933,6 +933,10 @@ class BareMetal(object):
         except:
             return None
 
+        if self._colorspace == GRAYSCALE and self._expand_dim:
+            if image.ndim == 2:
+                image = np.expand_dims(image, axis=-1)
+
         # calculate the bits per pixel of the original data
         bpp = image.itemsize * 8
 
@@ -1027,6 +1031,9 @@ class BareMetal(object):
             else:
                 # switch to height, width (resize is reversed for cv2
                 shape = (self._resize[1], self._resize[0])
+            if self._expand_dim:
+                # switch to height, width (resize is reversed for cv2
+                shape = (self._resize[1], self._resize[0], 1)
         else:
             if self._flatten:
                 shape = (self._resize[0] * self._resize[1] * 3, )
@@ -1336,6 +1343,7 @@ class Images(BareMetal):
         self._resize = (128, 128)
         self._flatten = False
         self._colorspace = COLOR
+        self._expand_dim = False
         self._dtype = np.float32
         self._norm = NORMAL_POS
         self._author = ''
@@ -1443,6 +1451,9 @@ class Images(BareMetal):
                             raise AttributeError("Integer expected for mp")
                     elif setting in ['gray', 'grayscale']:
                         self._colorspace = GRAYSCALE
+                    elif setting == 'gray-expand_dim':
+                        self._colorspace = GRAYSCALE
+                        self._expand_dim = True
                     elif setting in ['flat', 'flatten']:
                         self._flatten = True
                     elif setting == 'uint8':
@@ -2396,7 +2407,7 @@ class Images(BareMetal):
         return None
 
     @gray.setter
-    def gray(self, gray):
+    def gray(self, gray, expand_dim=False):
         """ Grayscale the Image Data """
         if gray and self._colorspace != GRAYSCALE:
             self._colorspace = GRAYSCALE
@@ -2404,7 +2415,10 @@ class Images(BareMetal):
             for collection in self._data:
                 images = []
                 for image in collection:
-                    images.append(cv2.cvtColor(image, cv2.COLOR_BGR2GRAY))
+                    image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+                    if expand_dim:
+                        image = np.expand_dims(image, axis=-1)
+                    images.append(image)
                 collections.append(np.asarray(images))
             self._data = collections
 
