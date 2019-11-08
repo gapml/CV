@@ -9,5 +9,6 @@ site/
 .vscode
 htmlcov
 .coverage
+.mypy_cache
 flower_photos
 tester.py
