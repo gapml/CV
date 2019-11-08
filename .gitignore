@@ -10,3 +10,4 @@ site/
 htmlcov
 .coverage
 flower_photos
+tester.py
