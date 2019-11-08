@@ -14,6 +14,6 @@ deleteme*
 tester.py
 .mypy_cache
 flower_photos
-flower_photos.h5
+*.h5
 tester.py
 dev.py
