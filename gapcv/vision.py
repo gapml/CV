@@ -897,13 +897,23 @@ class BareMetal(object):
                 # flatten into 1D vector and resize
                 collection = [cv2.resize(image, self._resize,
                                          interpolation=cv2.INTER_AREA).flatten() for image in collection]
+            # expand dimention for keras fit_generator
+            elif self._colorspace == GRAYSCALE and self._expand_dim:
+                collection = [np.expand_dims(
+                    cv2.resize(
+                        image,
+                        self._resize,
+                        interpolation=cv2.INTER_AREA
+                    ),
+                    axis=-1
+                ) for image in collection if image.ndim == 2]
             else:
                 # resize each image to the target size (e.g., 50x50)
                 collection = [cv2.resize(image, self._resize,
                                          interpolation=cv2.INTER_AREA) for image in collection]
         except:
             return None
-
+  
         # calculate the bits per pixel of the original data
         bpp = collection[0].itemsize * 8
 
