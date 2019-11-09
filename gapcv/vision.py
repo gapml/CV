@@ -2407,8 +2407,20 @@ class Images(BareMetal):
         return None
 
     @gray.setter
-    def gray(self, gray, expand_dim=False):
+    def gray(self, gray):
         """ Grayscale the Image Data """
+        expand_dim = False
+        if isinstance(gray, (tuple, list)):
+            if len(gray) != 2:
+                raise AttributeError("gray and expand_dim setter must be (bool, bool)")
+            for item in gray:
+                if not isinstance(item, bool):
+                    raise AttributeError("gray and expand_dim setter must be bool")
+            expand_dim = gray[1]
+            gray = gray[0]
+        elif not isinstance(gray, bool):
+            raise AttributeError("gray and expand_dim setter must be bool")
+
         if gray and self._colorspace != GRAYSCALE:
             self._colorspace = GRAYSCALE
             collections = []
