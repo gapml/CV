@@ -4662,6 +4662,9 @@ class MyTest(unittest.TestCase):
             images.gray = ('Fake', 'Fake')
         with pytest.raises(AttributeError):
             images.gray = 'Fake'
+        images = Images('foo', ['files/1.jpg', 'files/2.jpg'], 0,
+                        config=['resize=(50,50)', 'gray-expand_dim'])
+        self.assertEqual(images.images[0].shape, (2, 50, 50, 1))
 
     def test_058(self):
         """ Images - split - setter - bad arguments """
