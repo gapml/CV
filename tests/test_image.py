@@ -19,10 +19,10 @@ import os
 import sys
 import time
 import unittest
-import cv2
-import pytest
-import numpy as np
 from shutil import copy, rmtree
+import cv2
+import numpy as np
+import pytest
 from gapcv.vision import Image, Images
 
 class MyTest(unittest.TestCase):
@@ -34,7 +34,7 @@ class MyTest(unittest.TestCase):
 
     def teardown_class(self):
         """ Teardown Class """
-        os.remove('foo.h5')
+        pass
 
     ### Images
 
@@ -114,6 +114,7 @@ class MyTest(unittest.TestCase):
         images = Images(config=['flatten'])
         images = Images(config=['gray'])
         images = Images(config=['grayscale'])
+        images = Images(config=['gray-expand_dim'])
         images = Images(config=['store'])
         images = Images(config=['stream'])
         images = Images(config=['header'])
@@ -182,7 +183,6 @@ class MyTest(unittest.TestCase):
         with pytest.raises(AttributeError):
             images = Images(config=['label_key='])
         images = Images(config=['label_key=B'])
-        images = Images(config=['verbose'])
 
     def test_008(self):
         """ Images Constructor - no images, labels argument """
@@ -229,8 +229,8 @@ class MyTest(unittest.TestCase):
         with pytest.raises(OSError):
             images = Images('foo', 'https://noexist.csv', config=['image_col=0', 'label_col=0'])
 
-        with open('files/empty.csv', 'w') as file:
-            pass
+        f = open('files/empty.csv', 'w')
+        f.close()
         with pytest.raises(AttributeError):
             images = Images('foo', 'files/empty.csv', config=['image_col=-1', 'label_col=0'])
         with pytest.raises(AttributeError):
@@ -250,16 +250,18 @@ class MyTest(unittest.TestCase):
         with pytest.raises(ValueError):
             images = Images('foo', 'files/empty.csv', config=['label_col=0', 'image_col=0'])
 
-        with open('files/empty.csv', 'w') as file:
-            file.write('1,2\n')
+        f = open('files/empty.csv', 'w')
+        f.write('1,2\n')
+        f.close()
         with pytest.raises(IndexError):
             images = Images('foo', 'files/empty.csv', config=['label_col=2', 'image_col=0'])
         with pytest.raises(IndexError):
             images = Images('foo', 'files/empty.csv', config=['label_col=0', 'image_col=2'])
 
-        with open('files/empty.csv', 'w') as file:
-            file.write('header,header\n')
-            file.write('1,2\n')
+        f = open('files/empty.csv', 'w')
+        f.write('header,header\n')
+        f.write('1,2\n')
+        f.close()
         with pytest.raises(IndexError):
             images = Images('foo', 'files/empty.csv',
                             config=['label_col=2', 'image_col=0', 'header'])
@@ -283,8 +285,8 @@ class MyTest(unittest.TestCase):
                             config=['image_key=image', 'label_key=label'])
 
         # missing arguments
-        with open('files/empty.json', 'w') as file:
-            pass
+        f = open('files/empty.json', 'w')
+        f.close()
         with pytest.raises(AttributeError):
             images = Images('foo', 'files/empty.json', config=[])
         with pytest.raises(AttributeError):
@@ -292,37 +294,25 @@ class MyTest(unittest.TestCase):
         with pytest.raises(AttributeError):
             images = Images('foo', 'files/empty.json', config=['label_key=key'])
         with pytest.raises(ValueError):
-            images = Images(
-                'foo',
-                'files/empty.json',
-                config=[
-                    'image_key=image',
-                    'label_key=image'
-                ]
-            )
+            images = Images('foo', 'files/empty.json',
+                            config=['image_key=image', 'label_key=image'])
 
         # bad format
-        with open('files/empty.json', 'w') as file:
-            file.write('{"0"\n')
+        f = open('files/empty.json', 'w')
+        f.write('{"0"\n')
+        f.close()
         with pytest.raises(OSError):
-            images = Images(
-                'foo',
-                'files/empty.json',
-                config=[
-                    'image_key=image',
-                    'label_key=label'
-                ]
-            )
+            images = Images('foo', 'files/empty.json',
+                            config=['image_key=image', 'label_key=label'])
 
         # missing keys
-        with open('files/test.json', 'w') as file:
-            file.write(
-                """[
-                    {"label": 0, "image": "files/1.jpg"},
-                    {"label": 0, "image": "files/2.jpg"},
-                    {"label": 0, "image": "files/3.jpg"}
-                ]"""
-            )
+        f = open('files/test.json', 'w')
+        f.write("[")
+        f.write('{"label": 0, "image": "files/1.jpg"},\n')
+        f.write('{"label": 0, "image": "files/2.jpg"},\n')
+        f.write('{"label": 0, "image": "files/3.jpg"}\n')
+        f.write("]")
+        f.close()
         with pytest.raises(IndexError):
             images = Images('foo', 'files/test.json', config=['image_key=image', 'label_key=foo'])
         with pytest.raises(IndexError):
@@ -370,8 +360,8 @@ class MyTest(unittest.TestCase):
         self.assertEqual(images.errors, [])
         self.assertEqual(images.count, 0)
 
-        with open('files/empty/foo.txt', 'w+') as file:
-            pass
+        f = open('files/empty/foo.txt', 'w+')
+        f.close()
         images = Images('foo', 'files/empty')
         self.assertEqual(len(images), 0)
         self.assertEqual(images.fail, 0)
@@ -398,8 +388,8 @@ class MyTest(unittest.TestCase):
 
         if not os.path.isdir('files/empty/.tmp'):
             os.mkdir('files/empty/.tmp')
-        with open('files/empty/.tmp/1.jpg', 'w+') as file:
-            pass
+        f = open('files/empty/.tmp/1.jpg', 'w+')
+        f.close()
         images = Images('foo', 'files/empty')
         self.assertEqual(len(images), 0)
         self.assertEqual(images.fail, 0)
@@ -420,6 +410,7 @@ class MyTest(unittest.TestCase):
         self.assertEqual(images.count, 0)
         self.assertEqual(images.images, [])
         self.assertEqual(len(images.labels), 0)
+        os.remove('foo.h5')
 
         # line 57 only works if name=None
         images = Images(None, 'files/empty', config=['store'])
@@ -476,8 +467,8 @@ class MyTest(unittest.TestCase):
             rmtree('files/bad')
         os.mkdir('files/bad')
         os.mkdir('files/bad/tmp1')
-        with open('files/bad/tmp1/1.jpg', 'w+') as file:
-            pass
+        f = open('files/bad/tmp1/1.jpg', 'w+')
+        f.close()
         images = Images('foo', 'files/bad')
         self.assertEqual(images.fail, 1)
         self.assertEqual(images.classes, {'tmp1': 0})
@@ -568,8 +559,8 @@ class MyTest(unittest.TestCase):
         self.assertTrue(images.time > 0)
 
         # error
-        with open('files/root/tmp1/bad.jpg', 'w+') as file:
-            pass
+        f = open('files/root/tmp1/bad.jpg', 'w+')
+        f.close()
         images = Images('foo', 'files/root', config=['store'])
         self.assertEqual(images.classes, {'tmp1': 0})
         self.assertEqual(images.fail, 1)
@@ -645,6 +636,7 @@ class MyTest(unittest.TestCase):
         self.assertTrue(images.time > 0)
 
         rmtree('files/root')
+        os.remove('foo.h5')
 
     def test_020(self):
         """ Images - directory - shape on flatten and resize """
@@ -665,6 +657,7 @@ class MyTest(unittest.TestCase):
         self.assertEqual(images.images[0][0].shape, (1500,))
 
         rmtree('files/root')
+        os.remove('foo.h5')
 
     def test_021(self):
         """ Images - directory - multi class """
@@ -706,12 +699,14 @@ class MyTest(unittest.TestCase):
         self.assertEqual(images.images[1].shape, (1, 2500))
 
         rmtree('files/root')
+        os.remove('foo.h5')
 
     def test_022(self):
         """ Images - bad dir, free h5 file """
         with pytest.raises(OSError):
             images = Images('foo', 'files/nodir',
                             config=['store', 'resize=(50,50)', 'gray', 'flat'])
+        os.remove('foo.h5')
 
     def test_023(self):
         """ Images - memory - no images """
@@ -742,9 +737,9 @@ class MyTest(unittest.TestCase):
         self.assertEqual(images.labels[0][0], 0)
 
         # flattened to unflattened
-        img_a = cv2.imread('files/1.jpg', cv2.IMREAD_GRAYSCALE)
-        img_b = cv2.resize(img_a, (50, 50), interpolation=cv2.INTER_AREA).flatten()
-        images = Images('foo', [img_b], 1, config=['resize=(50,50)'])
+        a = cv2.imread('files/1.jpg', cv2.IMREAD_GRAYSCALE)
+        b = cv2.resize(a, (50, 50), interpolation=cv2.INTER_AREA).flatten()
+        images = Images('foo', [b], 1, config=['resize=(50,50)'])
         self.assertEqual(images.fail, 0)
         self.assertEqual(images.errors, [])
         self.assertEqual(images.count, 1)
@@ -755,8 +750,8 @@ class MyTest(unittest.TestCase):
         self.assertEqual(images.labels[0][0], 0)
 
         # multiple flattened images
-        img_c = np.asarray([img_b, img_b, img_b])
-        images = Images('foo', img_c, 1, config=['resize=(50,50)'])
+        c = np.asarray([b, b, b])
+        images = Images('foo', c, 1, config=['resize=(50,50)'])
         self.assertEqual(images.fail, 0)
         self.assertEqual(images.errors, [])
         self.assertEqual(images.count, 3)
@@ -768,8 +763,8 @@ class MyTest(unittest.TestCase):
         self.assertEqual(images.labels[0][0], 0)
         self.assertEqual(images.classes, {'1': 0})
 
-        img_d = np.asarray([img_b for _ in range(1000)])
-        images = Images('foo', img_d, 1, config=['resize=(50,50)'])
+        d = np.asarray([b for _ in range(1000)])
+        images = Images('foo', d, 1, config=['resize=(50,50)'])
         self.assertEqual(images.fail, 0)
         self.assertEqual(images.errors, [])
         self.assertEqual(images.count, 1000)
@@ -784,8 +779,8 @@ class MyTest(unittest.TestCase):
         self.assertEqual(images.images[0][0].shape, (50, 50))
 
         # multiple flattened images - flatten
-        img_c = np.asarray([img_b, img_b, img_b])
-        images = Images('foo', img_c, 1, config=['resize=(30,50)', 'flat'])
+        c = np.asarray([b, b, b])
+        images = Images('foo', c, 1, config=['resize=(30,50)', 'flat'])
         self.assertEqual(images.fail, 0)
         self.assertEqual(images.errors, [])
         self.assertEqual(images.count, 3)
@@ -799,8 +794,8 @@ class MyTest(unittest.TestCase):
         self.assertEqual(images.images[0][0].shape, (1500,))
 
         # multiple flattened images - list is one value
-        img_c = np.asarray([img_b, img_b, img_b])
-        images = Images('foo', img_c, [0, 0, 0], config=['resize=(30,50)'])
+        c = np.asarray([b, b, b])
+        images = Images('foo', c, [0, 0, 0], config=['resize=(30,50)'])
         self.assertEqual(images.fail, 0)
         self.assertEqual(images.errors, [])
         self.assertEqual(images.count, 3)
@@ -814,8 +809,8 @@ class MyTest(unittest.TestCase):
         self.assertEqual(images.images[0][0].shape, (30, 50))
 
         # multiple flattened images - list different values
-        img_c = np.asarray([img_b, img_b, img_b, img_b, img_b])
-        images = Images('foo', img_c, [0, 1, 0, 1, 1], config=['resize=(30,50)'])
+        c = np.asarray([b, b, b, b, b])
+        images = Images('foo', c, [0, 1, 0, 1, 1], config=['resize=(30,50)'])
         self.assertEqual(images.fail, 0)
         self.assertEqual(images.errors, [])
         self.assertEqual(images.count, 5)
@@ -832,8 +827,8 @@ class MyTest(unittest.TestCase):
         self.assertEqual(images.images[0][0].shape, (30, 50))
 
         # gray
-        img_c = np.asarray([img_a, img_a, img_a, img_a, img_a])
-        images = Images('foo', img_c, [0, 1, 0, 1, 1], config=['resize=(30,50)'])
+        c = np.asarray([a, a, a, a, a])
+        images = Images('foo', c, [0, 1, 0, 1, 1], config=['resize=(30,50)'])
         self.assertEqual(images.fail, 0)
         self.assertEqual(images.errors, [])
         self.assertEqual(images.count, 5)
@@ -842,12 +837,12 @@ class MyTest(unittest.TestCase):
         self.assertEqual(len(images.labels), 2)
         self.assertEqual(images.classes, {'0': 0, '1': 1})
         self.assertEqual(images.images[0][0].shape, (30, 50, 3))
-        images = Images('foo', img_c, [0, 1, 0, 1, 1], config=['resize=(30,50)', 'flat'])
+        images = Images('foo', c, [0, 1, 0, 1, 1], config=['resize=(30,50)', 'flat'])
         self.assertEqual(len(images.images), 2)
         self.assertEqual(len(images.labels), 2)
         self.assertEqual(images.classes, {'0': 0, '1': 1})
         self.assertEqual(images.images[0][0].shape, (4500,))
-        images = Images('foo', img_c, [0, 1, 0, 1, 1], config=['resize=(30,50)', 'flat', 'gray'])
+        images = Images('foo', c, [0, 1, 0, 1, 1], config=['resize=(30,50)', 'flat', 'gray'])
         self.assertEqual(len(images.images), 2)
         self.assertEqual(len(images.labels), 2)
         self.assertEqual(images.classes, {'0': 0, '1': 1})
@@ -856,9 +851,9 @@ class MyTest(unittest.TestCase):
     def test_025(self):
         """ Images - memory - 2D - no store """
 
-        img_a = cv2.imread('files/1.jpg', cv2.IMREAD_COLOR)
-        img_c = np.asarray([img_a, img_a, img_a, img_a, img_a])
-        images = Images('foo', img_c, [0, 1, 0, 1, 1], config=['resize=(30,50)'])
+        a = cv2.imread('files/1.jpg', cv2.IMREAD_COLOR)
+        c = np.asarray([a, a, a, a, a])
+        images = Images('foo', c, [0, 1, 0, 1, 1], config=['resize=(30,50)'])
         self.assertEqual(images.fail, 0)
         self.assertEqual(images.errors, [])
         self.assertEqual(images.count, 5)
@@ -868,13 +863,13 @@ class MyTest(unittest.TestCase):
         self.assertEqual(images.classes, {'0': 0, '1': 1})
         self.assertEqual(images.images[0][0].shape, (30, 50, 3))
 
-        images = Images('foo', img_c, [0, 1, 0, 1, 1], config=['resize=(30,50)', 'flat'])
+        images = Images('foo', c, [0, 1, 0, 1, 1], config=['resize=(30,50)', 'flat'])
         self.assertEqual(len(images.images), 2)
         self.assertEqual(len(images.labels), 2)
         self.assertEqual(images.classes, {'0': 0, '1': 1})
         self.assertEqual(images.images[0][0].shape, (4500,))
 
-        images = Images('foo', img_c, [0, 1, 0, 1, 1], config=['resize=(30,50)', 'flat', 'gray'])
+        images = Images('foo', c, [0, 1, 0, 1, 1], config=['resize=(30,50)', 'flat', 'gray'])
         self.assertEqual(len(images.images), 2)
         self.assertEqual(len(images.labels), 2)
         self.assertEqual(images.classes, {'0': 0, '1': 1})
@@ -883,10 +878,10 @@ class MyTest(unittest.TestCase):
     def test_026(self):
         """ Images - memory - 3D - no store """
 
-        img_a = cv2.imread('files/1.jpg', cv2.IMREAD_COLOR)
-        img_b = np.asarray([['a']])
+        a = cv2.imread('files/1.jpg', cv2.IMREAD_COLOR)
+        b = np.asarray([['a']])
 
-        memory = np.asarray([img_a])
+        memory = np.asarray([a])
         images = Images('foo', memory, 1, config=['resize=(30,50)'])
         self.assertEqual(images.fail, 0)
         self.assertEqual(images.errors, [])
@@ -898,7 +893,7 @@ class MyTest(unittest.TestCase):
         self.assertEqual(images.images[0][0].shape, (30, 50, 3))
 
         # load bad image from memory
-        memory = np.asarray([img_b])
+        memory = np.asarray([b])
         images = Images('foo', memory, 1, config=['resize=(30,50)'])
         self.assertEqual(images.fail, 1)
         self.assertEqual(len(images.errors), 1)
@@ -918,7 +913,7 @@ class MyTest(unittest.TestCase):
         self.assertEqual(images.classes, {'1': 0})
 
         # load several images two with errors
-        memory = np.asarray([None, img_a, img_b])
+        memory = np.asarray([None, a, b])
         images = Images('foo', memory, 1, config=['resize=(30,50)'])
         self.assertEqual(images.fail, 2)
         self.assertEqual(len(images.errors), 2)
@@ -933,9 +928,9 @@ class MyTest(unittest.TestCase):
         """ Images - memory - store """
 
         # one class
-        img_a = cv2.imread('files/1.jpg', cv2.IMREAD_COLOR)
-        img_c = np.asarray([img_a, img_a, img_a, img_a, img_a])
-        images = Images('foo', img_c, 0, config=['resize=(30,50)', 'store'])
+        a = cv2.imread('files/1.jpg', cv2.IMREAD_COLOR)
+        c = np.asarray([a, a, a, a, a])
+        images = Images('foo', c, 0, config=['resize=(30,50)', 'store'])
         self.assertEqual(images.fail, 0)
         self.assertEqual(images.errors, [])
         self.assertEqual(images.count, 5)
@@ -960,7 +955,7 @@ class MyTest(unittest.TestCase):
         self.assertEqual(images.labels[0][0], 0)
 
         # multi-class
-        images = Images('foo', img_c, [0, 1, 0, 1, 1], config=['resize=(30,50)', 'store'])
+        images = Images('foo', c, [0, 1, 0, 1, 1], config=['resize=(30,50)', 'store'])
         self.assertEqual(images.fail, 0)
         self.assertEqual(images.errors, [])
         self.assertEqual(images.count, 5)
@@ -986,14 +981,15 @@ class MyTest(unittest.TestCase):
         self.assertEqual(images.labels[0][0], 0)
         self.assertEqual(images.labels[1][0], 1)
 
+        os.remove('foo.h5')
 
     def test_028(self):
         """ Images - memory - stream """
 
         # one class, stream
-        img_a = cv2.imread('files/1.jpg', cv2.IMREAD_COLOR)
-        img_c = np.asarray([img_a])
-        images = Images('foo', img_c, 0, config=['resize=(30,50)', 'stream'])
+        a = cv2.imread('files/1.jpg', cv2.IMREAD_COLOR)
+        c = np.asarray([a])
+        images = Images('foo', c, 0, config=['resize=(30,50)', 'stream'])
         self.assertEqual(images.fail, 0)
         self.assertEqual(images.errors, [])
         self.assertEqual(images.count, 1)
@@ -1014,9 +1010,9 @@ class MyTest(unittest.TestCase):
         self.assertEqual(images.labels[0][0], 0)
 
         # one class, gray, stream
-        img_a = cv2.imread('files/1.jpg', cv2.IMREAD_GRAYSCALE)
-        img_c = np.asarray([img_a, img_a, img_a, img_a])
-        images = Images('foo', img_c, 0, config=['resize=(30,50)', 'stream', 'gray'])
+        a = cv2.imread('files/1.jpg', cv2.IMREAD_GRAYSCALE)
+        c = np.asarray([a, a, a, a])
+        images = Images('foo', c, 0, config=['resize=(30,50)', 'stream', 'gray'])
         self.assertEqual(images.fail, 0)
         self.assertEqual(images.errors, [])
         self.assertEqual(images.count, 4)
@@ -1037,8 +1033,8 @@ class MyTest(unittest.TestCase):
         self.assertEqual(images.labels[0][0], 0)
 
         # multi class, stream
-        img_c = np.asarray([img_a, img_a, img_a, img_a, img_a])
-        images = Images('foo', img_c, [0, 1, 1, 0, 1], config=['resize=(30,50)', 'stream'])
+        c = np.asarray([a, a, a, a, a])
+        images = Images('foo', c, [0, 1, 1, 0, 1], config=['resize=(30,50)', 'stream'])
         self.assertEqual(images.fail, 0)
         self.assertEqual(images.errors, [])
         self.assertEqual(images.count, 5)
@@ -1063,14 +1059,15 @@ class MyTest(unittest.TestCase):
         self.assertEqual(images.labels[0][0], 0)
         self.assertEqual(images.labels[1][0], 1)
 
+        os.remove('foo.h5')
 
     def test_029(self):
         """ Images - memory - labels as strings """
 
         # single class, label is string
-        img_a = cv2.imread('files/1.jpg', cv2.IMREAD_COLOR)
-        img_c = np.asarray([img_a])
-        images = Images('foo', img_c, 'cat', config=['resize=(30,50)'])
+        a = cv2.imread('files/1.jpg', cv2.IMREAD_COLOR)
+        c = np.asarray([a])
+        images = Images('foo', c, 'cat', config=['resize=(30,50)'])
         self.assertEqual(images.fail, 0)
         self.assertEqual(images.errors, [])
         self.assertEqual(images.count, 1)
@@ -1081,8 +1078,8 @@ class MyTest(unittest.TestCase):
         self.assertEqual(images.labels[0][0], 0)
 
         # single class, label is string, store
-        img_c = np.asarray([img_a, img_a, img_a, img_a])
-        images = Images('foo', img_c, 'cat', config=['resize=(30,50)', 'store'])
+        c = np.asarray([a, a, a, a])
+        images = Images('foo', c, 'cat', config=['resize=(30,50)', 'store'])
         self.assertEqual(images.fail, 0)
         self.assertEqual(images.errors, [])
         self.assertEqual(images.count, 4)
@@ -1105,8 +1102,8 @@ class MyTest(unittest.TestCase):
         self.assertEqual(images.labels[0][0], 0)
 
         # single class, label is string, stream
-        img_c = np.asarray([img_a, img_a, img_a, img_a])
-        images = Images('foo', img_c, 'cat', config=['resize=(30,50)', 'stream'])
+        c = np.asarray([a, a, a, a])
+        images = Images('foo', c, 'cat', config=['resize=(30,50)', 'stream'])
         self.assertEqual(images.fail, 0)
         self.assertEqual(images.errors, [])
         self.assertEqual(images.count, 4)
@@ -1126,14 +1123,15 @@ class MyTest(unittest.TestCase):
         self.assertEqual(len(images.labels), 1)
         self.assertEqual(images.labels[0][0], 0)
 
+        os.remove('foo.h5')
 
     def test_030(self):
         """ Images - memory - labels as [strings] """
 
         # single class, label is [string]
-        img_a = cv2.imread('files/1.jpg', cv2.IMREAD_COLOR)
-        img_c = np.asarray([img_a])
-        images = Images('foo', img_c, ['cat'], config=['resize=(30,50)'])
+        a = cv2.imread('files/1.jpg', cv2.IMREAD_COLOR)
+        c = np.asarray([a])
+        images = Images('foo', c, ['cat'], config=['resize=(30,50)'])
         self.assertEqual(images.fail, 0)
         self.assertEqual(images.errors, [])
         self.assertEqual(images.count, 1)
@@ -1144,8 +1142,8 @@ class MyTest(unittest.TestCase):
         self.assertEqual(images.labels[0][0], 0)
 
         # single class, label is [string], store
-        img_c = np.asarray([img_a])
-        images = Images('foo', img_c, ['cat'], config=['resize=(30,50)', 'store'])
+        c = np.asarray([a])
+        images = Images('foo', c, ['cat'], config=['resize=(30,50)', 'store'])
         self.assertEqual(images.fail, 0)
         self.assertEqual(images.errors, [])
         self.assertEqual(images.count, 1)
@@ -1168,8 +1166,8 @@ class MyTest(unittest.TestCase):
         self.assertEqual(images.labels[0][0], 0)
 
         # single class, label is [string], stream
-        img_c = np.asarray([img_a])
-        images = Images('foo', img_c, ['cat'], config=['resize=(30,50)', 'stream'])
+        c = np.asarray([a])
+        images = Images('foo', c, ['cat'], config=['resize=(30,50)', 'stream'])
         self.assertEqual(images.fail, 0)
         self.assertEqual(images.errors, [])
         self.assertEqual(images.count, 1)
@@ -1190,9 +1188,9 @@ class MyTest(unittest.TestCase):
         self.assertEqual(images.labels[0][0], 0)
 
         # multi class, label is [string]
-        img_a = cv2.imread('files/1.jpg', cv2.IMREAD_COLOR)
-        img_c = np.asarray([img_a, img_a, img_a, img_a, img_a])
-        images = Images('foo', img_c, ['cat', 'dog', 'cat', 'cat', 'dog'], config=['resize=(30,50)'])
+        a = cv2.imread('files/1.jpg', cv2.IMREAD_COLOR)
+        c = np.asarray([a, a, a, a, a])
+        images = Images('foo', c, ['cat', 'dog', 'cat', 'cat', 'dog'], config=['resize=(30,50)'])
         self.assertEqual(images.fail, 0)
         self.assertEqual(images.errors, [])
         self.assertEqual(images.count, 5)
@@ -1217,9 +1215,9 @@ class MyTest(unittest.TestCase):
                 self.assertEqual(len(images.images[0]), 3)
 
         # multi class, label is [string], store
-        img_a = cv2.imread('files/1.jpg', cv2.IMREAD_COLOR)
-        img_c = np.asarray([img_a, img_a, img_a, img_a, img_a])
-        images = Images('foo', img_c, ['cat', 'dog', 'cat', 'cat', 'dog'],
+        a = cv2.imread('files/1.jpg', cv2.IMREAD_COLOR)
+        c = np.asarray([a, a, a, a, a])
+        images = Images('foo', c, ['cat', 'dog', 'cat', 'cat', 'dog'],
                         config=['resize=(30,50)', 'store'])
         self.assertEqual(images.fail, 0)
         self.assertEqual(images.errors, [])
@@ -1271,9 +1269,9 @@ class MyTest(unittest.TestCase):
                 self.assertEqual(len(images.images[0]), 3)
 
         # multi class, label is [string], stream
-        img_a = cv2.imread('files/1.jpg', cv2.IMREAD_COLOR)
-        img_c = np.asarray([img_a, img_a, img_a, img_a, img_a])
-        images = Images('foo', img_c, ['cat', 'dog', 'cat', 'cat', 'dog'],
+        a = cv2.imread('files/1.jpg', cv2.IMREAD_COLOR)
+        c = np.asarray([a, a, a, a, a])
+        images = Images('foo', c, ['cat', 'dog', 'cat', 'cat', 'dog'],
                         config=['resize=(30,50)', 'stream'])
         self.assertEqual(images.fail, 0)
         self.assertEqual(images.errors, [])
@@ -1323,6 +1321,7 @@ class MyTest(unittest.TestCase):
                 self.assertEqual(len(images.images[0]), 3)
             self.assertEqual(len(images.labels[0]), 3)
 
+        os.remove('foo.h5')
 
     def test_031(self):
         """ Images - list - no images """
@@ -1722,10 +1721,10 @@ class MyTest(unittest.TestCase):
 
     def test_035(self):
         """ Images - list - memory """
-        img_a = cv2.imread('files/1.jpg', cv2.IMREAD_COLOR)
+        a = cv2.imread('files/1.jpg', cv2.IMREAD_COLOR)
 
         # single class
-        images = Images('foo', [img_a, img_a], 1)
+        images = Images('foo', [a, a], 1)
         self.assertEqual(images.name, 'foo')
         self.assertEqual(images.fail, 0)
         self.assertEqual(len(images.errors), 0)
@@ -1740,7 +1739,7 @@ class MyTest(unittest.TestCase):
         self.assertEqual(images.images[0].shape, (2, 128, 128, 3))
 
         # single class, store
-        images = Images('foo', [img_a, img_a], 1, config=['store', 'resize=40,50'])
+        images = Images('foo', [a, a], 1, config=['store', 'resize=40,50'])
         self.assertEqual(images.name, 'foo')
         self.assertEqual(images.fail, 0)
         self.assertEqual(len(images.errors), 0)
@@ -1771,7 +1770,7 @@ class MyTest(unittest.TestCase):
         self.assertEqual(images.images[0].shape, (2, 40, 50, 3))
 
         # single class, stream
-        images = Images('foo', [img_a, img_a], 1, config=['stream', 'resize=40,50', 'gray'])
+        images = Images('foo', [a, a], 1, config=['stream', 'resize=40,50', 'gray'])
         self.assertEqual(images.name, 'foo')
         self.assertEqual(images.fail, 0)
         self.assertEqual(len(images.errors), 0)
@@ -1799,7 +1798,7 @@ class MyTest(unittest.TestCase):
         self.assertEqual(images.images[0].shape, (2, 40, 50))
 
         # multi-class
-        images = Images('foo', [img_a, img_a, img_a], [0, 1, 1])
+        images = Images('foo', [a, a, a], [0, 1, 1])
         self.assertEqual(images.name, 'foo')
         self.assertEqual(images.fail, 0)
         self.assertEqual(len(images.errors), 0)
@@ -1818,7 +1817,7 @@ class MyTest(unittest.TestCase):
         self.assertEqual(images.images[1].shape, (2, 128, 128, 3))
 
         # multi-class, store
-        images = Images('foo', [img_a, img_a, img_a], [0, 1, 1], config=['store'])
+        images = Images('foo', [a, a, a], [0, 1, 1], config=['store'])
         self.assertEqual(images.name, 'foo')
         self.assertEqual(images.fail, 0)
         self.assertEqual(len(images.errors), 0)
@@ -1857,7 +1856,7 @@ class MyTest(unittest.TestCase):
         self.assertEqual(images.images[1].shape, (2, 128, 128, 3))
 
         # multi-class, stream
-        images = Images('foo', [img_a, img_a, img_a], [0, 1, 1], config=['stream', 'flat', 'resize=50,50'])
+        images = Images('foo', [a, a, a], [0, 1, 1], config=['stream', 'flat', 'resize=50,50'])
         self.assertEqual(images.name, 'foo')
         self.assertEqual(images.fail, 0)
         self.assertEqual(len(images.errors), 0)
@@ -1892,10 +1891,10 @@ class MyTest(unittest.TestCase):
 
     def test_036(self):
         """ Images - list - list as [string] """
-        img_a = cv2.imread('files/1.jpg', cv2.IMREAD_COLOR)
+        a = cv2.imread('files/1.jpg', cv2.IMREAD_COLOR)
 
         # single class
-        images = Images('foo', [img_a, img_a], 'cat')
+        images = Images('foo', [a, a], 'cat')
         self.assertEqual(images.name, 'foo')
         self.assertEqual(images.fail, 0)
         self.assertEqual(len(images.errors), 0)
@@ -1910,7 +1909,7 @@ class MyTest(unittest.TestCase):
         self.assertEqual(images.images[0].shape, (2, 128, 128, 3))
 
         # single class, store
-        images = Images('foo', [img_a, img_a], 'cat', config=['store', 'resize=40,50'])
+        images = Images('foo', [a, a], 'cat', config=['store', 'resize=40,50'])
         self.assertEqual(images.name, 'foo')
         self.assertEqual(images.fail, 0)
         self.assertEqual(len(images.errors), 0)
@@ -1941,7 +1940,7 @@ class MyTest(unittest.TestCase):
         self.assertEqual(images.images[0].shape, (2, 40, 50, 3))
 
         # single class, stream
-        images = Images('foo', [img_a, img_a], 'cat', config=['stream', 'resize=40,50', 'gray'])
+        images = Images('foo', [a, a], 'cat', config=['stream', 'resize=40,50', 'gray'])
         self.assertEqual(images.name, 'foo')
         self.assertEqual(images.fail, 0)
         self.assertEqual(len(images.errors), 0)
@@ -1969,7 +1968,7 @@ class MyTest(unittest.TestCase):
         self.assertEqual(images.images[0].shape, (2, 40, 50))
 
         # multi-class
-        images = Images('foo', [img_a, img_a, img_a], ['cat', 'dog', 'dog'])
+        images = Images('foo', [a, a, a], ['cat', 'dog', 'dog'])
         self.assertEqual(images.name, 'foo')
         self.assertEqual(images.fail, 0)
         self.assertEqual(len(images.errors), 0)
@@ -1996,7 +1995,7 @@ class MyTest(unittest.TestCase):
         self.assertEqual(images.labels[0][0], 0)
 
         # multi-class, store
-        images = Images('foo', [img_a, img_a, img_a], ['cat', 'dog', 'dog'], config=['store'])
+        images = Images('foo', [a, a, a], ['cat', 'dog', 'dog'], config=['store'])
         self.assertEqual(images.name, 'foo')
         self.assertEqual(images.fail, 0)
         self.assertEqual(len(images.errors), 0)
@@ -2066,7 +2065,7 @@ class MyTest(unittest.TestCase):
                 self.assertEqual(images.images[1].shape, (2, 128, 128, 3))
 
         # multi-class, stream
-        images = Images('foo', [img_a, img_a, img_a], ['cat', 'dog', 'dog'],
+        images = Images('foo', [a, a, a], ['cat', 'dog', 'dog'],
                         config=['stream', 'flat', 'resize=50,50'])
         self.assertEqual(images.name, 'foo')
         self.assertEqual(images.fail, 0)
@@ -2157,6 +2156,7 @@ class MyTest(unittest.TestCase):
         else:
             self.assertEqual(images.classes, {'0': 1, '1': 0})
 
+        os.remove('foo.h5')
 
     def test_037(self):
         """ Images - list - bad files """
@@ -2255,13 +2255,14 @@ class MyTest(unittest.TestCase):
         self.assertEqual(len(images.labels[0]), 2)
         self.assertEqual(images.labels[0][0], 0)
 
+        os.remove('foo.h5')
 
     def test_038(self):
         """ Images - CSV - local path """
 
         # empty, no header
-        file = open('files/empty.csv', 'w')
-        file.close()
+        f = open('files/empty.csv', 'w')
+        f.close()
         images = Images('foo', 'files/empty.csv', config=['image_col=0', 'label_col=1'])
         self.assertEqual(images.name, 'foo')
         self.assertEqual(images.fail, 0)
@@ -2273,9 +2274,9 @@ class MyTest(unittest.TestCase):
                             config=['header', 'image_col=0', 'label_col=1'])
 
         # empty, header
-        file = open('files/empty.csv', 'w')
-        file.write('header\n')
-        file.close()
+        f = open('files/empty.csv', 'w')
+        f.write('header\n')
+        f.close()
 
         images = Images('foo', 'files/empty.csv', config=['header', 'image_col=0', 'label_col=1'])
         self.assertEqual(images.name, 'foo')
@@ -2284,10 +2285,11 @@ class MyTest(unittest.TestCase):
         self.assertEqual(images.count, 0)
 
         # single class
-        with open('files/test.csv', 'w') as file:
-            file.write('0,files/1.jpg\n')
-            file.write('0,files/2.jpg\n')
-            file.write('0,files/3.jpg\n')
+        f = open('files/test.csv', 'w')
+        f.write('0,files/1.jpg\n')
+        f.write('0,files/2.jpg\n')
+        f.write('0,files/3.jpg\n')
+        f.close()
         images = Images('foo', 'files/test.csv', config=['label_col=0', 'image_col=1'])
         self.assertEqual(images.name, 'foo')
         self.assertEqual(images.fail, 0)
@@ -2363,19 +2365,13 @@ class MyTest(unittest.TestCase):
         self.assertEqual(images.images[0].shape, (3, 50, 60, 3))
 
         # multi class
-        with open('files/test.csv', 'w') as file:
-            file.write('\'0\',files/1.jpg\n')
-            file.write('\'1\',files/2.jpg\n')
-            file.write('\'0\',files/3.jpg\n')
-        images = Images(
-            'foo',
-            'files/test.csv',
-            config=[
-                'label_col=0',
-                'image_col=1',
-                'resize=(40,50)'
-            ]
-        )
+        f = open('files/test.csv', 'w')
+        f.write('\'0\',files/1.jpg\n')
+        f.write('\'1\',files/2.jpg\n')
+        f.write('\'0\',files/3.jpg\n')
+        f.close()
+        images = Images('foo', 'files/test.csv',
+                        config=['label_col=0', 'image_col=1', 'resize=(40,50)'])
         self.assertEqual(images.fail, 0)
         self.assertEqual(len(images.errors), 0)
         self.assertEqual(images.count, 3)
@@ -2408,16 +2404,8 @@ class MyTest(unittest.TestCase):
                 self.assertEqual(len(images.labels[1]), 1)
 
         # multi class, store
-        images = Images(
-            'foo',
-            'files/test.csv',
-            config=[
-                'label_col=0',
-                'image_col=1',
-                'resize=(40,50)',
-                'store'
-            ]
-        )
+        images = Images('foo', 'files/test.csv',
+                        config=['label_col=0', 'image_col=1', 'resize=(40,50)', 'store'])
         self.assertEqual(images.fail, 0)
         self.assertEqual(len(images.errors), 0)
         self.assertEqual(images.count, 3)
@@ -2545,12 +2533,13 @@ class MyTest(unittest.TestCase):
         """ Images - CSV - bad paths """
 
         # bad file in class
-        with open('files/test.csv', 'w') as file:
-            file.write('\'0\',files/1.jpg\n')
-            file.write('\'1\',files/2.jpg\n')
-            file.write('\'0\',files/3.jpg\n')
-            file.write('\'0\',files/bad.jpg\n')
-            file.write('\'0\',files/3.jpg\n')
+        f = open('files/test.csv', 'w')
+        f.write('\'0\',files/1.jpg\n')
+        f.write('\'1\',files/2.jpg\n')
+        f.write('\'0\',files/3.jpg\n')
+        f.write('\'0\',files/bad.jpg\n')
+        f.write('\'0\',files/3.jpg\n')
+        f.close()
         images = Images('foo', 'files/test.csv',
                         config=['label_col=0', 'image_col=1', 'resize=(40,50)'])
         self.assertEqual(images.fail, 1)
@@ -2715,12 +2704,13 @@ class MyTest(unittest.TestCase):
         self.assertEqual(images.images[0][0].shape, (40, 50, 3))
 
         # bad file - empty class
-        with open('files/test.csv', 'w') as file:
-            file.write('\'0\',files/1.jpg\n')
-            file.write('\'1\',files/2.jpg\n')
-            file.write('\'0\',files/3.jpg\n')
-            file.write('\'2\',files/bad.jpg\n')
-            file.write('\'0\',files/3.jpg\n')
+        f = open('files/test.csv', 'w')
+        f.write('\'0\',files/1.jpg\n')
+        f.write('\'1\',files/2.jpg\n')
+        f.write('\'0\',files/3.jpg\n')
+        f.write('\'2\',files/bad.jpg\n')
+        f.write('\'0\',files/3.jpg\n')
+        f.close()
         images = Images('foo', 'files/test.csv',
                         config=['label_col=0', 'image_col=1', 'resize=(40,50)'])
         self.assertEqual(images.fail, 1)
@@ -2770,6 +2760,7 @@ class MyTest(unittest.TestCase):
         self.assertEqual(len(images.labels), 2)
 
         os.remove('files/test.csv')
+        os.remove('foo.h5')
 
     def test_040(self):
         """ Images - CSV - remote path """
@@ -2779,10 +2770,11 @@ class MyTest(unittest.TestCase):
         IMAGE2 = 'https://www.accesshq.com/workspace/images/articles/test-your-technology.jpg'
 
         # multi class
-        with open('files/test.csv', 'w') as file:
-            file.write('\'0\',' + IMAGE1 + '\n')
-            file.write('\'1\',' + IMAGE2 + '\n')
-            file.write('\'0\',' + IMAGE1 + '\n')
+        f = open('files/test.csv', 'w')
+        f.write('\'0\',' + IMAGE1 + '\n')
+        f.write('\'1\',' + IMAGE2 + '\n')
+        f.write('\'0\',' + IMAGE1 + '\n')
+        f.close()
         images = Images('foo', 'files/test.csv',
                         config=['label_col=0', 'image_col=1', 'resize=(50,50)', 'flatten'])
         self.assertEqual(images.fail, 0)
@@ -2942,11 +2934,12 @@ class MyTest(unittest.TestCase):
                 self.assertEqual(len(images.labels[1]), 1)
 
         # bad remote file
-        with open('files/test.csv', 'w') as file:
-            file.write('\'0\',' + IMAGE1 + '\n')
-            file.write('\'1\',' + IMAGE2 + '\n')
-            file.write('\'0\',' + IMAGE1 + '\n')
-            file.write('\'0\',http://foobar17.com/noimage.jpg\n')
+        f = open('files/test.csv', 'w')
+        f.write('\'0\',' + IMAGE1 + '\n')
+        f.write('\'1\',' + IMAGE2 + '\n')
+        f.write('\'0\',' + IMAGE1 + '\n')
+        f.write('\'0\',http://foobar17.com/noimage.jpg\n')
+        f.close()
         images = Images('foo', 'files/test.csv',
                         config=['label_col=0', 'image_col=1', 'resize=(50,50)', 'flatten'])
         self.assertEqual(images.fail, 1)
@@ -2980,6 +2973,7 @@ class MyTest(unittest.TestCase):
                 self.assertEqual(len(images.labels[1]), 1)
         self.assertEqual(images.images[0][0].shape, (7500,))
 
+        os.remove('foo.h5')
         os.remove('files/test.csv')
 
     def test_041(self):
@@ -3154,13 +3148,15 @@ class MyTest(unittest.TestCase):
             self.assertEqual(images.classes, {'daisy': 1, 'cat': 0})
         self.assertEqual(images.images[0][0].shape, (40, 50, 3))
 
+        os.remove('foo.h5')
 
     def test_042(self):
         """ Images - CSV - wrong line size """
 
         # bad file - incomplete embedded data
-        with open('files/test.csv', 'w') as file:
-            file.write('0,"[1,2,3,4"\n')
+        f = open('files/test.csv', 'w')
+        f.write('0,"[1,2,3,4"\n')
+        f.close()
         images = Images('foo', 'files/test.csv',
                         config=['resize=(8,8)', 'label_col=0', 'image_col=1'])
         self.assertEqual(images.count, 0)
@@ -3168,10 +3164,11 @@ class MyTest(unittest.TestCase):
         self.assertEqual(len(images.errors), 1)
 
         # bad file - missing image column
-        with open('files/test.csv', 'w') as file:
-            file.write('0,files/1.jpg\n')
-            file.write('0\n')
-            file.write('0,files/2.jpg\n')
+        f = open('files/test.csv', 'w')
+        f.write('0,files/1.jpg\n')
+        f.write('0\n')
+        f.write('0,files/2.jpg\n')
+        f.close()
         images = Images('foo', 'files/test.csv',
                         config=['resize=(8,8)', 'label_col=0', 'image_col=1'])
         self.assertEqual(images.count, 2)
@@ -3179,10 +3176,11 @@ class MyTest(unittest.TestCase):
         self.assertEqual(len(images.errors), 1)
 
         # bad file - blank file
-        with open('files/test.csv', 'w') as file:
-            file.write('0,files/1.jpg\n')
-            file.write('0,\n')
-            file.write('0,files/2.jpg\n')
+        f = open('files/test.csv', 'w')
+        f.write('0,files/1.jpg\n')
+        f.write('0,\n')
+        f.write('0,files/2.jpg\n')
+        f.close()
         images = Images('foo', 'files/test.csv',
                         config=['resize=(8,8)', 'label_col=0', 'image_col=1'])
         self.assertEqual(images.count, 2)
@@ -3190,10 +3188,11 @@ class MyTest(unittest.TestCase):
         self.assertEqual(len(images.errors), 1)
 
          # bad file - wrong file type
-        with open('files/test.csv', 'w') as file:
-            file.write('0,files/1.jpg\n')
-            file.write('0,func_test.py\n')
-            file.write('0,files/2.jpg\n')
+        f = open('files/test.csv', 'w')
+        f.write('0,files/1.jpg\n')
+        f.write('0,func_test.py\n')
+        f.write('0,files/2.jpg\n')
+        f.close()
         images = Images('foo', 'files/test.csv',
                         config=['resize=(8,8)', 'label_col=0', 'image_col=1'])
         self.assertEqual(images.count, 2)
@@ -3206,15 +3205,13 @@ class MyTest(unittest.TestCase):
         """ Images - JSON - local path """
 
         # single class
-        with open('files/test.json', 'w') as file:
-            file.write(
-                """[
-                    {"label": 0, "image": "files/1.jpg"},
-                    {"label": 0, "image": "files/2.jpg"},
-                    {"label": 0, "image": "files/3.jpg"}
-                ]"""
-            )
-
+        f = open('files/test.json', 'w')
+        f.write("[")
+        f.write('{"label": 0, "image": "files/1.jpg"},\n')
+        f.write('{"label": 0, "image": "files/2.jpg"},\n')
+        f.write('{"label": 0, "image": "files/3.jpg"}\n')
+        f.write("]")
+        f.close()
         images = Images('foo', 'files/test.json',
                         config=['resize=(40,50)', 'label_key=label', 'image_key=image'])
         self.assertEqual(images.count, 3)
@@ -3282,12 +3279,13 @@ class MyTest(unittest.TestCase):
         self.assertEqual(images.images[0][0].shape, (40, 50, 3))
 
         # multi class
-        with open('files/test.json', 'w') as file:
-            file.write("[")
-            file.write('{"label": "cat", "image": "files/1.jpg"},\n')
-            file.write('{"label": "dog", "image": "files/2.jpg"},\n')
-            file.write('{"label": "cat", "image": "files/3.jpg"}\n')
-            file.write("]")
+        f = open('files/test.json', 'w')
+        f.write("[")
+        f.write('{"label": "cat", "image": "files/1.jpg"},\n')
+        f.write('{"label": "dog", "image": "files/2.jpg"},\n')
+        f.write('{"label": "cat", "image": "files/3.jpg"}\n')
+        f.write("]")
+        f.close()
         images = Images('foo', 'files/test.json',
                         config=['resize=(40,50)', 'label_key=label', 'image_key=image', 'gray'])
         self.assertEqual(images.count, 3)
@@ -3322,18 +3320,13 @@ class MyTest(unittest.TestCase):
         self.assertEqual(images.images[0][0].shape, (40, 50))
 
         # multi class - store
-        images = Images(
-            'foo',
-            'files/test.json',
-            config=[
-                'resize=(40,50)',
-                'label_key=label',
-                'image_key=image',
-                'gray',
-                'flat',
-                'store'
-            ]
-        )
+        images = Images('foo', 'files/test.json',
+                        config=['resize=(40,50)',
+                                'label_key=label',
+                                'image_key=image',
+                                'gray',
+                                'flat',
+                                'store'])
         self.assertEqual(images.count, 3)
         self.assertEqual(images.fail, 0)
         self.assertEqual(len(images.errors), 0)
@@ -3400,18 +3393,13 @@ class MyTest(unittest.TestCase):
         self.assertEqual(images.images[0][0].shape, (2000,))
 
         # multi class - stream
-        images = Images(
-            'foo',
-            'files/test.json',
-            config=[
-                'resize=(40,50)',
-                'label_key=label',
-                'image_key=image',
-                'gray',
-                'flat',
-                'stream'
-            ]
-        )
+        images = Images('foo', 'files/test.json',
+                        config=['resize=(40,50)',
+                                'label_key=label',
+                                'image_key=image',
+                                'gray',
+                                'flat',
+                                'stream'])
         self.assertEqual(images.count, 3)
         self.assertEqual(images.fail, 0)
         self.assertEqual(len(images.errors), 0)
@@ -3468,18 +3456,20 @@ class MyTest(unittest.TestCase):
         self.assertEqual(images.images[0][0].shape, (2000,))
 
         os.remove('files/test.json')
+        os.remove('foo.h5')
 
     def test_044(self):
         """ Images - JSON - bad local path """
 
         # multi-class
-        with open('files/test.json', 'w') as file:
-            file.write("[")
-            file.write('{"label": "cat", "image": "files/1.jpg"},\n')
-            file.write('{"label": "dog", "image": "files/2.jpg"},\n')
-            file.write('{"label": "cat", "image": "files/nofile.jpg"},\n')
-            file.write('{"label": "cat", "image": "files/3.jpg"}\n')
-            file.write("]")
+        f = open('files/test.json', 'w')
+        f.write("[")
+        f.write('{"label": "cat", "image": "files/1.jpg"},\n')
+        f.write('{"label": "dog", "image": "files/2.jpg"},\n')
+        f.write('{"label": "cat", "image": "files/nofile.jpg"},\n')
+        f.write('{"label": "cat", "image": "files/3.jpg"}\n')
+        f.write("]")
+        f.close()
         images = Images('foo', 'files/test.json',
                         config=['resize=(40,50)', 'label_key=label', 'image_key=image'])
         self.assertEqual(images.count, 3)
@@ -3605,6 +3595,7 @@ class MyTest(unittest.TestCase):
                 self.assertEqual(len(images.images[0]), 1)
 
         os.remove('files/test.json')
+        os.remove('foo.h5')
 
     def test_045(self):
         """ Images - JSON - remote path """
@@ -3613,12 +3604,13 @@ class MyTest(unittest.TestCase):
         IMAGE2 = 'https://www.accesshq.com/workspace/images/articles/test-your-technology.jpg'
 
         # single file
-        with  open('files/test.json', 'w') as file:
-            file.write("[")
-            file.write('{"label": 0, "image": "' + IMAGE1 + '"},\n')
-            file.write('{"label": 0, "image": "' + IMAGE2 + '"},\n')
-            file.write('{"label": 0, "image": "' + IMAGE1 + '"}\n')
-            file.write("]")
+        f = open('files/test.json', 'w')
+        f.write("[")
+        f.write('{"label": 0, "image": "' + IMAGE1 + '"},\n')
+        f.write('{"label": 0, "image": "' + IMAGE2 + '"},\n')
+        f.write('{"label": 0, "image": "' + IMAGE1 + '"}\n')
+        f.write("]")
+        f.close()
         images = Images('foo', 'files/test.json',
                         config=['resize=(40,50)', 'label_key=label', 'image_key=image', 'gray'])
         self.assertEqual(images.count, 3)
@@ -3699,12 +3691,13 @@ class MyTest(unittest.TestCase):
         self.assertEqual(images.images[0][0].shape, (40, 50))
 
         # multi class
-        with open('files/test.json', 'w') as file:
-            file.write("[")
-            file.write('{"label": 0, "image": "' + IMAGE1 + '"},\n')
-            file.write('{"label": 1, "image": "' + IMAGE2 + '"},\n')
-            file.write('{"label": 1, "image": "' + IMAGE1 + '"}\n')
-            file.write("]")
+        f = open('files/test.json', 'w')
+        f.write("[")
+        f.write('{"label": 0, "image": "' + IMAGE1 + '"},\n')
+        f.write('{"label": 1, "image": "' + IMAGE2 + '"},\n')
+        f.write('{"label": 1, "image": "' + IMAGE1 + '"}\n')
+        f.write("]")
+        f.close()
         images = Images('foo', 'files/test.json',
                         config=['resize=(40,50)', 'label_key=label', 'image_key=image', 'gray'])
         self.assertEqual(images.count, 3)
@@ -3862,6 +3855,7 @@ class MyTest(unittest.TestCase):
         self.assertEqual(images.images[0][0].shape, (40, 50))
 
         os.remove('files/test.json')
+        os.remove('foo.h5')
 
     def test_046(self):
         """ Images - JSON - bad remote files """
@@ -3870,12 +3864,13 @@ class MyTest(unittest.TestCase):
         IMAGE2 = 'https://www.accesshq.com/workspace/images/articles/test-your-technology.jpg'
 
         # empty class
-        with open('files/test.json', 'w') as file:
-            file.write("[")
-            file.write('{"label": 0, "image": "http://badfile.ppt"},\n')
-            file.write('{"label": 1, "image": "' + IMAGE2 + '"},\n')
-            file.write('{"label": 1, "image": "' + IMAGE1 + '"}\n')
-            file.write("]")
+        f = open('files/test.json', 'w')
+        f.write("[")
+        f.write('{"label": 0, "image": "http://badfile.ppt"},\n')
+        f.write('{"label": 1, "image": "' + IMAGE2 + '"},\n')
+        f.write('{"label": 1, "image": "' + IMAGE1 + '"}\n')
+        f.write("]")
+        f.close()
 
         images = Images('foo', 'files/test.json',
                         config=['resize=(40,50)',
@@ -3970,18 +3965,20 @@ class MyTest(unittest.TestCase):
         self.assertEqual(images.images[0][0].shape, (40, 50))
 
         os.remove('files/test.json')
+        os.remove('foo.h5')
 
     def test_047(self):
         """ Images - JSON - memory """
 
-        with open('files/test.json', 'w') as file:
-            file.write("[\n")
-            file.write('{"label": 0, "image": "[0,1,2,3,4,5,6,7]"},\n')
-            file.write('{"label": 0, "image": "[10,11,12,13,14,15,16,17]"},\n')
-            file.write('{"label": 0, "image": "[0,1,2,3,4,5,6,7]"},\n')
-            file.write('{"label": 1, "image": "[20,21,22,23,24,25,26,27]"},\n')
-            file.write('{"label": 1, "image": "[0,1,2,3,4,5,6,7]"}\n')
-            file.write("]\n")
+        f = open('files/test.json', 'w')
+        f.write("[\n")
+        f.write('{"label": 0, "image": "[0,1,2,3,4,5,6,7]"},\n')
+        f.write('{"label": 0, "image": "[10,11,12,13,14,15,16,17]"},\n')
+        f.write('{"label": 0, "image": "[0,1,2,3,4,5,6,7]"},\n')
+        f.write('{"label": 1, "image": "[20,21,22,23,24,25,26,27]"},\n')
+        f.write('{"label": 1, "image": "[0,1,2,3,4,5,6,7]"}\n')
+        f.write("]\n")
+        f.close()
 
         # multi class
         images = Images('foo', 'files/test.json',
@@ -4160,6 +4157,7 @@ class MyTest(unittest.TestCase):
                 self.assertEqual(len(images.images[1]), 3)
         self.assertEqual(images.images[0][0].shape, (8, 8))
 
+        os.remove('foo.h5')
         os.remove('files/test.json')
 
     def test_048(self):
@@ -4385,6 +4383,7 @@ class MyTest(unittest.TestCase):
         self.assertEqual(images.fail, 1)
         self.assertEqual(len(images.errors), 1)
 
+        os.remove('foo.h5')
 
     def done_049(self, obj, arg):
         self._async_obj = obj
@@ -4489,6 +4488,7 @@ class MyTest(unittest.TestCase):
         images.resize = (25, 25)
         self.assertEqual(images.images[0][0].dtype, np.uint8)
 
+        os.remove('foo.h5')
 
     def test_053(self):
         """ Images - image types """
@@ -4616,14 +4616,14 @@ class MyTest(unittest.TestCase):
         """ Images - config setting: normalize """
 
         # 8bpp
-        img_a = cv2.imread('files/1.jpg')
-        images = Images('foo', [img_a], 0, config=['gray', 'flat', 'norm=pos'])
+        a = cv2.imread('files/1.jpg')
+        images = Images('foo', [a], 0, config=['gray', 'flat', 'norm=pos'])
         self.assertEqual("%.3f" % images.images[0][0][0], "0.420")
 
-        images = Images('foo', [img_a], 0, config=['gray', 'flat', 'norm=zero'])
+        images = Images('foo', [a], 0, config=['gray', 'flat', 'norm=zero'])
         self.assertEqual("%.3f" % images.images[0][0][0], "-0.161")
 
-        images = Images('foo', [img_a], 0, config=['gray', 'flat', 'norm=std'])
+        images = Images('foo', [a], 0, config=['gray', 'flat', 'norm=std'])
         self.assertEqual("%.3f" % images.images[0][0][0], "-0.062")
 
         # 16bpp
@@ -4651,6 +4651,19 @@ class MyTest(unittest.TestCase):
         self.assertEqual(images.images[0].shape, (2, 50, 50))
 
     def test_057(self):
+        """ Images - property gray-expand_dim"""
+        images = Images('foo', ['files/1.jpg', 'files/2.jpg'], 0,
+                        config=['resize=(50,50)'])
+        images.gray = (True, True)
+        self.assertEqual(images.images[0].shape, (2, 50, 50, 1))
+        with pytest.raises(AttributeError):
+            images.gray = (True, 'Fake')
+        with pytest.raises(AttributeError):
+            images.gray = ('Fake', 'Fake')
+        with pytest.raises(AttributeError):
+            images.gray = 'Fake'
+
+    def test_058(self):
         """ Images - split - setter - bad arguments """
         images = Images()
         with pytest.raises(TypeError):
@@ -4662,7 +4675,7 @@ class MyTest(unittest.TestCase):
         with pytest.raises(TypeError):
             images.split = 0.6, 'a'
 
-    def test_058(self):
+    def test_059(self):
         """ Images - split - single class - setter """
         images = Images('foo', ['files/1.jpg', 'files/2.jpg'], 0, config=['store'])
         images.split = 0.5, 12
@@ -4683,8 +4696,9 @@ class MyTest(unittest.TestCase):
         images.split = 0.25, 12
         self.assertEqual(len(images._train), 3)
         self.assertEqual(len(images._test), 1)
+        os.remove('foo.h5')
 
-    def test_059(self):
+    def test_060(self):
         """ Images - split - multi class - setter """
         images = Images('foo',
                         ['files/1.jpg', 'files/2.jpg', 'files/3.jpg', 'files/8rgb.jpg',
@@ -4700,8 +4714,9 @@ class MyTest(unittest.TestCase):
         images.split = 0.25, 12
         self.assertEqual(len(images._train), 6)
         self.assertEqual(len(images._test), 2)
+        os.remove('foo.h5')
 
-    def test_060(self):
+    def test_061(self):
         """ Images - split - single class - getter """
         images = Images('foo', ['files/1.jpg', 'files/2.jpg'], 0, config=['store'])
         images.split = 0.5, 12
@@ -4724,8 +4739,9 @@ class MyTest(unittest.TestCase):
         self.assertEqual(Y_train[0][0], [1])
         self.assertEqual(Y_test[0][0], [1])
         self.assertEqual(images.classes, {'0': 0})
+        os.remove('foo.h5')
 
-    def test_061(self):
+    def test_062(self):
         """ Images - split - multi class - getter """
         images = Images('foo',
                         ['files/1.jpg', 'files/2.jpg', 'files/3.jpg', 'files/8rgb.jpg',
@@ -4753,8 +4769,9 @@ class MyTest(unittest.TestCase):
         self.assertEqual(Y_train[0][0], 1)
         self.assertEqual(Y_train[0][1], 0)
         self.assertEqual(images.classes, {'0': 0, '1': 1})
+        os.remove('foo.h5')
 
-    def test_062(self):
+    def test_063(self):
         """ Images - split - single class - getter, class != 0 """
         images = Images('foo', ['files/1.jpg', 'files/2.jpg'], 1, config=['store'])
         images.split = 0.5, 12
@@ -4776,7 +4793,7 @@ class MyTest(unittest.TestCase):
         self.assertEqual(Y_test[0][0], 1)
         self.assertEqual(images.classes, {'1': 0})
 
-    def test_063(self):
+    def test_064(self):
         """ Images - split - single string class - setter - string """
         images = Images('foo', ['files/1.jpg', 'files/2.jpg'], 'cat', config=['store'])
         images.split = 0.5, 12
@@ -4806,8 +4823,9 @@ class MyTest(unittest.TestCase):
         self.assertEqual(images.classes, {'cat': 0})
 
         # load
+        os.remove('foo.h5')
 
-    def test_064(self):
+    def test_065(self):
         """ Images - split - multi class - setter - string """
         images = Images('foo',
                         ['files/1.jpg', 'files/2.jpg', 'files/3.jpg', 'files/8rgb.jpg',
@@ -4824,8 +4842,9 @@ class MyTest(unittest.TestCase):
         images.split = 0.25, 12
         self.assertEqual(len(images._train), 6)
         self.assertEqual(len(images._test), 2)
+        os.remove('foo.h5')
 
-    def test_065(self):
+    def test_066(self):
         """ Images - split - single class - getter - string """
         images = Images('foo', ['files/1.jpg', 'files/2.jpg'], 'cat', config=['store'])
         images.split = 0.5, 12
@@ -4846,8 +4865,9 @@ class MyTest(unittest.TestCase):
         self.assertEqual(Y_train[0], [1])
         self.assertEqual(Y_test[0], [1])
         self.assertEqual(images.classes, {'cat': 0})
+        os.remove('foo.h5')
 
-    def test_066(self):
+    def test_067(self):
         """ Images - split - multi class - getter - string """
         images = Images('foo',
                         ['files/1.jpg', 'files/2.jpg', 'files/3.jpg', 'files/8rgb.jpg',
@@ -4883,8 +4903,9 @@ class MyTest(unittest.TestCase):
             self.assertEqual(images.classes, {'cat': 1, 'dog': 0})
         else:
             self.assertEqual(images.classes, {'cat': 0, 'dog': 1})
+        os.remove('foo.h5')
 
-    def test_067(self):
+    def test_068(self):
         """ Images - split, getter only -- """
         images = Images('foo',
                         ['files/1.jpg', 'files/2.jpg', 'files/3.jpg',
@@ -4909,7 +4930,7 @@ class MyTest(unittest.TestCase):
         self.assertEqual(Y_train.dtype, np.uint8)
         self.assertEqual(Y_test.dtype, np.uint8)
 
-    def test_068(self):
+    def test_069(self):
         """ Images - split 100% training """
         images = Images('foo',
                         ['files/1.jpg', 'files/2.jpg', 'files/3.jpg',
@@ -4922,7 +4943,7 @@ class MyTest(unittest.TestCase):
         self.assertEqual(Y_train.shape, (5, 1))
         self.assertEqual(Y_test, None)
 
-    def test_069(self):
+    def test_070(self):
         """ Images - unevent split -- """
         images = Images('foo',
                         ['files/1.jpg', 'files/2.jpg', 'files/3.jpg', 'files/8rgb.jpg',
@@ -4935,7 +4956,7 @@ class MyTest(unittest.TestCase):
         self.assertEqual(Y_train.shape, (2, 2))
         self.assertEqual(Y_test.shape, (6, 2))
 
-    def test_070(self):
+    def test_071(self):
         """ Images - split - uint8, then normalize -- """
         images = Images('foo',
                         ['files/1.jpg', 'files/2.jpg', 'files/3.jpg', 'files/8rgb.jpg',
@@ -4959,7 +4980,7 @@ class MyTest(unittest.TestCase):
         self.assertEqual(X_train.dtype, np.float32)
         self.assertEqual(X_test.dtype, np.float32)
 
-    def test_071(self):
+    def test_072(self):
         """ images - split, shuffle order -- """
         images = Images('foo',
                         ['files/1.jpg', 'files/2.jpg', 'files/3.jpg', 'files/8rgb.jpg',
@@ -4977,7 +4998,7 @@ class MyTest(unittest.TestCase):
         self.assertEqual(images._test[2], (1, 3))
         self.assertEqual(images._test[3], (1, 1))
 
-    def test_072(self):
+    def test_073(self):
         """ images - split, more shuffle order -- """
         images = Images('foo',
                         ['files/1.jpg', 'files/2.jpg', 'files/3.jpg', 'files/8rgb.jpg',
@@ -4995,7 +5016,7 @@ class MyTest(unittest.TestCase):
             y = images._train[_][0]
             self.assertEqual(Y_train[_][y], 1)
 
-    def test_073(self):
+    def test_074(self):
         """ Images - split / next -- no image data """
         images = Images()
         with pytest.raises(AttributeError):
@@ -5007,7 +5028,7 @@ class MyTest(unittest.TestCase):
         with pytest.raises(AttributeError):
             next(images)
 
-    def test_074(self):
+    def test_075(self):
         """ Images -next() operator """
         images = Images('foo',
                         ['files/1.jpg', 'files/2.jpg', 'files/3.jpg', 'files/8rgb.jpg'],
@@ -5045,8 +5066,9 @@ class MyTest(unittest.TestCase):
             self.assertEqual(x.shape, (128, 128, 3))
             self.assertEqual(y.shape, (2,))
             self.assertEqual(x.dtype, np.float16)
+        os.remove('foo.h5')
 
-    def test_075(self):
+    def test_076(self):
         """ Images -next() operator / normalize """
         images = Images('foo',
                         ['files/1.jpg', 'files/2.jpg', 'files/3.jpg', 'files/8rgb.jpg'],
@@ -5065,7 +5087,7 @@ class MyTest(unittest.TestCase):
             self.assertEqual(y.shape, (2,))
             self.assertEqual(x.dtype, np.float32)
 
-    def test_076(self):
+    def test_077(self):
         """ Images -next() operator / implicit split """
         images = Images('foo',
                         ['files/1.jpg', 'files/2.jpg', 'files/3.jpg', 'files/8rgb.jpg'],
@@ -5083,7 +5105,7 @@ class MyTest(unittest.TestCase):
             self.assertEqual(y.shape, (2,))
             self.assertEqual(x.dtype, np.float32)
 
-    def test_077(self):
+    def test_078(self):
         """ Images - next() - shuffle order -- """
         images = Images('foo',
                         ['files/1.jpg', 'files/2.jpg', 'files/3.jpg', 'files/8rgb.jpg',
@@ -5110,7 +5132,7 @@ class MyTest(unittest.TestCase):
         x, y = next(images)
         self.assertEqual(list(y), [0, 1])
 
-    def test_078(self):
+    def test_079(self):
         """ Images - minibatch - bad args """
         images = Images('foo',
                         ['files/1.jpg', 'files/2.jpg', 'files/3.jpg', 'files/8rgb.jpg'],
@@ -5123,7 +5145,7 @@ class MyTest(unittest.TestCase):
         with pytest.raises(AttributeError):
             images.minibatch = 2
 
-    def test_079(self):
+    def test_080(self):
         """ Images - minibatch - setter """
         # explicit split
         images = Images('foo',
@@ -5144,7 +5166,7 @@ class MyTest(unittest.TestCase):
         self.assertEqual(images._minisz, 2)
         self.assertEqual(images._trainsz, 5)
 
-    def test_080(self):
+    def test_081(self):
         """ Images - minibatch - getter """
         images = Images('foo',
                         ['files/1.jpg', 'files/2.jpg', 'files/3.jpg', 'files/8rgb.jpg',
@@ -5175,7 +5197,7 @@ class MyTest(unittest.TestCase):
                 else:
                     break
 
-    def test_081(self):
+    def test_082(self):
         """ stream file csv with urls paths """
         url = 'https://raw.githubusercontent.com/gapml/CV/master/tests/files/fp_urls.csv'
         images = Images('foo', url,
@@ -5202,7 +5224,7 @@ class MyTest(unittest.TestCase):
                             config=['label_col=1', 'image_col=0',
                                     'resize=(50,50)', 'header'])
 
-    def test_082(self):
+    def test_083(self):
         """ stream file json with urls paths """
         url = 'https://raw.githubusercontent.com/gapml/CV/master/tests/files/fp_urls.json'
         images = Images('foo', url,
@@ -5230,7 +5252,7 @@ class MyTest(unittest.TestCase):
                                     'image_key=image_key',
                                     'resize=(50,50)'])
 
-    def test_083(self):
+    def test_084(self):
         """ Images - stratify - bad args """
         images = Images('foo',
                         ['files/1.jpg', 'files/2.jpg', 'files/3.jpg', 'files/8rgb.jpg'],
@@ -5253,7 +5275,7 @@ class MyTest(unittest.TestCase):
         with pytest.raises(AttributeError):
             images.stratify = 1, 0.5
 
-    def test_084(self):
+    def test_085(self):
         """ Images - stratify - setter - batch size """
         images = Images('foo', ['files/1.jpg', 'files/2.jpg', 'files/3.jpg', 'files/8rgb.jpg',
                                 'files/8rgb.png', 'files/1.jpg', 'files/2.jpg', 'files/3.jpg'],
@@ -5271,7 +5293,7 @@ class MyTest(unittest.TestCase):
         images.stratify = 2, 0.5, 12
         self.assertEqual(images._minisz, 2)
 
-    def test_085(self):
+    def test_086(self):
         """ Images - stratify - setter - getter """
         images = Images('foo',
                         ['files/1.jpg', 'files/2.jpg', 'files/3.jpg', 'files/8rgb.jpg',
@@ -5299,7 +5321,7 @@ class MyTest(unittest.TestCase):
                 else:
                     break
 
-    def test_086(self):
+    def test_087(self):
         """ Images - += Images - invalid """
         images1 = Images('foo', ['files/1.jpg', 'files/2.jpg'], 0,
                          config=['resize=(50,50)'])
@@ -5324,7 +5346,7 @@ class MyTest(unittest.TestCase):
         with pytest.raises(AttributeError):
             images1 += images2
 
-    def test_087(self):
+    def test_088(self):
         """ Images - += Images - same single class """
         images1 = Images('foo', ['files/1.jpg', 'files/2.jpg'], 0,
                          config=['resize=(50,50)'])
@@ -5338,7 +5360,7 @@ class MyTest(unittest.TestCase):
         self.assertEqual(images1.images[0].shape, (4, 50, 50, 3))
         self.assertEqual(images1.labels[0].shape, (4, ))
 
-    def test_088(self):
+    def test_089(self):
         """ Images - += Images - different class """
         images1 = Images('foo', ['files/1.jpg', 'files/2.jpg'], 0,
                          config=['resize=(50,50)'])
@@ -5357,7 +5379,7 @@ class MyTest(unittest.TestCase):
         self.assertEqual(images1.labels[0][0], 0)
         self.assertEqual(images1.labels[1][0], 1)
 
-    def test_089(self):
+    def test_090(self):
         """ Images - += Images - different metadata """
         images1 = Images('foo', ['files/1.jpg', 'files/2.jpg'], 0,
                          config=['resize=(50,50)', 'author=sam', 'src=x', 'desc=aa', 'license=c0'])
@@ -5369,7 +5391,7 @@ class MyTest(unittest.TestCase):
         self.assertEqual(images1.desc, 'aa,bb')
         self.assertEqual(images1.license, 'c0,c1')
 
-    def test_090(self):
+    def test_091(self):
         """ Images Constructor - no images, augment argument """
         images = Images(augment=None)
         images = Images(augment=[])
@@ -5431,7 +5453,7 @@ class MyTest(unittest.TestCase):
         with pytest.raises(AttributeError):
             images = Images(augment=['brightness=abc'])
 
-    def test_091(self):
+    def test_092(self):
         """ Images -next() operator with augmentation """
         images = Images('foo',
                         ['files/1.jpg', 'files/2.jpg', 'files/3.jpg', 'files/8rgb.jpg'],
@@ -5535,7 +5557,7 @@ class MyTest(unittest.TestCase):
             self.assertEqual(y.shape, (2,))
         self.assertEqual(next(images), (None, None))
 
-    def test_092(self):
+    def test_093(self):
         """ Images - augmentation - minibatch """
         images = Images('foo',
                         ['files/1.jpg', 'files/2.jpg', 'files/3.jpg', 'files/8rgb.jpg',
@@ -5566,7 +5588,7 @@ class MyTest(unittest.TestCase):
                 else:
                     break
 
-    def test_093(self):
+    def test_094(self):
         """ Images - stratify - augmentation """
         images = Images('foo',
                         ['files/1.jpg', 'files/2.jpg', 'files/3.jpg', 'files/8rgb.jpg',
@@ -5602,7 +5624,7 @@ class MyTest(unittest.TestCase):
                 else:
                     break
 
-    def test_094(self):
+    def test_095(self):
         """ Images - augmentation - minibatch - uint8 """
         images = Images('foo',
                         ['files/1.jpg', 'files/2.jpg', 'files/3.jpg', 'files/8rgb.jpg',
@@ -5634,7 +5656,7 @@ class MyTest(unittest.TestCase):
                 else:
                     break
 
-    def test_095(self):
+    def test_096(self):
         """ Images - stratify - augmentation - uint16 """
         images = Images('foo',
                         ['files/1.jpg', 'files/2.jpg', 'files/3.jpg', 'files/8rgb.jpg',
@@ -5671,7 +5693,7 @@ class MyTest(unittest.TestCase):
                 else:
                     break
 
-    def test_096(self):
+    def test_097(self):
         """ Images - augmentation - minibatch - uint8 """
         images = Images('foo', 'files/fp_urls.csv',
                         config=['uint8',
@@ -5698,7 +5720,7 @@ class MyTest(unittest.TestCase):
                 self.assertEqual(x_batch.dtype, np.float32)
                 break
 
-    def test_097(self):
+    def test_098(self):
         """ Images - stratify - augmentation - uint8 """
         images = Images('foo', 'files/fp_urls.csv',
                         config=['uint8',
@@ -5724,7 +5746,7 @@ class MyTest(unittest.TestCase):
                 self.assertEqual(x_batch.dtype, np.float32)
                 break
 
-    def test_098(self):
+    def test_099(self):
         """ Images - augmentation - minibatch - float32 """
         images = Images('foo', 'files/fp_urls.csv',
                         config=['float32',
@@ -5751,7 +5773,7 @@ class MyTest(unittest.TestCase):
                 self.assertEqual(x_batch.dtype, np.float32)
                 break
 
-    def test_099(self):
+    def test_100(self):
         """ Images - stratify - augmentation - float32 """
         images = Images('foo', 'files/fp_urls.csv',
                         config=['float32',
@@ -5777,7 +5799,7 @@ class MyTest(unittest.TestCase):
                 self.assertEqual(x_batch.dtype, np.float32)
                 break
 
-    def test_100(self):
+    def test_101(self):
         """ Images - augmentation - minibatch - float16 """
         images = Images('foo', 'files/fp_urls.csv',
                         config=['float16',
@@ -5804,7 +5826,7 @@ class MyTest(unittest.TestCase):
                 self.assertEqual(x_batch.dtype, np.float16)
                 break
 
-    def test_101(self):
+    def test_102(self):
         """ Images - stratify - augmentation - float16 """
         images = Images('foo', 'files/fp_urls.csv',
                         config=['float16',
@@ -5830,13 +5852,13 @@ class MyTest(unittest.TestCase):
                 self.assertEqual(x_batch.dtype, np.float16)
                 break
 
-    def test_102(self):
+    def test_103(self):
         """ Images - memory - load/stream """
 
         # one class
-        img_a = cv2.imread('files/1.jpg', cv2.IMREAD_COLOR)
-        img_c = np.asarray([img_a, img_a, img_a, img_a, img_a])
-        images = Images('foo', img_c, 0, config=['resize=(30,50)', 'store'])
+        a = cv2.imread('files/1.jpg', cv2.IMREAD_COLOR)
+        c = np.asarray([a, a, a, a, a])
+        images = Images('foo', c, 0, config=['resize=(30,50)', 'store'])
         self.assertEqual(images.fail, 0)
         self.assertEqual(images.errors, [])
         self.assertEqual(images.count, 5)
@@ -5862,7 +5884,7 @@ class MyTest(unittest.TestCase):
         images._hf.close()
 
         # multi-class
-        images = Images('foo', img_c, [0, 1, 0, 1, 1], config=['resize=(30,50)', 'store'])
+        images = Images('foo', c, [0, 1, 0, 1, 1], config=['resize=(30,50)', 'store'])
         self.assertEqual(images.fail, 0)
         self.assertEqual(images.errors, [])
         self.assertEqual(images.count, 5)
@@ -5889,12 +5911,13 @@ class MyTest(unittest.TestCase):
         # temp
         images._hf.close()
 
+        os.remove('foo.h5')
 
-    def test_103(self):
+    def test_104(self):
         """ Images - split - stream """
-        img_a = cv2.imread('files/1.jpg', cv2.IMREAD_COLOR)
-        img_c = np.asarray([img_a, img_a, img_a, img_a, img_a])
-        images = Images('foo', img_c, [0, 1, 0, 1, 1], config=['resize=(30,50)', 'stream'])
+        a = cv2.imread('files/1.jpg', cv2.IMREAD_COLOR)
+        c = np.asarray([a, a, a, a, a])
+        images = Images('foo', c, [0, 1, 0, 1, 1], config=['resize=(30,50)', 'stream'])
         images.split = 0.5
         with pytest.raises(AttributeError):
             x_train, x_test, y_train, y_test = images.split
@@ -5906,8 +5929,9 @@ class MyTest(unittest.TestCase):
         # temp
         images._hf.close()
 
+        os.remove('foo.h5')
 
-    def test_104(self):
+    def test_105(self):
         """ Images - minibatch - stream """
         images = Images('foo',
                         ['files/1.jpg', 'files/2.jpg', 'files/3.jpg', 'files/8rgb.jpg',
@@ -5971,8 +5995,9 @@ class MyTest(unittest.TestCase):
         # temp
         images._hf.close()
 
+        os.remove('foo.h5')
 
-    def test_105(self):
+    def test_106(self):
         """ Images - augmentation - minibatch - stream """
         images = Images('foo',
                         ['files/1.jpg', 'files/2.jpg', 'files/3.jpg', 'files/8rgb.jpg',
@@ -6035,8 +6060,9 @@ class MyTest(unittest.TestCase):
         # temp
         images._hf.close()
 
+        os.remove('foo.h5')
 
-    def test_106(self):
+    def test_107(self):
         """ Images - stratify - stream """
         images = Images('foo',
                         ['files/1.jpg', 'files/2.jpg', 'files/3.jpg', 'files/8rgb.jpg',
@@ -6095,8 +6121,9 @@ class MyTest(unittest.TestCase):
         # temp
         images._hf.close()
 
+        os.remove('foo.h5')
 
-    def test_107(self):
+    def test_108(self):
         """ Images - stratify - augmentation - stream """
         images = Images('foo',
                         ['files/1.jpg', 'files/2.jpg', 'files/3.jpg', 'files/8rgb.jpg',
@@ -6167,8 +6194,9 @@ class MyTest(unittest.TestCase):
         # temp
         images._hf.close()
 
+        os.remove('foo.h5')
 
-    def test_108(self):
+    def test_109(self):
         """ Images -next() operator - stream """
         images = Images('foo',
                         ['files/1.jpg', 'files/2.jpg', 'files/3.jpg', 'files/8rgb.jpg'],
@@ -6256,8 +6284,9 @@ class MyTest(unittest.TestCase):
         # temp
         images._hf.close()
 
+        os.remove('foo.h5')
 
-    def test_109(self):
+    def test_110(self):
         """ Images -next() operator with augmentation - stream """
         images = Images('foo',
                         ['files/1.jpg', 'files/2.jpg', 'files/3.jpg', 'files/8rgb.jpg'],
@@ -6299,8 +6328,9 @@ class MyTest(unittest.TestCase):
         # temp
         images._hf.close()
 
+        os.remove('foo.h5')
 
-    def test_110(self):
+    def test_111(self):
         """ data type when streaming """
         images = Images('foo', ['files/1.jpg'], 0, config=['store', 'uint8'])
         x1 = images._data[0][0][0][0][0]
@@ -6341,27 +6371,28 @@ class MyTest(unittest.TestCase):
         images.load('foo')
         x2 = images._data[0][0][0][0][0]
         self.assertEqual(x1, x2)
-
-    def test_111(self):
+        os.remove('foo.h5')
+        
+    def test_112(self):
         ''' memory labels - empty '''
-        img_a = cv2.imread('files/1.jpg', cv2.IMREAD_GRAYSCALE)
-
+        a = cv2.imread('files/1.jpg', cv2.IMREAD_GRAYSCALE)
+        
         # list
-        i = np.asarray([img_a])
+        i = np.asarray([a])
         with pytest.raises(AttributeError):
             images = Images('foo', i, [], config=['resize=(50,50)'])
-
+            
         # numpy array
         l = np.asarray([])
         with pytest.raises(AttributeError):
             images = Images('foo', i, l, config=['resize=(50,50)'])
-
-    def test_112(self):
+        
+    def test_113(self):
         ''' memory numpy - different int types for labels '''
-
+        
         # uint8
-        img_a = cv2.imread('files/1.jpg', cv2.IMREAD_GRAYSCALE)
-        i = np.asarray([img_a])
+        a = cv2.imread('files/1.jpg', cv2.IMREAD_GRAYSCALE)
+        i = np.asarray([a])
         l = np.asarray([0]).astype(np.uint8)
         images = Images('foo', i, l, config=['resize=(50,50)'])
         self.assertEqual(images.fail, 0)
@@ -6372,10 +6403,10 @@ class MyTest(unittest.TestCase):
         self.assertEqual(len(images.labels), 1)
         self.assertEqual(images.classes, {0: 0})
         self.assertEqual(images.labels[0][0], 0)
-
+        
         # uint16
-        img_a = cv2.imread('files/1.jpg', cv2.IMREAD_GRAYSCALE)
-        i = np.asarray([img_a])
+        a = cv2.imread('files/1.jpg', cv2.IMREAD_GRAYSCALE)
+        i = np.asarray([a])
         l = np.asarray([0]).astype(np.uint16)
         images = Images('foo', i, l, config=['resize=(50,50)'])
         self.assertEqual(images.fail, 0)
@@ -6386,10 +6417,10 @@ class MyTest(unittest.TestCase):
         self.assertEqual(len(images.labels), 1)
         self.assertEqual(images.classes, {0: 0})
         self.assertEqual(images.labels[0][0], 0)
-
+        
         # uint32
-        img_a = cv2.imread('files/1.jpg', cv2.IMREAD_GRAYSCALE)
-        i = np.asarray([img_a])
+        a = cv2.imread('files/1.jpg', cv2.IMREAD_GRAYSCALE)
+        i = np.asarray([a])
         l = np.asarray([0]).astype(np.uint32)
         images = Images('foo', i, l, config=['resize=(50,50)'])
         self.assertEqual(images.fail, 0)
@@ -6400,10 +6431,10 @@ class MyTest(unittest.TestCase):
         self.assertEqual(len(images.labels), 1)
         self.assertEqual(images.classes, {0: 0})
         self.assertEqual(images.labels[0][0], 0)
-
+        
         # int8
-        img_a = cv2.imread('files/1.jpg', cv2.IMREAD_GRAYSCALE)
-        i = np.asarray([img_a])
+        a = cv2.imread('files/1.jpg', cv2.IMREAD_GRAYSCALE)
+        i = np.asarray([a])
         l = np.asarray([0]).astype(np.int8)
         images = Images('foo', i, l, config=['resize=(50,50)'])
         self.assertEqual(images.fail, 0)
@@ -6414,10 +6445,10 @@ class MyTest(unittest.TestCase):
         self.assertEqual(len(images.labels), 1)
         self.assertEqual(images.classes, {0: 0})
         self.assertEqual(images.labels[0][0], 0)
-
+        
         # int16
-        img_a = cv2.imread('files/1.jpg', cv2.IMREAD_GRAYSCALE)
-        i = np.asarray([img_a])
+        a = cv2.imread('files/1.jpg', cv2.IMREAD_GRAYSCALE)
+        i = np.asarray([a])
         l = np.asarray([0]).astype(np.uint16)
         images = Images('foo', i, l, config=['resize=(50,50)'])
         self.assertEqual(images.fail, 0)
@@ -6428,10 +6459,10 @@ class MyTest(unittest.TestCase):
         self.assertEqual(len(images.labels), 1)
         self.assertEqual(images.classes, {0: 0})
         self.assertEqual(images.labels[0][0], 0)
-
+        
         # int32
-        img_a = cv2.imread('files/1.jpg', cv2.IMREAD_GRAYSCALE)
-        i = np.asarray([img_a])
+        a = cv2.imread('files/1.jpg', cv2.IMREAD_GRAYSCALE)
+        i = np.asarray([a])
         l = np.asarray([0]).astype(np.int32)
         images = Images('foo', i, l, config=['resize=(50,50)'])
         self.assertEqual(images.fail, 0)
@@ -6442,44 +6473,30 @@ class MyTest(unittest.TestCase):
         self.assertEqual(len(images.labels), 1)
         self.assertEqual(images.classes, {0: 0})
         self.assertEqual(images.labels[0][0], 0)
-
-    def test_113(self):
+        
+    def test_114(self):
         ''' test '''
         # in-memory
-        img_a = cv2.imread('files/1.jpg')
-        images = Images(
-            'foo',
-            [img_a, img_a, img_a, img_a, img_a, img_a, img_a, img_a],
-            [0, 0, 0, 0, 1, 1, 1, 1],
-            config=['resize=(50,50)']
-        )
+        a = cv2.imread('files/1.jpg')
+        images = Images('foo', [a,a,a,a,a,a,a,a], [0,0,0,0,1,1,1,1], config=['resize=(50,50)'])
         x, y = images.test
         self.assertEqual(x.shape, (2, 50, 50, 3))
         self.assertEqual(y.shape, (2, 2))
-
+        
         # stream
-        images = Images(
-            'foo',
-            [img_a, img_a, img_a, img_a, img_a, img_a, img_a, img_a],
-            [0, 0, 0, 0, 1, 1, 1, 1],
-            config=['resize=(50,50)', 'store']
-        )
+        images = Images('foo', [a,a,a,a,a,a,a,a], [0,0,0,0,1,1,1,1], config=['resize=(50,50)', 'store'])
         images = Images(config=['stream'])
         images.load('foo')
         x, y = images.test
         self.assertEqual(x.shape, (2, 50, 50, 3))
         self.assertEqual(y.shape, (2, 2))
         images = None
-
-    def test_114(self):
+        os.remove('foo.h5')
+        
+    def test_115(self):
         ''' minibatch fix '''
-        img_a = cv2.imread('files/1.jpg')
-        images = Images(
-            'foo',
-            [img_a, img_a, img_a, img_a, img_a, img_a, img_a, img_a, img_a, img_a],
-            [0, 0, 0, 0, 0, 1, 1, 1, 1, 1],
-            config=['resize=(50,50)']
-        )
+        a = cv2.imread('files/1.jpg')
+        images = Images('foo', [a,a,a,a,a,a,a,a,a,a], [0,0,0,0,0,1,1,1,1,1], config=['resize=(50,50)'])
         images.minibatch = 2
         g = images.minibatch
         n = 2
@@ -6489,16 +6506,11 @@ class MyTest(unittest.TestCase):
         self.assertEqual(y.shape, (2, 2))
         self.assertEqual(list(y[0]), [1, 0])
         self.assertEqual(list(y[1]), [0, 1])
-
-    def test_115(self):
+        
+    def test_116(self):
         ''' stratify fix '''
-        img_a = cv2.imread('files/1.jpg')
-        images = Images(
-            'foo',
-            [img_a, img_a, img_a, img_a, img_a, img_a, img_a, img_a, img_a, img_a],
-            [0, 0, 0, 0, 0, 1, 1, 1, 1, 1],
-            config=['resize=(50,50)']
-        )
+        a = cv2.imread('files/1.jpg')
+        images = Images('foo', [a,a,a,a,a,a,a,a,a,a], [0,0,0,0,0,1,1,1,1,1], config=['resize=(50,50)'])
         images.stratify = 2
         g = images.stratify
         n = 2
@@ -6508,14 +6520,14 @@ class MyTest(unittest.TestCase):
         self.assertEqual(y.shape, (2, 2))
         self.assertEqual(list(y[0]), [1, 0])
         self.assertEqual(list(y[1]), [0, 1])
-
-    def test_116(self):
+        
+    def test_117(self):
         ''' load - invalid params '''
         images = Images()
         with pytest.raises(TypeError):
             images.load(_dir=16)
-
-    def test_117(self):
+        
+    def test_118(self):
         ''' store - invalid params '''
         images = Images()
         with pytest.raises(ValueError):
@@ -6524,8 +6536,8 @@ class MyTest(unittest.TestCase):
             images.store(name=16)
         with pytest.raises(TypeError):
             images.store(_dir=16)
-
-    def test_118(self):
+            
+    def test_119(self):
         ''' store - basic '''
         # single class
         images = Images('foo', ['files/1.jpg', 'files/2.jpg'], 0)
@@ -6533,11 +6545,11 @@ class MyTest(unittest.TestCase):
         images = Images()
         images.load('foo')
         self.assertEqual(images.count, 2)
-        self.assertEqual(images.classes, {'0': 0})
+        self.assertEqual(images.classes, { '0': 0 })
         self.assertEqual(len(images._data), 1)
         self.assertEqual(len(images._data[0]), 2)
         self.assertEqual(len(images._labels), 1)
-
+        
         # multi-class
         images = Images('foo', ['files/1.jpg', 'files/2.jpg'], ['a', 'b'])
         images.store('foo')
@@ -6545,15 +6557,18 @@ class MyTest(unittest.TestCase):
         images.load('foo')
         self.assertEqual(images.count, 2)
         if images.classes['a'] == 0:
-            self.assertEqual(images.classes, {'a': 0, 'b': 1})
+            self.assertEqual(images.classes, { 'a': 0, 'b': 1 })
         else:
-            self.assertEqual(images.classes, {'a': 1, 'b': 0})
+            self.assertEqual(images.classes, { 'a': 1, 'b': 0 })
         self.assertEqual(len(images._data), 2)
         self.assertEqual(len(images._data[0]), 1)
         self.assertEqual(len(images._data[1]), 1)
         self.assertEqual(len(images._labels), 2)
+        
+        os.remove('foo.h5')
 
-    def test_119(self):
+            
+    def test_120(self):
         ''' store - += '''
         images = Images('apple', ['files/1.jpg', 'files/2.jpg'], 'apple')
         images += Images('pear', ['files/3.jpg', 'files/8gray.bmp'], 'pear')
@@ -6562,28 +6577,30 @@ class MyTest(unittest.TestCase):
         images.load('foo')
         self.assertEqual(images.count, 4)
         if images.classes['apple'] == 0:
-            self.assertEqual(images.classes, {'apple': 0, 'pear': 1})
+            self.assertEqual(images.classes, { 'apple': 0, 'pear': 1 })
         else:
-            self.assertEqual(images.classes, {'apple': 1, 'pear': 0})
+            self.assertEqual(images.classes, { 'apple': 1, 'pear': 0 })
         self.assertEqual(len(images._data), 2)
         self.assertEqual(len(images._data[0]), 2)
         self.assertEqual(len(images._data[1]), 2)
         self.assertEqual(len(images._labels), 2)
-
-    def test_120(self):
+        
+        os.remove('foo.h5')
+     
+    def test_121(self):
         ''' concurrent processing - invalid mp value '''
         with pytest.raises(AttributeError):
             images = Images(config=['mp='])
         with pytest.raises(AttributeError):
             images = Images(config=['mp=a'])
-
-    def test_121(self):
+            
+    def test_122(self):
         ''' concurrent processing '''
         images = Images('foo', 'files/fp_test', config=['mp=2'])
-        self.assertEqual(images.count, 25)
-        self.assertEqual(len(images.images), 5)
-
-    def test_122(self):
+        self.assertEquals(images.count, 25)
+        self.assertEquals(len(images.images), 5)
+            
+    def test_123(self):
         ''' split with valuation percent - invalid args '''
         images = Images('apple', ['files/1.jpg', 'files/2.jpg'], 'apple')
         with pytest.raises(AttributeError):
@@ -6594,33 +6611,20 @@ class MyTest(unittest.TestCase):
             images.split = [0.1, 'a']
         with pytest.raises(TypeError):
             images.split = ['a', 0.1]
-
-    def test_123(self):
+            
+    def test_124(self):
         ''' split with valuation percent '''
-        images = Images(
-            'apple',
-            [
-                'files/1.jpg',
-                'files/2.jpg',
-                'files/3.jpg',
-                'files/8gray.bmp',
-                'files/1.jpg',
-                'files/2.jpg',
-                'files/3.jpg',
-                '8gray.bmp'
-            ],
-            'apple'
-        )
+        images = Images('apple', ['files/1.jpg', 'files/2.jpg', 'files/3.jpg', 'files/8gray.bmp', 'files/1.jpg', 'files/2.jpg', 'files/3.jpg', '8gray.bmp'], 'apple')
         images.split = [0.25, 0.50]
-        self.assertEqual(len(images._test), 2)
-        self.assertEqual(len(images._train), 2)
-        self.assertEqual(len(images._val), 3)
-
+        self.assertEquals(len(images._test), 2)
+        self.assertEquals(len(images._train), 3)
+        self.assertEquals(len(images._val), 3)
+        
         # non-zero holdout
         X_train, X_val, X_test, Y_train, Y_val, Y_test = images.split
-        self.assertEqual(len(X_test), 2)
-        self.assertEqual(len(X_train), 2)
-        self.assertEqual(len(X_val), 3)
-
+        self.assertEquals(len(X_test), 2)
+        self.assertEquals(len(X_train), 3)
+        self.assertEquals(len(X_val), 3)
+        
         # zero holdout
         images.split = [0.0, 0.50]
