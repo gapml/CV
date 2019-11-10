@@ -107,8 +107,8 @@ class BareMetal(object):
 
         if self._store:
             self._classes = classes
-            self._errors  = errors
-            self._time    = elapsed
+            self._errors = errors
+            self._time = elapsed
             self._end_hdf5()
 
         # tell garbage collector to free any unused memory
@@ -141,7 +141,7 @@ class BareMetal(object):
         if self._mp > 1:
             pool = mp.Pool(self._mp)
             results = []
-            
+
         for subdir in subdirs:
             # skip entries that are not subdirectories or hidden directories (start with dot)
             if not subdir.is_dir() or subdir.name[0] == '.' or subdir.name.startswith('_'):
@@ -198,7 +198,7 @@ class BareMetal(object):
                 labels.append(np.asarray([n_label for _ in range(l)]))
                 self._count += l
                 total_elapsed += int(params[6])
-            
+
         if not self._stream:
             return collections, labels, classes, errors, total_elapsed
 
@@ -897,23 +897,18 @@ class BareMetal(object):
                 # flatten into 1D vector and resize
                 collection = [cv2.resize(image, self._resize,
                                          interpolation=cv2.INTER_AREA).flatten() for image in collection]
-            # expand dimention for keras fit_generator
-            elif self._colorspace == GRAYSCALE and self._expand_dim:
-                collection = [np.expand_dims(
+            else:
+                # resize each image to the target size (e.g., 50x50)
+                collection = [self._gray_expand_dim(
                     cv2.resize(
                         image,
                         self._resize,
                         interpolation=cv2.INTER_AREA
-                    ),
-                    axis=-1
-                ) for image in collection if image.ndim == 2]
-            else:
-                # resize each image to the target size (e.g., 50x50)
-                collection = [cv2.resize(image, self._resize,
-                                         interpolation=cv2.INTER_AREA) for image in collection]
+                    )
+                ) for image in collection]
         except:
             return None
-  
+
         # calculate the bits per pixel of the original data
         bpp = collection[0].itemsize * 8
 
@@ -932,7 +927,7 @@ class BareMetal(object):
             :param index: int
             :return     : None
         """
-        
+
         try:
             if self._flatten:
                 # flatten into 1D vector
@@ -943,9 +938,7 @@ class BareMetal(object):
         except:
             return None
 
-        if self._colorspace == GRAYSCALE and self._expand_dim:
-            if image.ndim == 2:
-                image = np.expand_dims(image, axis=-1)
+        image = self._gray_expand_dim(image)
 
         # calculate the bits per pixel of the original data
         bpp = image.itemsize * 8
@@ -984,10 +977,10 @@ class BareMetal(object):
                     image_or_collection = (image_or_collection - np.mean(image_or_collection)) / np.std(image_or_collection)
 
         return image_or_collection
-        
+
     def _create_hdf5(self):
         """ Create the HDF5 file and add toplevel metadata """
-        
+
         if self._name:
             self._hf = h5py.File(os.path.join(self._dir, self._name + '.h5'), 'w')
         else:
@@ -1009,11 +1002,11 @@ class BareMetal(object):
             self._hf.attrs['channel'] = str(['R', 'G', 'B'])
         else:
             self._hf.attrs['channel'] = str(['K'])
-            
+
     def _end_hdf5(self):
         ''' finish storing to HDF5 and update remaining metadata '''
         self._hf.attrs['count'] = self._count
-        self._hf.attrs['time']  = self._time
+        self._hf.attrs['time'] = self._time
         self._hf.attrs['shape'] = self._shape
         self._hf.attrs['class'] = str(self._classes)
         self._hf.attrs['color'] = self._colorspace
@@ -1196,6 +1189,14 @@ class BareMetal(object):
         else:
             return cv2.resize(image, resize, interpolation=cv2.INTER_AREA)
 
+
+    def _gray_expand_dim(self, image):
+        if self._colorspace == GRAYSCALE and self._expand_dim:
+            if image.ndim == 2:
+                image = np.expand_dims(image, axis=-1)
+        return image
+
+
     ### Image Augmentation ###
 
     def _augmentation(self, image):
@@ -1208,7 +1209,7 @@ class BareMetal(object):
         """ rotate the image """
 
         degree = random.randint(self._rotate[0], self._rotate[1])
-        
+
         # operation not supported in float16
         if self._dtype == np.float16:
             image = image.astype(np.float32)
@@ -1221,9 +1222,11 @@ class BareMetal(object):
             # resize takes only height x width
             shape = (image.shape[0], image.shape[1])
             rotated = cv2.resize(rotated, shape, interpolation=cv2.INTER_AREA)
-            
+
         if self._dtype == np.float16:
             return rotated.astype(np.float16)
+
+        rotated = self._gray_expand_dim(rotated)
         return rotated
 
     def _edgeImage(self, image):
@@ -1233,6 +1236,8 @@ class BareMetal(object):
             edged = cv2.Canny(gray, 20, 100)
         else:
             edged = image
+
+        edged = self._gray_expand_dim(edged)
         return edged
 
     def _flipImage(self, image):
@@ -1240,13 +1245,15 @@ class BareMetal(object):
         # operation not supported as float16
         if self._dtype == np.float16:
             image = image.astype(np.float32)
-            
+
         if self._horizontal:
             flip = cv2.flip(image, 1) # flip image horizontally
         if self._vertical:
-            flip = cv2.flip(image, 0) # flip image 
+            flip = cv2.flip(image, 0) # flip image
         if self._dtype == np.float16:
             return flip.astype(np.float16)
+
+        flip = self._gray_expand_dim(flip)
         return flip
 
     def _zoomImage(self, image):
@@ -1254,7 +1261,7 @@ class BareMetal(object):
         # operation not supported as float16
         if self._dtype == np.float16:
             image = image.astype(np.float32)
-            
+
         old_height, old_width = image.shape[:2]
         image = cv2.resize(image,
                            (int(self._zoom*old_width), int(self._zoom*old_height)),
@@ -1268,6 +1275,8 @@ class BareMetal(object):
         zoom_img = image[y-h:y+h, x-w:x+w]
         if self._dtype == np.float16:
             return zoom_img.astype(np.float16)
+
+        zoom_img = self._gray_expand_dim(zoom_img)
         return zoom_img
 
     def _denoiseImage(self, image):
@@ -1276,6 +1285,8 @@ class BareMetal(object):
             denoise = cv2.fastNlMeansDenoisingColored(image, None, 10, 10, 7, 21)
         else:
             denoise = image
+
+        denoise = self._gray_expand_dim(denoise)
         return denoise
 
     def _brightnesscontrastImage(self, image):
@@ -1283,12 +1294,14 @@ class BareMetal(object):
         # operation not supported as float16
         if self._dtype == np.float16:
             image = image.astype(np.float32)
-            
+
         brightness_contrast = cv2.convertScaleAbs(image,
                                                   alpha=self._contrast,
                                                   beta=self._brightness)
         if self._dtype == np.float16:
             return brightness_contrast.astype(np.float16)
+
+        brightness_contrast = self._gray_expand_dim(brightness_contrast)
         return brightness_contrast
 
 class Images(BareMetal):
@@ -1700,9 +1713,9 @@ class Images(BareMetal):
             if not isinstance(_dir, str):
                 raise TypeError("String expected for directory name")
             self.dir = _dir
-            
+
         self._create_hdf5()
-        
+
         for n_label in range(len(self._data)):
             collection = self._data[n_label]
             for key, value in self._classes.items():
@@ -1713,7 +1726,7 @@ class Images(BareMetal):
             sizes = None
             shapes = None
             self._write_group_hdf5(name, collection, n_label, 0, names, types, sizes, shapes, None)
-        
+
         self._end_hdf5()
 
     ### Properties ###
@@ -1946,7 +1959,7 @@ class Images(BareMetal):
             for ix, index in self._val:
                 X_val.append(self._data[ix][index])
                 Y_val.append(self._labels[ix][0])
-            
+
         # calculate the number of labels in the training set
         if self._nlabels == None:
             if len(Y_test) > 0:
@@ -2045,7 +2058,7 @@ class Images(BareMetal):
 
             # calculate the pivot point for the split
             pivot = max(int(self._split * l), 1)
-            
+
             # if validation, calculate pivot for validation split
             if val_percent > 0:
                 v_pivot = int(val_percent * pivot)
@@ -2055,7 +2068,7 @@ class Images(BareMetal):
             # split training only
             else:
                 self._train += indices[:pivot]
-                
+
             # split test
             self._test += indices[pivot:]
 
@@ -2089,8 +2102,8 @@ class Images(BareMetal):
         # mini-batch was not set, implicitly set it
         if self._minisz == 0:
             self.minibatch = 32
-              
-        # Mini-batch, return a batch on each iteration 
+
+        # Mini-batch, return a batch on each iteration
         while True:
 
             # reshuffle the training data after an entire pass
@@ -2117,9 +2130,9 @@ class Images(BareMetal):
                     image = self._augmentation(data)
                     x_batch.append(self._verifyNormalization(image))
                     y_batch.append(label)
-            
-            self._next += self._minisz        
-            yield np.asarray(x_batch), self._one_hot(np.asarray(y_batch), self._nlabels)     
+
+            self._next += self._minisz
+            yield np.asarray(x_batch), self._one_hot(np.asarray(y_batch), self._nlabels)
 
     @minibatch.setter
     def minibatch(self, batch_size):
@@ -2136,7 +2149,7 @@ class Images(BareMetal):
 
         if batch_size < 2 or batch_size >= self._trainsz:
             raise ValueError("Mini batch size is out of range")
-            
+
         # half the batch size when augmenting
         if self._augment:
             batch_size //= 2
@@ -2180,7 +2193,7 @@ class Images(BareMetal):
                         image = self._augmentation(data)
                         x_batch.append(self._verifyNormalization(image))
                         y_batch.append(label)
-                        
+
             yield np.asarray(x_batch), self._one_hot(np.asarray(y_batch), self._nlabels)
 
     @stratify.setter
@@ -2242,8 +2255,8 @@ class Images(BareMetal):
             # make a one-hot encoding for the labels
             self._labels[ix] = ix
 
-        #self._labels = self._one_hot(np.asarray(self._labels), self._nlabels)   
-        
+        #self._labels = self._one_hot(np.asarray(self._labels), self._nlabels)
+
         # open HDF5 for streaming when feeding
         if self._stream and self._hf is None:
             self._hf = h5py.File(self._dir + self._name + '.h5', 'r')
@@ -2269,7 +2282,7 @@ class Images(BareMetal):
             self._nlabels = np.max(Y_test) + 1
 
         # convert from list to numpy array
-        X_test  = np.asarray(X_test)
+        X_test = np.asarray(X_test)
         # data was not normalized prior, normalize now during feeding
         # TODO: There is no way to set the float data type
         if self.dtype == np.uint8:
