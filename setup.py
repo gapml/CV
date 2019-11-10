@@ -7,34 +7,35 @@ from setuptools import setup, find_packages
 
 # setup components
 with open('README.md', 'r', encoding="utf-8") as f:
-    long_description = f.read()
+    LONG_DESCRIPTION = f.read()
 
-install_requires = [
+INSTALL_REQUIRES = [
     'numpy',
     'h5py',
     'imutils',
     'requests',
     'opencv-python',
     'pillow',
-    'tqdm'
+    'tqdm',
+    'mypy'
 ]
 
-tests_require = [
+TESTS_REQUIRE = [
     'pytest',
     'pytest-cov'
 ]
 
-package_data = {
+PACKAGE_DATA = {
     'gapcv': ['gapcv/*']
 }
 
-project_urls = {
+PROJECT_URLS = {
     'Documentation': 'https://gapml.github.io/CV/',
     'Source Code': 'https://github.com/gapml/CV'
 }
 
 # https://pypi.org/pypi?%3Aaction=list_classifiers
-classifiers = [
+CLASSIFIERS = [
     'Development Status :: 3 - Alpha',
     'Topic :: Scientific/Engineering :: Image Recognition',
     'License :: OSI Approved :: Apache Software License',
@@ -60,8 +61,8 @@ setup(
     author_email='aferlitsch@gmail.com',
     license='Apache 2.0',
     url='https://github.com/gapml/CV',
-    project_urls=project_urls,
-    long_description=long_description,
+    project_urls=PROJECT_URLS,
+    long_description=LONG_DESCRIPTION,
     long_description_content_type='text/markdown',
     packages=find_packages(
         exclude=[
@@ -71,8 +72,8 @@ setup(
             "tests"
         ]
     ),
-    install_requires=install_requires,
-    tests_require=tests_require,
-    package_data=package_data,
-    classifiers=classifiers
+    install_requires=INSTALL_REQUIRES,
+    tests_require=TESTS_REQUIRE,
+    package_data=PACKAGE_DATA,
+    classifiers=CLASSIFIERS
 )
