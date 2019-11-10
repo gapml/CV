@@ -1034,8 +1034,11 @@ class BareMetal(object):
         try:
             if self._flatten:
                 # flatten into 1D vector and resize
-                collection = [cv2.resize(image, self._resize,
-                                         interpolation=cv2.INTER_AREA).flatten() for image in collection]
+                collection = [cv2.resize(
+                    image,
+                    self._resize,
+                    interpolation=cv2.INTER_AREA
+                ).flatten() for image in collection]
             else:
                 # resize each image to the target size (e.g., 50x50)
                 collection = [self._gray_expand_dim(
@@ -1695,7 +1698,7 @@ class Images(BareMetal):
                             self._mp = int(val)
                         except:
                             raise AttributeError('Integer expected for mp')
-                    elif setting == "verbose":
+                    elif setting == 'verbose':
                         self._disable = False
                     elif setting in ('gray', 'grayscale'):
                         self._colorspace = GRAYSCALE
@@ -2101,7 +2104,7 @@ class Images(BareMetal):
             raise IndexError('Index out of range for Images')
         return self._data[ix]
 
-    def __iadd__(self, image):
+    def __iadd__(self, image: np.ndarray):
         """ Override the += operator - add an image to the collection """
         if image is None:
             return self
