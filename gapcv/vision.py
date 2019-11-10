@@ -501,7 +501,7 @@ class BareMetal(object):
 
     def _load_csv(self):
         """ Read a dataset from a CSV file
-        
+
         Returns:
             _collections {list[np.ndarray], None} -- list of images or None if streaming
             _labels (list[int]) -- list of labels
@@ -1037,7 +1037,7 @@ class BareMetal(object):
 
     def _load_image_memory(self, image):
         """ Loads an image from memory
-    
+
         Arguments:
             image {np.ndarray} -- image loaded in memory
 
@@ -1134,7 +1134,7 @@ class BareMetal(object):
             image {np.ndarray} -- image to resize
             dset {class} -- HDF5 handle to dataset
             index {int} -- index in sequence
-        
+
         Returns:
             {np.ndarray, int) -- an image or an index
         """
@@ -2103,7 +2103,7 @@ class Images(BareMetal):
     @dir.setter
     def dir(self, _dir):
         """Setter for image directory
-        
+
         Arguments:
             _dir {str} -- directory path
         """
@@ -2212,7 +2212,7 @@ class Images(BareMetal):
 
     def __getitem__(self, index_x):
         """Override the index operator - return the collection at the corresponding index
-        
+
         Arguments:
             index_x {int} -- [description]
 
@@ -2230,7 +2230,7 @@ class Images(BareMetal):
 
         Arguments:
             image {np.ndarray} -- image to add in dataset
-        
+
         Returns:
             self -- [description]
         """
@@ -2548,7 +2548,7 @@ class Images(BareMetal):
     @minibatch.setter
     def minibatch(self, batch_size):
         """Generator for creating mini-batches
-        
+
         Arguments:
             batch_size {int} -- batche size to load data in training
         """
@@ -2814,7 +2814,7 @@ class Images(BareMetal):
     @flatten.setter
     def flatten(self, flatten):
         """(Un)Flatten the Image Data
-        
+
         Arguments:
             flatten {bool} -- True to flat images arrays
         """
@@ -2857,7 +2857,7 @@ class Images(BareMetal):
     @resize.setter
     def resize(self, resize):
         """Resize the Image Data
-        
+
         Arguments:
             resize {tuple(int)} -- (height, width)
         """
@@ -2907,7 +2907,7 @@ class Images(BareMetal):
     @gray.setter
     def gray(self, gray):
         """Grayscale the Image Data
-        
+
         Arguments:
             gray {
                 tuple(bool),
