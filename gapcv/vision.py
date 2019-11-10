@@ -1036,26 +1036,18 @@ class BareMetal(object):
                 # flatten into 1D vector and resize
                 collection = [cv2.resize(image, self._resize,
                                          interpolation=cv2.INTER_AREA).flatten() for image in collection]
-            # expand dimention for keras fit_generator
-            elif self._colorspace == GRAYSCALE and self._expand_dim:
-                collection = [np.expand_dims(
+            else:
+                # resize each image to the target size (e.g., 50x50)
+                collection = [self._gray_expand_dim(
                     cv2.resize(
                         image,
                         self._resize,
                         interpolation=cv2.INTER_AREA
-                    ).flatten() for image in collection
-                ]
-            else:
-                # resize each image to the target size (e.g., 50x50)
-                collection = [
-                        image,
-                        self._resize,
-                        interpolation=cv2.INTER_AREA
-                    ) for image in collection
-                ]
+                    )
+                ) for image in collection]
         except:
             return None
-  
+
         # calculate the bits per pixel of the original data
         bpp = collection[0].itemsize * 8
 
@@ -1093,9 +1085,7 @@ class BareMetal(object):
         except:
             return None
 
-        if self._colorspace == GRAYSCALE and self._expand_dim:
-            if image.ndim == 2:
-                image = np.expand_dims(image, axis=-1)
+        image = self._gray_expand_dim(image)
 
         # calculate the bits per pixel of the original data
         bpp = image.itemsize * 8
@@ -1358,6 +1348,14 @@ class BareMetal(object):
         else:
             return cv2.resize(image, resize, interpolation=cv2.INTER_AREA)
 
+
+    def _gray_expand_dim(self, image):
+        if self._colorspace == GRAYSCALE and self._expand_dim:
+            if image.ndim == 2:
+                image = np.expand_dims(image, axis=-1)
+        return image
+
+
     ### Image Augmentation ###
 
     def _augmentation(self, image):
@@ -1401,6 +1399,8 @@ class BareMetal(object):
 
         if self._dtype == np.float16:
             return rotated.astype(np.float16)
+
+        rotated = self._gray_expand_dim(rotated)
         return rotated
 
     def _edge_image(self, image):
@@ -1418,6 +1418,8 @@ class BareMetal(object):
             edged = cv2.Canny(gray, 20, 100)
         else:
             edged = image
+
+        edged = self._gray_expand_dim(edged)
         return edged
 
     def _flip_image(self, image):
@@ -1440,6 +1442,8 @@ class BareMetal(object):
             flip = cv2.flip(image, 0) # flip image
         if self._dtype == np.float16:
             return flip.astype(np.float16)
+
+        flip = self._gray_expand_dim(flip)
         return flip
 
     def _zoom_image(self, image):
@@ -1476,6 +1480,8 @@ class BareMetal(object):
 
         if self._dtype == np.float16:
             return zoom_img.astype(np.float16)
+
+        zoom_img = self._gray_expand_dim(zoom_img)
         return zoom_img
 
     def _denoise_image(self, image):
@@ -1492,6 +1498,8 @@ class BareMetal(object):
             denoise = cv2.fastNlMeansDenoisingColored(image, None, 10, 10, 7, 21)
         else:
             denoise = image
+
+        denoise = self._gray_expand_dim(denoise)
         return denoise
 
     def _brightness_contrast_image(self, image):
@@ -1515,6 +1523,8 @@ class BareMetal(object):
         )
         if self._dtype == np.float16:
             return brightness_contrast.astype(np.float16)
+
+        brightness_contrast = self._gray_expand_dim(brightness_contrast)
         return brightness_contrast
 
 
@@ -1955,7 +1965,6 @@ class Images(BareMetal):
                 shapes,
                 None
             )
-
         self._end_hdf5()
 
     ### Properties ###
