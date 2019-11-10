@@ -65,8 +65,14 @@ class BareMetal(object):
         return _labels, _collections
 
     def _load_dataset(self):
-        """ Load a Dataset
-            :return          : collections, labels, classes, errors, elapsed time
+        """Load a dataset
+
+        Returns:
+            collections {list[np.ndarray]} -- list of images
+            labels (list[int]) -- list of labels
+            classes {list[str]} -- list of classes
+            errors {str} -- exception
+            elapsed {float} -- time elapsed
         """
 
         # Create the HDF5 file
@@ -143,7 +149,13 @@ class BareMetal(object):
 
     def _load_directory(self):
         """ Load a Directory based dataset, where the toplevel subdirectories are the classes.
-            :return          : preprocessed data, corresponding labels, and errors
+
+        Returns:
+            collections {list[np.ndarray], None} -- list of images or None if streaming
+            labels (list[int]) -- list of labels
+            classes {list[str]} -- list of classes
+            errors {str} -- exception
+            elapsed {float} -- time elapsed
         """
 
         collections = []
@@ -240,13 +252,24 @@ class BareMetal(object):
                 self._count += label_params
                 total_elapsed += int(params[6])
 
-        if not self._stream:
-            return collections, labels, classes, errors, total_elapsed
+        if self._stream:
+            collections = None
 
-        # stream
-        return None, labels, classes, errors, total_elapsed
+        return collections, labels, classes, errors, total_elapsed
 
     def _load_directory_streaming(self, dataset):
+        """ Loads images from a directory
+
+        Arguments:
+            dataset {str} -- directory path
+
+        Returns:
+            collections {list[np.ndarray]} -- list of images
+            labels (list[int]) -- list of labels
+            classes {list[str]} -- list of classes
+            errors {None} -- exception
+            elapsed {None} -- time elapsed
+        """
 
         collection = []
         labels = []
@@ -298,8 +321,14 @@ class BareMetal(object):
         return collection, names, types, sizes, shapes, errors, elapsed, label
 
     def _load_memory(self):
-        """ Read a dataset from in-memory
-            :return          : preprocessed data, corresponding labels, and errors
+        """load a dataset from in-memory
+
+        Returns:
+            _collections {list[np.ndarray], None} -- list of images or None if streaming
+            _labels (list[int]) -- list of labels
+            classes {list[str]} -- list of classes
+            errors {str} -- exception
+            elapsed {float} -- time elapsed
         """
 
         start_time = time.time()
@@ -369,17 +398,19 @@ class BareMetal(object):
         # subtract final count of images the number that did not process
         self._count -= len(errors)
 
-        if not self._stream:
-            return  _collections, _labels, classes, errors, elapsed
-        return  None, _labels, classes, errors, elapsed
+        if self._stream:
+            _collections = None
+        return  _collections, _labels, classes, errors, elapsed
 
     def _load_list(self):
         """ Read a dataset from in-memory
 
         Returns:
-            list -- preprocessed data,
-            list -- corresponding labels,
-            string -- errors
+            _collections {list[np.ndarray], None} -- list of images or None if streaming
+            _labels (list[int]) -- list of labels
+            classes {list[str]} -- list of classes
+            errors {str} -- exception
+            elapsed {float} -- time elapsed
         """
 
         start_time = time.time()
@@ -464,13 +495,19 @@ class BareMetal(object):
         # subtract final count of images the number that did not process
         self._count -= len(errors)
 
-        if not self._stream:
-            return  _collections, _labels, classes, errors, elapsed
-        return  None, _labels, classes, errors, elapsed
+        if self._stream:
+            _collections = None
+        return  _collections, _labels, classes, errors, elapsed
 
     def _load_csv(self):
         """ Read a dataset from a CSV file
-            :return          : preprocessed data, corresponding labels, and errors
+        
+        Returns:
+            _collections {list[np.ndarray], None} -- list of images or None if streaming
+            _labels (list[int]) -- list of labels
+            classes {list[str]} -- list of classes
+            errors {str} -- exception
+            elapsed {float} -- time elapsed
         """
 
         # Argument Checks
@@ -647,15 +684,21 @@ class BareMetal(object):
         # subtract final count of images the number that did not process
         self._count -= len(errors)
 
-        if not self._stream:
-            return  _collections, _labels, classes, errors, elapsed
-        return  None, _labels, classes, errors, elapsed
+        if self._stream:
+            _collections = None
+        return  _collections, _labels, classes, errors, elapsed
 
     def _load_json(self):
         """ Read a dataset from a JSON file
-            :return          : preprocessed data, corresponding labels, and errors
 
-            format
+        Returns:
+            _collections {list[np.ndarray], None} -- list of images or None if streaming
+            _labels (list[int]) -- list of labels
+            classes {list[str]} -- list of classes
+            errors {str} -- exception
+            elapsed {float} -- time elapsed
+
+        Format:
             [
                 { image_key: image_path, label_key: label },
                 { image_key: image_path, label_key: label },
@@ -817,9 +860,9 @@ class BareMetal(object):
         # subtract final count of images the number that did not process
         self._count -= len(errors)
 
-        if not self._stream:
-            return  _collections, _labels, classes, errors, elapsed
-        return  None, _labels, classes, errors, elapsed
+        if self._stream:
+            _collections = None
+        return  _collections, _labels, classes, errors, elapsed
 
     def _load_images(self, files, dset):
         """ Load a collection of images
@@ -887,7 +930,9 @@ class BareMetal(object):
         if not self._stream and collection:
             collection = self._pixel_transform(collection)
 
-        return collection, names, types, sizes, shapes, errors, time.time() - start_time
+        elapsed = time.time() - start_time
+
+        return collection, names, types, sizes, shapes, errors, elapsed
 
     def _load_image_disk(self, file):
         """ Loads an image from disk
@@ -950,11 +995,20 @@ class BareMetal(object):
             return image, shape, size, name, _type, None
 
     def _load_image_remote(self, url):
-        """ Loads an image from a remote location
-            :param: image    : the image as raw pixel data as numpy matrix.
-            :type   image    : numpy matrix
-            :return          : a processed image as a numpy matrix (or vector if flattened).
+        """Loads an image from a remote location
+
+        Arguments:
+            url {str} -- url where the image is stored
+
+        Returns:
+            image {np.ndarray} -- image loaded
+            shape {tuple} -- (width, height)
+            size {int} -- image size on Disk
+            name {str} -- image name
+            _type = {str} -- image extension
+            {exception, None} -- error raised
         """
+
         try:
             response = requests.get(url, timeout=10)
         except Exception as error:
@@ -983,9 +1037,19 @@ class BareMetal(object):
 
     def _load_image_memory(self, image):
         """ Loads an image from memory
-            :param: image     : the image as raw pixel data as numpy matrix.
-            :return           : a processed image as a numpy matrix (or vector if flattened).
+    
+        Arguments:
+            image {np.ndarray} -- image loaded in memory
+
+        Returns:
+            image {np.ndarray} -- image loaded
+            shape {tuple} -- (width, height)
+            size {int} -- image size on Disk
+            name {str} -- image name
+            _type = {str} -- image extension
+            {exception, None} -- error raised
         """
+
         # retain the original shape
         try:
             shape = image.shape
@@ -1028,7 +1092,11 @@ class BareMetal(object):
             collection {list} -- A collection of partially preprocessed images
 
         Returns:
-            numpy array -- machine learning ready data
+            collection {
+                list[np.ndarray],
+                np.ndarray,
+                None
+            } -- list of images, image or None if streaming
         """
 
         try:
@@ -1060,14 +1128,15 @@ class BareMetal(object):
         return self._pixel_normalize(collection, bpp)
 
     def _pixel_transform_stream(self, image, dset, index):
-        """ Perform pixel transformations for single image which is then streamed into storage
-            :param image: an image
-            :type  image: numpy matrix
-            :param dset : HDF5 handle to dataset
-            :type  dset : HDF5 handle
-            :param index: current HDF5 index into dataset
-            :param index: int
-            :return     : None
+        """Perform pixel transformations for single image which is then streamed into storage
+
+        Arguments:
+            image {np.ndarray} -- image to resize
+            dset {class} -- HDF5 handle to dataset
+            index {int} -- index in sequence
+        
+        Returns:
+            {np.ndarray, int) -- an image or an index
         """
 
         try:
@@ -1103,13 +1172,19 @@ class BareMetal(object):
             return index + 1
 
     def _pixel_normalize(self, image_or_collection, bpp):
-        """ Normalize collection or image
-            :param image_or_collection: the collection or image to normalize
-            :type  image_or_collection: numpy
-            :param bpp                : bits per pixel
-            :param bpp                : int
-            :return                   : normalized collection or image
+        """Normalize collection or image
+
+        Arguments:
+            image_or_collection {
+                np.ndarray,
+                list
+            } -- the collection or image to normalize in np.ndarray
+            bpp {int} -- bits per pixel
+
+        Returns:
+            {np.ndarray, list} -- image or normalized collection
         """
+
         # Do not normalize if requesting to keep data in original integer bits per pixel (bpp)
         if self._dtype not in (np.uint8, np.int8, np.uint16, np.int16):
             # original pixel data is 8 bits per pixel
@@ -1136,7 +1211,8 @@ class BareMetal(object):
         return image_or_collection
 
     def _create_hdf5(self):
-        """ Create the HDF5 file and add toplevel metadata """
+        """Create the HDF5 file and add toplevel metadata
+        """
 
         if self._name:
             self._hf = h5py.File('{}\\{}.h5'.format(self._dir, self._name), 'w')
@@ -1161,7 +1237,9 @@ class BareMetal(object):
             self._hf.attrs['channel'] = str(['K'])
 
     def _end_hdf5(self):
-        ''' finish storing to HDF5 and update remaining metadata '''
+        """Finish storing to HDF5 and update remaining metadata
+        """
+
         self._hf.attrs['count'] = self._count
         self._hf.attrs['time'] = self._time
         self._hf.attrs['shape'] = self._shape
@@ -1174,20 +1252,22 @@ class BareMetal(object):
         self._hf.close()
         self._hf = None
 
-    def _init_stream_hdf5(self, name, nelem):
-        """
-            :param name : group name
-            :type name  : str
-            :param nelem: number of elements
-            :type nelem : int
-            :return     : dataset handle
+    def _init_stream_hdf5(self, name: str, nelem: int):
+        """init streaming from a h5 file
+
+        Arguments:
+            name {str} -- group name
+            nelem {int} -- number of elements
+
+        Returns:
+            dset {HDF5 handle} -- HDF5 handle to dataset
         """
 
         self._group = self._hf.create_group(name) # Create dataset group
         self._groups.append(name)
         if self._colorspace == GRAYSCALE:
             if self._flatten:
-                shape = (self._resize[0] * self._resize[1], )
+                shape = (self._resize[0] * self._resize[1],)
             else:
                 # switch to height, width (resize is reversed for cv2
                 shape = (self._resize[1], self._resize[0])
@@ -1196,7 +1276,7 @@ class BareMetal(object):
                 shape = (self._resize[1], self._resize[0], 1)
         else:
             if self._flatten:
-                shape = (self._resize[0] * self._resize[1] * 3, )
+                shape = (self._resize[0] * self._resize[1] * 3,)
             else:
                 # switch to height, width (resize is reversed for cv2
                 shape = (self._resize[1], self._resize[0], 3)
@@ -1218,24 +1298,18 @@ class BareMetal(object):
 
     def _write_group_hdf5(self, group, collection, label, elapsed,
                           names, types, sizes, shapes, dset):
-        """ Write a collection and metadata to HDF5 file
-            :param group     : name of collection
-            :type  group     : str
-            :param collection: collection of preprocessed image data
-            :type  collection: numpy
-            :param label     : the label for the entire collection (if labels is None)
-            :type  label     : int
-            :param elapsed   : the elapsed time to process in seconds
-            :type  elapsed   : float
-            :param names     : the original image file names
-            :type  names     : list[str]
-            :param types     : the original image file types
-            :type  types     : list[str]
-            :param sizes     : the original image file sizes
-            :type  sizes     : list[int]
-            :param shapes    : the original image shapes
-            :type  shapes    : list[tuple]
-            :return          : N/A
+        """Write a collection and metadata to HDF5 file
+
+        Arguments:
+            group {str} -- name of collection
+            collection {np.ndarray} -- collection of preprocessed image data
+            label {int} -- the label for the entire collection (if labels is None)
+            elapsed {float} -- the elapsed time to process in seconds
+            names {list[str]} -- the original image file names
+            types {list[str]} -- the original image file types
+            sizes {list[int]} -- the original image file sizes
+            shapes {list[tuple]} -- the original image shapes
+            dset {HDF5 handle} -- HDF5 handle to dataset
         """
 
         if not self._stream:
@@ -1262,7 +1336,7 @@ class BareMetal(object):
             pass
 
     def _init_labels(self):
-        """ Initialize variables for multi-class labels
+        """Initialize variables for multi-class labels
         """
 
         classes = {}
@@ -1341,7 +1415,7 @@ class BareMetal(object):
                               (default: {False})
 
         Returns:
-            numpy matrix -- a processed image (or vector if flattened).
+            image {np.ndarray} -- a processed image (or vector if flattened).
         """
 
         # resize each image to the target size (e.g., 50x50) and flatten into 1D vector
@@ -1379,10 +1453,10 @@ class BareMetal(object):
         """ rotate the image
 
         Arguments:
-            image {numpy matrix} -- raw pixel data as 2D (grayscale) or 3D (color) matrix.
+            image {np.ndarray} -- raw pixel data as 2D (grayscale) or 3D (color) matrix.
 
         Returns:
-            numpy matrix -- image rotated
+            {np.ndarray} -- image rotated
         """
 
         degree = random.randint(self._rotate[0], self._rotate[1])
@@ -1410,10 +1484,10 @@ class BareMetal(object):
         """ edge the image
 
         Arguments:
-            image {numpy matrix} -- raw pixel data as 2D (grayscale) or 3D (color) matrix.
+            image {np.ndarray} -- raw pixel data as 2D (grayscale) or 3D (color) matrix.
 
         Returns:
-            numpy matrix -- image edged
+            {np.ndarray} -- image edged
         """
 
         if self.dtype in (np.uint8, np.uint16):
@@ -1429,10 +1503,10 @@ class BareMetal(object):
         """ flip the image
 
         Arguments:
-            image {numpy matrix} -- raw pixel data as 2D (grayscale) or 3D (color) matrix.
+            image {np.ndarray} -- raw pixel data as 2D (grayscale) or 3D (color) matrix.
 
         Returns:
-            numpy matrix -- image flipped
+            {np.ndarray} -- image flipped
         """
 
         # operation not supported as float16
@@ -1453,10 +1527,10 @@ class BareMetal(object):
         """ zoom the image
 
         Arguments:
-            image {numpy matrix} -- raw pixel data as 2D (grayscale) or 3D (color) matrix.
+            image {np.ndarray} -- raw pixel data as 2D (grayscale) or 3D (color) matrix.
 
         Returns:
-            numpy matrix -- image zoomed
+            {np.ndarray} -- image zoomed
         """
 
         # operation not supported as float16
@@ -1491,10 +1565,10 @@ class BareMetal(object):
         """ denoise the image
 
         Arguments:
-            image {numpy matrix} -- raw pixel data as 2D (grayscale) or 3D (color) matrix.
+            image {np.ndarray} -- raw pixel data as 2D (grayscale) or 3D (color) matrix.
 
         Returns:
-            numpy matrix -- image denoiseed
+            {np.ndarray} -- image denoiseed
         """
 
         if self.dtype in (np.uint8, np.uint16):
@@ -1509,10 +1583,10 @@ class BareMetal(object):
         """ brightness & contrast the image
 
         Arguments:
-            image {numpy matrix} -- raw pixel data as 2D (grayscale) or 3D (color) matrix.
+            image {np.ndarray} -- raw pixel data as 2D (grayscale) or 3D (color) matrix.
 
         Returns:
-            numpy matrix -- image contrasted
+            {np.ndarray} -- image contrasted
         """
 
         # operation not supported as float16
@@ -1532,7 +1606,9 @@ class BareMetal(object):
 
 
 class Images(BareMetal):
-    """ Base (super) for classifying a group of images """
+    """Base (super) for classifying a group of images
+    """
+
     def __init__(self, name='unnamed', images=None, labels=None, _dir='./',
                  ehandler=None, config=None, augment=None):
         """ Constructor
@@ -1842,7 +1918,9 @@ class Images(BareMetal):
             thread.start()
 
     def _process(self):
-        """ Process the Dataset """
+        """Process the Dataset
+        """
+
         try:
             self._data, self._labels, self._classes, self._errors, self._time = self._load_dataset()
         except Exception as error:
@@ -1851,7 +1929,9 @@ class Images(BareMetal):
             raise error
 
     def _async(self):
-        """ Asynchronous processing of the collection """
+        """Asynchronous processing of the collection
+        """
+
         self._process()
         # signal user defined event handler when processing is done
         if isinstance(self._ehandler, tuple):
@@ -1862,7 +1942,9 @@ class Images(BareMetal):
     ### Methods ###
 
     def load(self, name='unnamed', _dir=None):
-        """ Load a Collection of Images """
+        """ Load a Collection of Images
+        """
+
         if name is None:
             raise ValueError("Name parameter cannot be None")
         if not isinstance(name, str):
@@ -1929,14 +2011,20 @@ class Images(BareMetal):
                 self._labels.append(np.asarray([label for _ in range(count)]))
                 self._groups.append(group)
 
-            pass # TODO: group attributes
+            # TODO: group attributes
 
         # leave HDF5 open when streaming
         if self._stream:
             self._hf = h5py.File('{}{}.h5'.format(self._dir, self._name), 'r')
 
     def store(self, name='unnamed', _dir=None):
-        """ Load a Collection of Images """
+        """Load a Collection of Images
+
+        Keyword Arguments:
+            name {str} -- image HDF5 name (default: {'unnamed'})
+            _dir {str} -- directory where to save HDF5 file (default: {None})
+        """
+
         if name is None:
             raise ValueError("Name parameter cannot be None")
         if not isinstance(name, str):
@@ -1976,39 +2064,49 @@ class Images(BareMetal):
 
     @property
     def name(self):
-        """ Getter for the dataset (collection) name """
+        """Getter for the dataset (collection) name
+        """
         return self._name
 
     @name.setter
     def name(self, name):
-        """ Setter for the dataset (collection) name """
+        """Setter for the dataset (collection) name
+        """
         if name and not isinstance(name, str):
             raise TypeError('String expected for collection name')
         self._name = name
 
     @property
     def images(self):
-        """ Getter for the list of processed images """
+        """Getter for the list of processed images
+        """
         return self._data
 
     @property
     def labels(self):
-        """ Getter for image labels (classification) """
+        """Getter for image labels (classification)
+        """
         return self._labels
 
     @labels.setter
     def labels(self, labels):
-        """ Setter for image labels (classification) """
+        """Setter for image labels (classification)
+        """
         self._labels = labels
 
     @property
     def dir(self):
-        """ Getter for the image directory """
+        """Getter for the image directory
+        """
         return self._dir
 
     @dir.setter
     def dir(self, _dir):
-        """ Setter for image directory """
+        """Setter for image directory
+        
+        Arguments:
+            _dir {str} -- directory path
+        """
         # value must be a string
         if _dir is not None:
             if not isinstance(_dir, str):
@@ -2024,90 +2122,118 @@ class Images(BareMetal):
 
     @property
     def time(self):
-        """ Getter for the processing time """
+        """Getter for the processing time
+        """
         return self._time
 
     @property
     def elapsed(self):
-        """ Getter for elapsed time in hh:mm:ss format for the processing time """
+        """Getter for elapsed time in hh:mm:ss format for the processing time
+        """
         return time.strftime("%H:%M:%S", time.gmtime(self._time))
 
     @property
     def fail(self):
-        """ Getter for the number of images that failed processing """
+        """Getter for the number of images that failed processing
+        """
         if self._errors:
             return len(self._errors)
         return 0
 
     @property
     def errors(self):
-        """ Getter for the list of errors reported """
+        """Getter for the list of errors reported
+        """
         return self._errors
 
     @property
     def classes(self):
-        """ Getter for list of mapping of class names to labels (integers) """
+        """Getter for list of mapping of class names to labels (integers)
+        """
         return self._classes
 
     @property
     def dtype(self):
-        """ Getter for the datatype of pixel data """
+        """Getter for the datatype of pixel data
+        """
         return self._dtype
 
     @property
     def shape(self):
-        """ Shape of the dataset """
+        """Shape of the dataset
+        """
         return self._shape
 
     @property
     def count(self):
-        """ Total number of images """
+        """Total number of images
+        """
         return self._count
 
     @property
     def author(self):
-        """ Getter for the dataset (collection) author / copyright """
+        """Getter for the dataset (collection) author / copyright
+        """
         return self._author
 
     @property
     def src(self):
-        """ Getter for the dataset (collection) source """
+        """Getter for the dataset (collection) source
+        """
         return self._src
 
     @property
     def desc(self):
-        """ Getter for the dataset (collection) description """
+        """Getter for the dataset (collection) description
+        """
         return self._desc
 
     @property
     def license(self):
-        """ Getter for the dataset (collection) license """
+        """Getter for the dataset (collection) license
+        """
         return self._license
 
     ### Overrides ###
 
     def __len__(self):
-        """ Override the len() operator - return the number of collections """
+        """Override the len() operator - return the number of collections
+        """
         if self._data is None:
             return 0
         return len(self._data)
 
     def __not__(self):
-        """ Override the not operator - return whether there are any collections """
+        """Override the not operator - return whether there are any collections
+        """
         if self._data is None:
             return False
         return True
 
-    def __getitem__(self, ix):
-        """ Override the index operator - return the collection at the corresponding index """
-        if not isinstance(ix, int):
+    def __getitem__(self, index_x):
+        """Override the index operator - return the collection at the corresponding index
+        
+        Arguments:
+            index_x {int} -- [description]
+
+        Returns:
+            [type] -- [description]
+        """
+        if not isinstance(index_x, int):
             raise TypeError('Index must be an integer')
-        if ix > len(self):
+        if index_x > len(self):
             raise IndexError('Index out of range for Images')
-        return self._data[ix]
+        return self._data[index_x]
 
     def __iadd__(self, image: np.ndarray):
-        """ Override the += operator - add an image to the collection """
+        """Override the += operator - add an image to the collection
+
+        Arguments:
+            image {np.ndarray} -- image to add in dataset
+        
+        Returns:
+            self -- [description]
+        """
         if image is None:
             return self
 
@@ -2172,7 +2298,8 @@ class Images(BareMetal):
 
     @property
     def split(self):
-        """ Getter for return a split training set """
+        """Getter for return a split training set
+        """
 
         if self._stream:
             raise AttributeError('Split incompatible in stream mode')
@@ -2280,12 +2407,22 @@ class Images(BareMetal):
 
     @split.setter
     def split(self, percent):
-        """ Set the split for training/test and create a randomized index
+        """Set the split for training/test and create a randomized i
+
+        Arguments:
+            percent {
+                float,
+                list[float],
+                tuple(float)
+            } -- split and seed (optional)
+
+        Dex
             Collections =>
                 Indices (split and shuffled)
                     |
                     V
         """
+
         if isinstance(percent, tuple):
             if len(percent) != 2:
                 raise AttributeError('Split setter must be percent, seed')
@@ -2371,7 +2508,8 @@ class Images(BareMetal):
 
     @property
     def minibatch(self):
-        """ Return a generator for the next mini batch """
+        """Return a generator for the next mini batch
+        """
         # mini-batch was not set, implicitly set it
         if self._minisz == 0:
             self.minibatch = 32
@@ -2409,7 +2547,11 @@ class Images(BareMetal):
 
     @minibatch.setter
     def minibatch(self, batch_size):
-        """ Generator for creating mini-batches """
+        """Generator for creating mini-batches
+        
+        Arguments:
+            batch_size {int} -- batche size to load data in training
+        """
         if not isinstance(batch_size, int):
             raise TypeError('Integer expected for mini batch size')
 
@@ -2432,6 +2574,8 @@ class Images(BareMetal):
 
     @property
     def stream_from_folder(self):
+        """Returns images preprocessed from folders
+        """
         image_label = self._image_label
         while image_label:
             total_images = len(image_label)
@@ -2459,6 +2603,8 @@ class Images(BareMetal):
 
     @stream_from_folder.setter
     def stream_from_folder(self, batch_size):
+        """Setup batch size of images to load from folders
+        """
         if not isinstance(batch_size, int):
             raise TypeError('Integer expected for mini batch size')
 
@@ -2473,7 +2619,8 @@ class Images(BareMetal):
 
     @property
     def stratify(self):
-        """ Return a generator for the next stratified mini batch """
+        """Return a generator for the next stratified mini batch
+        """
 
         # stratify was not set, implicitly set it
         if self._minisz == 0:
@@ -2508,7 +2655,8 @@ class Images(BareMetal):
 
     @stratify.setter
     def stratify(self, batch_size):
-        """ Generator for creating stratify mini-batches """
+        """Generator for creating stratify mini-batches
+        """
         if isinstance(batch_size, int):
             batch_size = tuple([batch_size])
 
@@ -2571,7 +2719,8 @@ class Images(BareMetal):
 
     @property
     def test(self):
-        """ Return the test data """
+        """Return the test data
+        """
         # Training set not already split, so split it
         if self._train is None:
             self.split = (1 - self._split)
@@ -2606,7 +2755,8 @@ class Images(BareMetal):
             return X_test, self._one_hot(np.asarray(Y_test), self._nlabels)
 
     def __next__(self):
-        """ Iterate through the training set (single image at a time) """
+        """Iterate through the training set (single image at a time)
+        """
 
         # Training set not already split, so split it
         if self._train is None:
@@ -2657,12 +2807,17 @@ class Images(BareMetal):
 
     @property
     def flatten(self):
-        """ dummy property """
+        """dummy property
+        """
         return None
 
     @flatten.setter
     def flatten(self, flatten):
-        """ (Un)Flatten the Image Data """
+        """(Un)Flatten the Image Data
+        
+        Arguments:
+            flatten {bool} -- True to flat images arrays
+        """
         if not isinstance(flatten, bool):
             raise TypeError('Boolean expected for flatten')
         if not self:
@@ -2695,12 +2850,17 @@ class Images(BareMetal):
 
     @property
     def resize(self):
-        """ dummy property """
+        """dummy property
+        """
         return None
 
     @resize.setter
     def resize(self, resize):
-        """ Resize the Image Data """
+        """Resize the Image Data
+        
+        Arguments:
+            resize {tuple(int)} -- (height, width)
+        """
 
         # Argument Validation
         if not isinstance(resize, tuple):
@@ -2740,12 +2900,21 @@ class Images(BareMetal):
 
     @property
     def gray(self):
-        """ dummy property """
+        """dummy property
+        """
         return None
 
     @gray.setter
     def gray(self, gray):
-        """ Grayscale the Image Data """
+        """Grayscale the Image Data
+        
+        Arguments:
+            gray {
+                tuple(bool),
+                list(bool),
+                bool
+            } -- True for gray, (True, True) to expand dimention for gray images
+        """
         expand_dim = False
         if isinstance(gray, (tuple, list)):
             if len(gray) != 2:
@@ -2772,7 +2941,7 @@ class Images(BareMetal):
             self._data = collections
 
 class Image(object):
-    """ """
+    """work in progress"""
     def __init__(self):
         """ """
         pass
