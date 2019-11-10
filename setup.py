@@ -54,7 +54,7 @@ classifiers = [
 
 setup(
     name='gapcv',
-    version='1.0.1a',
+    version='1.0.1b',
     description='CV Data Engineering Framework',
     author='Andrew Ferlitsch',
     author_email='aferlitsch@gmail.com',
