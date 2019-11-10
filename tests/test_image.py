@@ -19,10 +19,10 @@ import os
 import sys
 import time
 import unittest
-from shutil import copy, rmtree
 import cv2
 import numpy as np
 import pytest
+from shutil import copy, rmtree
 from gapcv.vision import Image, Images
 
 class MyTest(unittest.TestCase):
