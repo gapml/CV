@@ -1704,6 +1704,8 @@ class Images(BareMetal):
                         self._colorspace = GRAYSCALE
                     elif setting == 'gray-expand_dim':
                         self._colorspace = GRAYSCALE
+                    elif setting == 'gray-expand_dim':
+                        self._colorspace = GRAYSCALE
                         self._expand_dim = True
                     elif setting in ('flat', 'flatten'):
                         self._flatten = True
