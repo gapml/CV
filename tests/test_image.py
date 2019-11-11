@@ -228,8 +228,8 @@ class MyTest(unittest.TestCase):
         with pytest.raises(OSError):
             images = Images('foo', 'https://noexist.csv', config=['image_col=0', 'label_col=0'])
 
-        f = open('files/empty.csv', 'w')
-        f.close()
+        with open('files/empty.csv', 'w') as f:
+            pass
         with pytest.raises(AttributeError):
             images = Images('foo', 'files/empty.csv', config=['image_col=-1', 'label_col=0'])
         with pytest.raises(AttributeError):
@@ -249,18 +249,16 @@ class MyTest(unittest.TestCase):
         with pytest.raises(ValueError):
             images = Images('foo', 'files/empty.csv', config=['label_col=0', 'image_col=0'])
 
-        f = open('files/empty.csv', 'w')
-        f.write('1,2\n')
-        f.close()
+        with open('files/empty.csv', 'w') as f:
+            f.write('1,2\n')
         with pytest.raises(IndexError):
             images = Images('foo', 'files/empty.csv', config=['label_col=2', 'image_col=0'])
         with pytest.raises(IndexError):
             images = Images('foo', 'files/empty.csv', config=['label_col=0', 'image_col=2'])
 
-        f = open('files/empty.csv', 'w')
-        f.write('header,header\n')
-        f.write('1,2\n')
-        f.close()
+        with open('files/empty.csv', 'w') as f:
+            f.write('header,header\n')
+            f.write('1,2\n')
         with pytest.raises(IndexError):
             images = Images('foo', 'files/empty.csv',
                             config=['label_col=2', 'image_col=0', 'header'])
@@ -284,8 +282,8 @@ class MyTest(unittest.TestCase):
                             config=['image_key=image', 'label_key=label'])
 
         # missing arguments
-        f = open('files/empty.json', 'w')
-        f.close()
+        with open('files/empty.json', 'w') as f:
+            pass
         with pytest.raises(AttributeError):
             images = Images('foo', 'files/empty.json', config=[])
         with pytest.raises(AttributeError):
@@ -297,21 +295,19 @@ class MyTest(unittest.TestCase):
                             config=['image_key=image', 'label_key=image'])
 
         # bad format
-        f = open('files/empty.json', 'w')
-        f.write('{"0"\n')
-        f.close()
+        with open('files/empty.json', 'w') as f:
+            f.write('{"0"\n')
         with pytest.raises(OSError):
             images = Images('foo', 'files/empty.json',
                             config=['image_key=image', 'label_key=label'])
 
         # missing keys
-        f = open('files/test.json', 'w')
-        f.write("[")
-        f.write('{"label": 0, "image": "files/1.jpg"},\n')
-        f.write('{"label": 0, "image": "files/2.jpg"},\n')
-        f.write('{"label": 0, "image": "files/3.jpg"}\n')
-        f.write("]")
-        f.close()
+        with open('files/test.json', 'w') as f:
+            f.write("[")
+            f.write('{"label": 0, "image": "files/1.jpg"},\n')
+            f.write('{"label": 0, "image": "files/2.jpg"},\n')
+            f.write('{"label": 0, "image": "files/3.jpg"}\n')
+            f.write("]")
         with pytest.raises(IndexError):
             images = Images('foo', 'files/test.json', config=['image_key=image', 'label_key=foo'])
         with pytest.raises(IndexError):
@@ -359,8 +355,8 @@ class MyTest(unittest.TestCase):
         self.assertEqual(images.errors, [])
         self.assertEqual(images.count, 0)
 
-        f = open('files/empty/foo.txt', 'w+')
-        f.close()
+        with open('files/empty/foo.txt', 'w+') as f:
+            pass
         images = Images('foo', 'files/empty')
         self.assertEqual(len(images), 0)
         self.assertEqual(images.fail, 0)
@@ -387,8 +383,8 @@ class MyTest(unittest.TestCase):
 
         if not os.path.isdir('files/empty/.tmp'):
             os.mkdir('files/empty/.tmp')
-        f = open('files/empty/.tmp/1.jpg', 'w+')
-        f.close()
+        with open('files/empty/.tmp/1.jpg', 'w+') as f:
+            pass
         images = Images('foo', 'files/empty')
         self.assertEqual(len(images), 0)
         self.assertEqual(images.fail, 0)
@@ -461,12 +457,12 @@ class MyTest(unittest.TestCase):
     def test_016(self):
         """ Images - directory - bad images """
 
-        if os.path.isdir('files/bad/tmp1'):
+        if os.path.isdir('files/bad'):
             rmtree('files/bad')
         os.mkdir('files/bad')
         os.mkdir('files/bad/tmp1')
-        f = open('files/bad/tmp1/1.jpg', 'w+')
-        f.close()
+        with open('files/bad/tmp1/1.jpg', 'w+') as f:
+            pass
         images = Images('foo', 'files/bad')
         self.assertEqual(images.fail, 1)
         self.assertEqual(images.classes, {'tmp1': 0})
@@ -557,8 +553,8 @@ class MyTest(unittest.TestCase):
         self.assertTrue(images.time > 0)
 
         # error
-        f = open('files/root/tmp1/bad.jpg', 'w+')
-        f.close()
+        with open('files/root/tmp1/bad.jpg', 'w+') as f:
+            pass
         images = Images('foo', 'files/root', config=['store'])
         self.assertEqual(images.classes, {'tmp1': 0})
         self.assertEqual(images.fail, 1)
@@ -2243,8 +2239,8 @@ class MyTest(unittest.TestCase):
         """ Images - CSV - local path """
 
         # empty, no header
-        f = open('files/empty.csv', 'w')
-        f.close()
+        with open('files/empty.csv', 'w') as f:
+            pass
         images = Images('foo', 'files/empty.csv', config=['image_col=0', 'label_col=1'])
         self.assertEqual(images.name, 'foo')
         self.assertEqual(images.fail, 0)
@@ -2256,9 +2252,9 @@ class MyTest(unittest.TestCase):
                             config=['header', 'image_col=0', 'label_col=1'])
 
         # empty, header
-        f = open('files/empty.csv', 'w')
-        f.write('header\n')
-        f.close()
+        with open('files/empty.csv', 'w') as f:
+            f.write('header\n')
+            pass
 
         images = Images('foo', 'files/empty.csv', config=['header', 'image_col=0', 'label_col=1'])
         self.assertEqual(images.name, 'foo')
@@ -2267,11 +2263,10 @@ class MyTest(unittest.TestCase):
         self.assertEqual(images.count, 0)
 
         # single class
-        f = open('files/test.csv', 'w')
-        f.write('0,files/1.jpg\n')
-        f.write('0,files/2.jpg\n')
-        f.write('0,files/3.jpg\n')
-        f.close()
+        with open('files/test.csv', 'w') as f:
+            f.write('0,files/1.jpg\n')
+            f.write('0,files/2.jpg\n')
+            f.write('0,files/3.jpg\n')
         images = Images('foo', 'files/test.csv', config=['label_col=0', 'image_col=1'])
         self.assertEqual(images.name, 'foo')
         self.assertEqual(images.fail, 0)
@@ -2347,11 +2342,10 @@ class MyTest(unittest.TestCase):
         self.assertEqual(images.images[0].shape, (3, 50, 60, 3))
 
         # multi class
-        f = open('files/test.csv', 'w')
-        f.write('\'0\',files/1.jpg\n')
-        f.write('\'1\',files/2.jpg\n')
-        f.write('\'0\',files/3.jpg\n')
-        f.close()
+        with open('files/test.csv', 'w') as f:
+            f.write('\'0\',files/1.jpg\n')
+            f.write('\'1\',files/2.jpg\n')
+            f.write('\'0\',files/3.jpg\n')
         images = Images('foo', 'files/test.csv',
                         config=['label_col=0', 'image_col=1', 'resize=(40,50)'])
         self.assertEqual(images.fail, 0)
@@ -2515,13 +2509,12 @@ class MyTest(unittest.TestCase):
         """ Images - CSV - bad paths """
 
         # bad file in class
-        f = open('files/test.csv', 'w')
-        f.write('\'0\',files/1.jpg\n')
-        f.write('\'1\',files/2.jpg\n')
-        f.write('\'0\',files/3.jpg\n')
-        f.write('\'0\',files/bad.jpg\n')
-        f.write('\'0\',files/3.jpg\n')
-        f.close()
+        with open('files/test.csv', 'w') as f:
+            f.write('\'0\',files/1.jpg\n')
+            f.write('\'1\',files/2.jpg\n')
+            f.write('\'0\',files/3.jpg\n')
+            f.write('\'0\',files/bad.jpg\n')
+            f.write('\'0\',files/3.jpg\n')
         images = Images('foo', 'files/test.csv',
                         config=['label_col=0', 'image_col=1', 'resize=(40,50)'])
         self.assertEqual(images.fail, 1)
@@ -2686,13 +2679,12 @@ class MyTest(unittest.TestCase):
         self.assertEqual(images.images[0][0].shape, (40, 50, 3))
 
         # bad file - empty class
-        f = open('files/test.csv', 'w')
-        f.write('\'0\',files/1.jpg\n')
-        f.write('\'1\',files/2.jpg\n')
-        f.write('\'0\',files/3.jpg\n')
-        f.write('\'2\',files/bad.jpg\n')
-        f.write('\'0\',files/3.jpg\n')
-        f.close()
+        with open('files/test.csv', 'w') as f:
+            f.write('\'0\',files/1.jpg\n')
+            f.write('\'1\',files/2.jpg\n')
+            f.write('\'0\',files/3.jpg\n')
+            f.write('\'2\',files/bad.jpg\n')
+            f.write('\'0\',files/3.jpg\n')
         images = Images('foo', 'files/test.csv',
                         config=['label_col=0', 'image_col=1', 'resize=(40,50)'])
         self.assertEqual(images.fail, 1)
@@ -2751,11 +2743,10 @@ class MyTest(unittest.TestCase):
         IMAGE2 = 'https://www.accesshq.com/workspace/images/articles/test-your-technology.jpg'
 
         # multi class
-        f = open('files/test.csv', 'w')
-        f.write('\'0\',' + IMAGE1 + '\n')
-        f.write('\'1\',' + IMAGE2 + '\n')
-        f.write('\'0\',' + IMAGE1 + '\n')
-        f.close()
+        with open('files/test.csv', 'w') as f:
+            f.write('\'0\',' + IMAGE1 + '\n')
+            f.write('\'1\',' + IMAGE2 + '\n')
+            f.write('\'0\',' + IMAGE1 + '\n')
         images = Images('foo', 'files/test.csv',
                         config=['label_col=0', 'image_col=1', 'resize=(50,50)', 'flatten'])
         self.assertEqual(images.fail, 0)
@@ -2915,12 +2906,11 @@ class MyTest(unittest.TestCase):
                 self.assertEqual(len(images.labels[1]), 1)
 
         # bad remote file
-        f = open('files/test.csv', 'w')
-        f.write('\'0\',' + IMAGE1 + '\n')
-        f.write('\'1\',' + IMAGE2 + '\n')
-        f.write('\'0\',' + IMAGE1 + '\n')
-        f.write('\'0\',http://foobar17.com/noimage.jpg\n')
-        f.close()
+        with open('files/test.csv', 'w') as f:
+            f.write('\'0\',' + IMAGE1 + '\n')
+            f.write('\'1\',' + IMAGE2 + '\n')
+            f.write('\'0\',' + IMAGE1 + '\n')
+            f.write('\'0\',http://foobar17.com/noimage.jpg\n')
         images = Images('foo', 'files/test.csv',
                         config=['label_col=0', 'image_col=1', 'resize=(50,50)', 'flatten'])
         self.assertEqual(images.fail, 1)
@@ -3132,9 +3122,9 @@ class MyTest(unittest.TestCase):
         """ Images - CSV - wrong line size """
 
         # bad file - incomplete embedded data
-        f = open('files/test.csv', 'w')
-        f.write('0,"[1,2,3,4"\n')
-        f.close()
+        with open('files/test.csv', 'w') as f:
+            f.write('0,"[1,2,3,4"\n')
+            pass
         images = Images('foo', 'files/test.csv',
                         config=['resize=(8,8)', 'label_col=0', 'image_col=1'])
         self.assertEqual(images.count, 0)
@@ -3142,11 +3132,10 @@ class MyTest(unittest.TestCase):
         self.assertEqual(len(images.errors), 1)
 
         # bad file - missing image column
-        f = open('files/test.csv', 'w')
-        f.write('0,files/1.jpg\n')
-        f.write('0\n')
-        f.write('0,files/2.jpg\n')
-        f.close()
+        with open('files/test.csv', 'w') as f:
+            f.write('0,files/1.jpg\n')
+            f.write('0\n')
+            f.write('0,files/2.jpg\n')
         images = Images('foo', 'files/test.csv',
                         config=['resize=(8,8)', 'label_col=0', 'image_col=1'])
         self.assertEqual(images.count, 2)
@@ -3154,11 +3143,10 @@ class MyTest(unittest.TestCase):
         self.assertEqual(len(images.errors), 1)
 
         # bad file - blank file
-        f = open('files/test.csv', 'w')
-        f.write('0,files/1.jpg\n')
-        f.write('0,\n')
-        f.write('0,files/2.jpg\n')
-        f.close()
+        with open('files/test.csv', 'w') as f:
+            f.write('0,files/1.jpg\n')
+            f.write('0,\n')
+            f.write('0,files/2.jpg\n')
         images = Images('foo', 'files/test.csv',
                         config=['resize=(8,8)', 'label_col=0', 'image_col=1'])
         self.assertEqual(images.count, 2)
@@ -3166,11 +3154,10 @@ class MyTest(unittest.TestCase):
         self.assertEqual(len(images.errors), 1)
 
          # bad file - wrong file type
-        f = open('files/test.csv', 'w')
-        f.write('0,files/1.jpg\n')
-        f.write('0,func_test.py\n')
-        f.write('0,files/2.jpg\n')
-        f.close()
+        with open('files/test.csv', 'w') as f:
+            f.write('0,files/1.jpg\n')
+            f.write('0,func_test.py\n')
+            f.write('0,files/2.jpg\n')
         images = Images('foo', 'files/test.csv',
                         config=['resize=(8,8)', 'label_col=0', 'image_col=1'])
         self.assertEqual(images.count, 2)
@@ -3183,13 +3170,12 @@ class MyTest(unittest.TestCase):
         """ Images - JSON - local path """
 
         # single class
-        f = open('files/test.json', 'w')
-        f.write("[")
-        f.write('{"label": 0, "image": "files/1.jpg"},\n')
-        f.write('{"label": 0, "image": "files/2.jpg"},\n')
-        f.write('{"label": 0, "image": "files/3.jpg"}\n')
-        f.write("]")
-        f.close()
+        with open('files/test.json', 'w') as f:
+            f.write("[")
+            f.write('{"label": 0, "image": "files/1.jpg"},\n')
+            f.write('{"label": 0, "image": "files/2.jpg"},\n')
+            f.write('{"label": 0, "image": "files/3.jpg"}\n')
+            f.write("]")
         images = Images('foo', 'files/test.json',
                         config=['resize=(40,50)', 'label_key=label', 'image_key=image'])
         self.assertEqual(images.count, 3)
@@ -3257,13 +3243,12 @@ class MyTest(unittest.TestCase):
         self.assertEqual(images.images[0][0].shape, (40, 50, 3))
 
         # multi class
-        f = open('files/test.json', 'w')
-        f.write("[")
-        f.write('{"label": "cat", "image": "files/1.jpg"},\n')
-        f.write('{"label": "dog", "image": "files/2.jpg"},\n')
-        f.write('{"label": "cat", "image": "files/3.jpg"}\n')
-        f.write("]")
-        f.close()
+        with open('files/test.json', 'w') as f:
+            f.write("[")
+            f.write('{"label": "cat", "image": "files/1.jpg"},\n')
+            f.write('{"label": "dog", "image": "files/2.jpg"},\n')
+            f.write('{"label": "cat", "image": "files/3.jpg"}\n')
+            f.write("]")
         images = Images('foo', 'files/test.json',
                         config=['resize=(40,50)', 'label_key=label', 'image_key=image', 'gray'])
         self.assertEqual(images.count, 3)
@@ -3439,14 +3424,13 @@ class MyTest(unittest.TestCase):
         """ Images - JSON - bad local path """
 
         # multi-class
-        f = open('files/test.json', 'w')
-        f.write("[")
-        f.write('{"label": "cat", "image": "files/1.jpg"},\n')
-        f.write('{"label": "dog", "image": "files/2.jpg"},\n')
-        f.write('{"label": "cat", "image": "files/nofile.jpg"},\n')
-        f.write('{"label": "cat", "image": "files/3.jpg"}\n')
-        f.write("]")
-        f.close()
+        with open('files/test.json', 'w') as f:
+            f.write("[")
+            f.write('{"label": "cat", "image": "files/1.jpg"},\n')
+            f.write('{"label": "dog", "image": "files/2.jpg"},\n')
+            f.write('{"label": "cat", "image": "files/nofile.jpg"},\n')
+            f.write('{"label": "cat", "image": "files/3.jpg"}\n')
+            f.write("]")
         images = Images('foo', 'files/test.json',
                         config=['resize=(40,50)', 'label_key=label', 'image_key=image'])
         self.assertEqual(images.count, 3)
@@ -3580,13 +3564,12 @@ class MyTest(unittest.TestCase):
         IMAGE2 = 'https://www.accesshq.com/workspace/images/articles/test-your-technology.jpg'
 
         # single file
-        f = open('files/test.json', 'w')
-        f.write("[")
-        f.write('{"label": 0, "image": "' + IMAGE1 + '"},\n')
-        f.write('{"label": 0, "image": "' + IMAGE2 + '"},\n')
-        f.write('{"label": 0, "image": "' + IMAGE1 + '"}\n')
-        f.write("]")
-        f.close()
+        with open('files/test.json', 'w') as f:
+            f.write("[")
+            f.write('{"label": 0, "image": "' + IMAGE1 + '"},\n')
+            f.write('{"label": 0, "image": "' + IMAGE2 + '"},\n')
+            f.write('{"label": 0, "image": "' + IMAGE1 + '"}\n')
+            f.write("]")
         images = Images('foo', 'files/test.json',
                         config=['resize=(40,50)', 'label_key=label', 'image_key=image', 'gray'])
         self.assertEqual(images.count, 3)
@@ -3667,13 +3650,12 @@ class MyTest(unittest.TestCase):
         self.assertEqual(images.images[0][0].shape, (40, 50))
 
         # multi class
-        f = open('files/test.json', 'w')
-        f.write("[")
-        f.write('{"label": 0, "image": "' + IMAGE1 + '"},\n')
-        f.write('{"label": 1, "image": "' + IMAGE2 + '"},\n')
-        f.write('{"label": 1, "image": "' + IMAGE1 + '"}\n')
-        f.write("]")
-        f.close()
+        with open('files/test.json', 'w') as f:
+            f.write("[")
+            f.write('{"label": 0, "image": "' + IMAGE1 + '"},\n')
+            f.write('{"label": 1, "image": "' + IMAGE2 + '"},\n')
+            f.write('{"label": 1, "image": "' + IMAGE1 + '"}\n')
+            f.write("]")
         images = Images('foo', 'files/test.json',
                         config=['resize=(40,50)', 'label_key=label', 'image_key=image', 'gray'])
         self.assertEqual(images.count, 3)
@@ -3839,13 +3821,12 @@ class MyTest(unittest.TestCase):
         IMAGE2 = 'https://www.accesshq.com/workspace/images/articles/test-your-technology.jpg'
 
         # empty class
-        f = open('files/test.json', 'w')
-        f.write("[")
-        f.write('{"label": 0, "image": "http://badfile.ppt"},\n')
-        f.write('{"label": 1, "image": "' + IMAGE2 + '"},\n')
-        f.write('{"label": 1, "image": "' + IMAGE1 + '"}\n')
-        f.write("]")
-        f.close()
+        with open('files/test.json', 'w') as f:
+            f.write("[")
+            f.write('{"label": 0, "image": "http://badfile.ppt"},\n')
+            f.write('{"label": 1, "image": "' + IMAGE2 + '"},\n')
+            f.write('{"label": 1, "image": "' + IMAGE1 + '"}\n')
+            f.write("]")
 
         images = Images('foo', 'files/test.json',
                         config=['resize=(40,50)',
@@ -3944,15 +3925,14 @@ class MyTest(unittest.TestCase):
     def test_046(self):
         """ Images - JSON - memory """
 
-        f = open('files/test.json', 'w')
-        f.write("[\n")
-        f.write('{"label": 0, "image": "[0,1,2,3,4,5,6,7]"},\n')
-        f.write('{"label": 0, "image": "[10,11,12,13,14,15,16,17]"},\n')
-        f.write('{"label": 0, "image": "[0,1,2,3,4,5,6,7]"},\n')
-        f.write('{"label": 1, "image": "[20,21,22,23,24,25,26,27]"},\n')
-        f.write('{"label": 1, "image": "[0,1,2,3,4,5,6,7]"}\n')
-        f.write("]\n")
-        f.close()
+        with open('files/test.json', 'w') as f:
+            f.write("[\n")
+            f.write('{"label": 0, "image": "[0,1,2,3,4,5,6,7]"},\n')
+            f.write('{"label": 0, "image": "[10,11,12,13,14,15,16,17]"},\n')
+            f.write('{"label": 0, "image": "[0,1,2,3,4,5,6,7]"},\n')
+            f.write('{"label": 1, "image": "[20,21,22,23,24,25,26,27]"},\n')
+            f.write('{"label": 1, "image": "[0,1,2,3,4,5,6,7]"}\n')
+            f.write("]")
 
         # multi class
         images = Images('foo', 'files/test.json',
