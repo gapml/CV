@@ -191,7 +191,7 @@ class BareMetal(object):
 
                 classes[subdir.name] = n_label
 
-                pbar.postfix = 'Processing: label: {}'.format(subdir.name)
+                pbar.postfix = 'Processing label: {}'.format(subdir.name)
 
                 if pool:
                     results.append(
@@ -438,7 +438,7 @@ class BareMetal(object):
                 else:
                     print_image = image
 
-                pbar.postfix = 'Processing: image: {} label: {}'.format(print_image, label)
+                pbar.postfix = 'Processing image: {} label: {}'.format(print_image, label)
 
                 # load image from remote location
                 image, shape, size, name, _type, error = function(image)
@@ -605,7 +605,7 @@ class BareMetal(object):
                     counts[label] -= 1
                     continue
 
-                pbar.postfix = 'Processing: image: {} label: {}'.format(image, label)
+                pbar.postfix = 'Processing image: {} label: {}'.format(image, label)
 
                 if first_row:
                     first_row = False
@@ -910,7 +910,7 @@ class BareMetal(object):
                 else:
                     print_image = item
 
-                pbar.postfix = 'Processing: image: {}'.format(print_image)
+                pbar.postfix = 'Processing image: {}'.format(print_image)
 
                 image, shape, size, name, _type, error = function(item)
 
@@ -1216,9 +1216,9 @@ class BareMetal(object):
         """
 
         if self._name:
-            self._hf = h5py.File('{}\\{}.h5'.format(self._dir, self._name), 'w')
+            self._hf = h5py.File(os.path.join(self._dir, self._name + '.h5'), 'w')
         else:
-            self._hf = h5py.File('{}\\{}.h5'.format(self._dir, self._dataset), 'w')
+            self._hf = h5py.File(os.path.join(self._dir, self._dataset + '.h5'), 'w')
 
         # Dataset Attributes
         if self._name:
@@ -1964,7 +1964,7 @@ class Images(BareMetal):
         self._data = []
         self._labels = []
         self._groups = []
-        with h5py.File('{}{}.h5'.format(self._dir, self._name), 'r') as self._hf:
+        with h5py.File(os.path.join(self._dir, self._name + '.h5'), 'r') as self._hf:
             # Dataset Attributes
             self._name = self._hf.attrs['name']
             self._author = self._hf.attrs['author']
@@ -2014,7 +2014,7 @@ class Images(BareMetal):
 
         # leave HDF5 open when streaming
         if self._stream:
-            self._hf = h5py.File('{}{}.h5'.format(self._dir, self._name), 'r')
+            self._hf = h5py.File(os.path.join(self._dir, self._name + '.h5'), 'r')
 
     def store(self, name: str = 'unnamed', _dir: str = None):
         """Load a Collection of Images
@@ -2450,7 +2450,7 @@ class Images(BareMetal):
 
         # open HDF5 for streaming when feeding
         if self._stream and self._hf is None:
-            self._hf = h5py.File('{}{}.h5'.format(self._dir, self._name), 'r')
+            self._hf = h5py.File(os.path.join(self._dir, self._name + '.h5'), 'r')
 
         self._split = (1 - percent)
 
@@ -2714,7 +2714,7 @@ class Images(BareMetal):
 
         # open HDF5 for streaming when feeding
         if self._stream and self._hf is None:
-            self._hf = h5py.File('{}{}.h5'.format(self._dir, self._name), 'r')
+            self._hf = h5py.File(os.path.join(self._dir, self._name + '.h5'), 'r')
 
     @property
     def test(self):
