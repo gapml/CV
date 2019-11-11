@@ -6510,7 +6510,7 @@ class MyTest(unittest.TestCase):
         images = Images()
         images.load('foo')
         self.assertEqual(images.count, 2)
-        self.assertEqual(images.classes, { '0': 0 })
+        self.assertEqual(images.classes, {'0': 0})
         self.assertEqual(len(images._data), 1)
         self.assertEqual(len(images._data[0]), 2)
         self.assertEqual(len(images._labels), 1)
@@ -6522,9 +6522,9 @@ class MyTest(unittest.TestCase):
         images.load('foo')
         self.assertEqual(images.count, 2)
         if images.classes['a'] == 0:
-            self.assertEqual(images.classes, { 'a': 0, 'b': 1 })
+            self.assertEqual(images.classes, {'a': 0, 'b': 1})
         else:
-            self.assertEqual(images.classes, { 'a': 1, 'b': 0 })
+            self.assertEqual(images.classes, {'a': 1, 'b': 0})
         self.assertEqual(len(images._data), 2)
         self.assertEqual(len(images._data[0]), 1)
         self.assertEqual(len(images._data[1]), 1)
@@ -6539,9 +6539,9 @@ class MyTest(unittest.TestCase):
         images.load('foo')
         self.assertEqual(images.count, 4)
         if images.classes['apple'] == 0:
-            self.assertEqual(images.classes, { 'apple': 0, 'pear': 1 })
+            self.assertEqual(images.classes, {'apple': 0, 'pear': 1})
         else:
-            self.assertEqual(images.classes, { 'apple': 1, 'pear': 0 })
+            self.assertEqual(images.classes, {'apple': 1, 'pear': 0})
         self.assertEqual(len(images._data), 2)
         self.assertEqual(len(images._data[0]), 2)
         self.assertEqual(len(images._data[1]), 2)
