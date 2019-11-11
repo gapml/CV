@@ -31,6 +31,7 @@ import imutils
 import numpy as np
 import multiprocessing as mp
 from tqdm import tqdm
+from typing import List, Tuple
 
 # Import pillow for Python image manipulation for GIF and JP2K
 from PIL import Image as PILImage
@@ -257,7 +258,7 @@ class BareMetal(object):
 
         return collections, labels, classes, errors, total_elapsed
 
-    def _load_directory_streaming(self, dataset):
+    def _load_directory_streaming(self, dataset: str):
         """ Loads images from a directory
 
         Arguments:
@@ -934,7 +935,7 @@ class BareMetal(object):
 
         return collection, names, types, sizes, shapes, errors, elapsed
 
-    def _load_image_disk(self, file):
+    def _load_image_disk(self, file: str):
         """ Loads an image from disk
 
         Arguments:
@@ -994,7 +995,7 @@ class BareMetal(object):
         else:
             return image, shape, size, name, _type, None
 
-    def _load_image_remote(self, url):
+    def _load_image_remote(self, url: str):
         """Loads an image from a remote location
 
         Arguments:
@@ -1035,7 +1036,7 @@ class BareMetal(object):
 
         return image, shape, size, name, _type, None
 
-    def _load_image_memory(self, image):
+    def _load_image_memory(self, image: np.ndarray):
         """ Loads an image from memory
 
         Arguments:
@@ -1127,7 +1128,7 @@ class BareMetal(object):
 
         return self._pixel_normalize(collection, bpp)
 
-    def _pixel_transform_stream(self, image, dset, index):
+    def _pixel_transform_stream(self, image, dset, index: int):
         """Perform pixel transformations for single image which is then streamed into storage
 
         Arguments:
@@ -1171,7 +1172,7 @@ class BareMetal(object):
             dset[index, :] = image
             return index + 1
 
-    def _pixel_normalize(self, image_or_collection, bpp):
+    def _pixel_normalize(self, image_or_collection, bpp: int):
         """Normalize collection or image
 
         Arguments:
@@ -1296,7 +1297,7 @@ class BareMetal(object):
             dtype = 'i1'
         return self._group.create_dataset('data', shape, dtype=dtype)
 
-    def _write_group_hdf5(self, group, collection, label, elapsed,
+    def _write_group_hdf5(self, group: str, collection, label: int, elapsed: float,
                           names, types, sizes, shapes, dset):
         """Write a collection and metadata to HDF5 file
 
@@ -1402,7 +1403,7 @@ class BareMetal(object):
         return collections, labels, classes, counts, names, types, sizes, shapes, dset, d_index
 
     # UNUSED method
-    def _process_image(self, image, resize, flatten=False):
+    def _process_image(self, image, resize: Tuple[int, int], flatten: bool = False):
         """ Lowest level processing of an raw pixel data. [UNUSED]
 
         Arguments:
@@ -1609,8 +1610,8 @@ class Images(BareMetal):
     """Base (super) for classifying a group of images
     """
 
-    def __init__(self, name='unnamed', images=None, labels=None, _dir='./',
-                 ehandler=None, config=None, augment=None):
+    def __init__(self, name: str = 'unnamed', images=None, labels=None, _dir: str = './',
+                 ehandler=None, config=[], augment=[]):
         """ Constructor
 
         Keyword Arguments:
@@ -1620,8 +1621,8 @@ class Images(BareMetal):
             _dir {str} -- directory to store HDF5 file (default: {'./'})
             ehandler {callback function} -- callback for asynchronous
                                             processing (default: {None})
-            config {list} -- configuration settings (default: {None})
-            augment {list} -- augmentation settings (default: {None})
+            config {list} -- configuration settings (default: {[]})
+            augment {list} -- augmentation settings (default: {[]})
         """
 
         ### Argument Validation ###
@@ -1704,7 +1705,7 @@ class Images(BareMetal):
 
         self._remote = False
 
-        if config is not None:
+        if config:
             if not isinstance(config, list):
                 raise TypeError('List expected for config settings')
             else:
@@ -1777,8 +1778,6 @@ class Images(BareMetal):
                     elif setting == 'verbose':
                         self._disable = False
                     elif setting in ('gray', 'grayscale'):
-                        self._colorspace = GRAYSCALE
-                    elif setting == 'gray-expand_dim':
                         self._colorspace = GRAYSCALE
                     elif setting == 'gray-expand_dim':
                         self._colorspace = GRAYSCALE
@@ -1941,7 +1940,7 @@ class Images(BareMetal):
 
     ### Methods ###
 
-    def load(self, name='unnamed', _dir=None):
+    def load(self, name: str = 'unnamed', _dir: str = None):
         """ Load a Collection of Images
         """
 
@@ -2017,7 +2016,7 @@ class Images(BareMetal):
         if self._stream:
             self._hf = h5py.File('{}{}.h5'.format(self._dir, self._name), 'r')
 
-    def store(self, name='unnamed', _dir=None):
+    def store(self, name: str = 'unnamed', _dir: str = None):
         """Load a Collection of Images
 
         Keyword Arguments:
@@ -2069,7 +2068,7 @@ class Images(BareMetal):
         return self._name
 
     @name.setter
-    def name(self, name):
+    def name(self, name: str):
         """Setter for the dataset (collection) name
         """
         if name and not isinstance(name, str):
@@ -2101,7 +2100,7 @@ class Images(BareMetal):
         return self._dir
 
     @dir.setter
-    def dir(self, _dir):
+    def dir(self, _dir: str):
         """Setter for image directory
 
         Arguments:
@@ -2210,7 +2209,7 @@ class Images(BareMetal):
             return False
         return True
 
-    def __getitem__(self, index_x):
+    def __getitem__(self, index_x: int):
         """Override the index operator - return the collection at the corresponding index
 
         Arguments:
@@ -2225,7 +2224,7 @@ class Images(BareMetal):
             raise IndexError('Index out of range for Images')
         return self._data[index_x]
 
-    def __iadd__(self, image: np.ndarray):
+    def __iadd__(self, image):
         """Override the += operator - add an image to the collection
 
         Arguments:
@@ -2546,7 +2545,7 @@ class Images(BareMetal):
             yield np.asarray(x_batch), self._one_hot(np.asarray(y_batch), self._nlabels)
 
     @minibatch.setter
-    def minibatch(self, batch_size):
+    def minibatch(self, batch_size: int):
         """Generator for creating mini-batches
 
         Arguments:
@@ -2602,7 +2601,7 @@ class Images(BareMetal):
             yield np.asarray(x_batch), self._one_hot(np.asarray(y_batch), self._nlabels)
 
     @stream_from_folder.setter
-    def stream_from_folder(self, batch_size):
+    def stream_from_folder(self, batch_size: int):
         """Setup batch size of images to load from folders
         """
         if not isinstance(batch_size, int):
@@ -2654,7 +2653,7 @@ class Images(BareMetal):
             yield np.asarray(x_batch), self._one_hot(np.asarray(y_batch), self._nlabels)
 
     @stratify.setter
-    def stratify(self, batch_size):
+    def stratify(self, batch_size: int):
         """Generator for creating stratify mini-batches
         """
         if isinstance(batch_size, int):
@@ -2812,7 +2811,7 @@ class Images(BareMetal):
         return None
 
     @flatten.setter
-    def flatten(self, flatten):
+    def flatten(self, flatten: bool):
         """(Un)Flatten the Image Data
 
         Arguments:
@@ -2855,7 +2854,7 @@ class Images(BareMetal):
         return None
 
     @resize.setter
-    def resize(self, resize):
+    def resize(self, resize: Tuple[int, int]):
         """Resize the Image Data
 
         Arguments:
