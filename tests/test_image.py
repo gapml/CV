@@ -6557,8 +6557,8 @@ class MyTest(unittest.TestCase):
     def test_121(self):
         ''' concurrent processing '''
         images = Images('foo', 'files/fp_test', config=['mp=2'])
-        self.assertEquals(images.count, 25)
-        self.assertEquals(len(images.images), 5)
+        self.assertEqual(images.count, 25)
+        self.assertEqual(len(images.images), 5)
 
     def test_122(self):
         ''' split with valuation percent - invalid args '''
@@ -6585,15 +6585,15 @@ class MyTest(unittest.TestCase):
             'apple'
         )
         images.split = [0.25, 0.50]
-        self.assertEquals(len(images._test), 2)
-        self.assertEquals(len(images._train), 2)
-        self.assertEquals(len(images._val), 3)
+        self.assertEqual(len(images._test), 2)
+        self.assertEqual(len(images._train), 2)
+        self.assertEqual(len(images._val), 3)
 
         # non-zero holdout
         X_train, X_val, X_test, Y_train, Y_val, Y_test = images.split
-        self.assertEquals(len(X_test), 2)
-        self.assertEquals(len(X_train), 2)
-        self.assertEquals(len(X_val), 3)
+        self.assertEqual(len(X_test), 2)
+        self.assertEqual(len(X_train), 2)
+        self.assertEqual(len(X_val), 3)
 
         # zero holdout
         images.split = [0.0, 0.50]
