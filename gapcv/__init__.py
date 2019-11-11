@@ -1,3 +1,3 @@
 from . import vision
 
-__version__ = '1.0.1d'
+__version__ = '1.0rc4'
