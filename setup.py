@@ -22,7 +22,8 @@ INSTALL_REQUIRES = [
 
 TESTS_REQUIRE = [
     'pytest',
-    'pytest-cov'
+    'pytest-cov',
+    'pytest-mypy'
 ]
 
 PACKAGE_DATA = {
