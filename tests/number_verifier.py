@@ -21,7 +21,7 @@ limitations under the License.
 
 import glob
 
-test_files = [f for f in glob.glob("*_test.py")]
+test_files = [f for f in glob.glob("test_*.py")]
 
 for file in test_files:
     f = open(file, 'r')
