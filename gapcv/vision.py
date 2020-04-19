@@ -15,26 +15,29 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-import os
-import time
-import datetime
-import cv2
-import csv
-import json
-import requests
-import h5py
-import gc
-import threading
-import random
 import ast
+import csv
+import datetime
+import gc
+import hashlib
+import json
+import multiprocessing as mp
+import os
+import random
+import threading
+import time
+from typing import List, Tuple
+
+import cv2
+import h5py
 import imutils
 import numpy as np
-import multiprocessing as mp
+import requests
 from tqdm import tqdm
-from typing import List, Tuple
 
 # Import pillow for Python image manipulation for GIF and JP2K
 from PIL import Image as PILImage
+
 
 NORMAL_POS = 0
 NORMAL_ZERO = 1
@@ -902,8 +905,15 @@ class BareMetal(object):
             function = self._load_image_memory
             verbosity_nparray = True
 
+        cleaner_control = []
         with tqdm(files, postfix='Getting ready...', disable=self._disable) as pbar:
             for index, item in enumerate(pbar):
+                with open(item, 'rb') as f:
+                    filehash = hashlib.md5(f.read()).hexdigest()
+                if filehash not in cleaner_control:
+                    cleaner_control.append(filehash)
+                else:
+                    continue
 
                 if verbosity_nparray:
                     print_image = index
@@ -1691,6 +1701,7 @@ class Images(BareMetal):
         self._hf = None
         self._verbose = False
         self._disable = True
+        self._duplicate = False
         self._mp = 1            # parallel processing threads
 
         self._split = 0.8       # percentage of split between train / test
@@ -1806,6 +1817,8 @@ class Images(BareMetal):
                         self._stream_ff = True
                     elif setting == '16bpp':
                         self._16bpp = True
+                    elif setting == 'duplicate':
+                        self._duplicate = True
                     else:
                         raise AttributeError('Config setting not recognized: {}'.format(setting))
 
