@@ -208,7 +208,7 @@ class BareMetal(object):
                     if self._stream:
                         dset = self._init_stream_hdf5(subdir.name, len(files))
 
-                    collection, names, types, sizes, shapes, errors, elapsed = self._load_images(files, dset)
+                    collection, names, types, sizes, shapes, errors, elapsed, duplicates = self._load_images(files, dset)
 
                     if not self._stream:
                         # Accumulate the collections
@@ -218,7 +218,7 @@ class BareMetal(object):
                         labels.append(np.asarray([n_label for _ in range(label_acum)]))
                         self._count += label_acum
                     else:
-                        self._count += len(files) - len(errors)
+                        self._count += len(files) - len(errors) - duplicates
 
                     # Write collection to HDF5 storage
                     if self._store:
@@ -253,7 +253,7 @@ class BareMetal(object):
                 n_label = params[7]
                 label_params = len(params[0])
                 labels.append(np.asarray([n_label for _ in range(label_params)]))
-                self._count += label_params
+                self._count += label_params - params[8]
                 total_elapsed += int(params[6])
 
         if self._stream:
@@ -299,7 +299,7 @@ class BareMetal(object):
             dset = self._init_stream_hdf5(subdir, len(files))
 
         os.chdir(subdir)
-        collection, names, types, sizes, shapes, errors, elapsed = self._load_images(files, dset)
+        collection, names, types, sizes, shapes, errors, elapsed, duplicates = self._load_images(files, dset)
 
         label = None
         if not self._stream:
@@ -322,7 +322,7 @@ class BareMetal(object):
             )
 
         os.chdir('../')
-        return collection, names, types, sizes, shapes, errors, elapsed, label
+        return collection, names, types, sizes, shapes, errors, elapsed, label, duplicates
 
     def _load_memory(self):
         """load a dataset from in-memory
@@ -906,14 +906,17 @@ class BareMetal(object):
             verbosity_nparray = True
 
         cleaner_control = []
+        duplicates = 0
         with tqdm(files, postfix='Getting ready...', disable=self._disable) as pbar:
             for index, item in enumerate(pbar):
-                with open(item, 'rb') as f:
-                    filehash = hashlib.md5(f.read()).hexdigest()
-                if filehash not in cleaner_control:
-                    cleaner_control.append(filehash)
-                else:
-                    continue
+                if not self._duplicate:
+                    with open(item, 'rb') as f:
+                        filehash = hashlib.md5(f.read()).hexdigest()
+                    if filehash not in cleaner_control:
+                        cleaner_control.append(filehash)
+                    else:
+                        duplicates += 1
+                        continue
 
                 if verbosity_nparray:
                     print_image = index
@@ -943,7 +946,7 @@ class BareMetal(object):
 
         elapsed = time.time() - start_time
 
-        return collection, names, types, sizes, shapes, errors, elapsed
+        return collection, names, types, sizes, shapes, errors, elapsed, duplicates
 
     def _load_image_disk(self, file: str):
         """ Loads an image from disk

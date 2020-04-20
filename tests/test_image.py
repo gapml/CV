@@ -117,6 +117,7 @@ class MyTest(unittest.TestCase):
         images = Images(config=['stream'])
         images = Images(config=['header'])
         images = Images(config=['verbose'])
+        images = Images(config=['duplicate'])
         images = Images(config=['uint8'])
         self.assertEqual(images.dtype, np.uint8)
         images = Images(config=['uint16'])
